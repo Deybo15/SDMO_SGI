@@ -4,20 +4,33 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Inventario Municipal</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.0.0"></script>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #ecf0f1;
-      margin: 0;
+      background-color: #f4f6f8;
       padding: 20px;
     }
     h1 {
       color: #2c3e50;
-      margin-bottom: 20px;
     }
-    p {
-      font-size: 18px;
-      color: #34495e;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background-color: white;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: center;
+    }
+    th {
+      background-color: #3498db;
+      color: white;
+    }
+    tr:hover {
+      background-color: #f1f1f1;
     }
     a {
       display: inline-block;
@@ -35,10 +48,53 @@
 </head>
 <body>
 
-  <h1>Inventario Municipal</h1>
-  <p>En esta sección se mostrarán los artículos registrados en el sistema.</p>
+<h1>Inventario Municipal</h1>
 
-  <a href="index.html">← Volver al Inicio</a>
+<table id="inventarioTable">
+  <thead>
+    <tr>
+      <th>Código</th>
+      <th>Nombre</th>
+      <th>Unidad</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Aquí se llenarán los datos -->
+  </tbody>
+</table>
+
+<a href="index.html">← Volver al Inicio</a>
+
+<script>
+  // Aquí pones tus claves
+  const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
+  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+  async function cargarInventario() {
+    const { data, error } = await supabase
+      .from('Articulo_01') // 👈 Cambia aquí si tu tabla tiene otro nombre
+      .select('codigo_articulo, nombre_articulo, unidad');
+
+    if (error) {
+      console.error('Error cargando inventario:', error);
+      return;
+    }
+
+    const tabla = document.getElementById('inventarioTable').getElementsByTagName('tbody')[0];
+    data.forEach(item => {
+      const fila = tabla.insertRow();
+      fila.innerHTML = `
+        <td>${item.codigo_articulo}</td>
+        <td>${item.nombre_articulo}</td>
+        <td>${item.unidad}</td>
+      `;
+    });
+  }
+
+  cargarInventario();
+</script>
 
 </body>
 </html>
+
