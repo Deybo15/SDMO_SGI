@@ -70,7 +70,7 @@
 
   // Función para cargar artículos
   async function cargarArticulos() {
-    const { data, error } = await supabase.from('Articulo_01').select('*');
+    const { data, error } = await supabase.from('articulo_01').select('*');
 
     if (error) {
       console.error('Error al cargar artículos:', error);
