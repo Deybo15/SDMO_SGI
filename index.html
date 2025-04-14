@@ -2,10 +2,60 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Inventario Municipal</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f6f8;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      justify-content: center;
+    }
+    h1 {
+      color: #2c3e50;
+      margin-bottom: 10px;
+    }
+    p {
+      color: #34495e;
+      font-size: 18px;
+      margin-bottom: 40px;
+    }
+    .btn {
+      background-color: #3498db;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+    }
+    .btn:hover {
+      background-color: #2980b9;
+    }
+    footer {
+      position: absolute;
+      bottom: 10px;
+      font-size: 14px;
+      color: #95a5a6;
+    }
+  </style>
 </head>
 <body>
+
   <h1>Bienvenido al Inventario Municipal</h1>
   <p>Esta es mi primera página conectada con Supabase y Render.</p>
+  
+  <a class="btn" href="#">Entrar al Inventario</a>
+
+  <footer>© 2025 Municipalidad</footer>
+
 </body>
 </html>
+
