@@ -73,7 +73,7 @@
 
   async function cargarInventario() {
     const { data, error } = await supabase
-      .from('Articulo_01') // 👈 Cambia aquí si tu tabla tiene otro nombre
+      .from('articulo_01') // 👈 Cambia aquí si tu tabla tiene otro nombre
       .select('codigo_articulo, nombre_articulo, unidad');
 
     if (error) {
