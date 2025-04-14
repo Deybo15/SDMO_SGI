@@ -65,23 +65,27 @@
 
 <a href="index.html">← Volver al Inicio</a>
 
-<script>
-  // Aquí pones tus claves
+<script type="module">
+  // Conexión a Supabase
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
   const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
-  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   async function cargarInventario() {
     const { data, error } = await supabase
-      .from('articulo_01') // 👈 Cambia aquí si tu tabla tiene otro nombre
+      .from('articulo_01') 
       .select('codigo_articulo, nombre_articulo, unidad');
 
     if (error) {
-      console.error('Error cargando inventario:', error);
+      console.error('Error cargando inventario:', error.message);
       return;
     }
 
     const tabla = document.getElementById('inventarioTable').getElementsByTagName('tbody')[0];
+    tabla.innerHTML = ''; // Limpia la tabla antes de cargar
+
     data.forEach(item => {
       const fila = tabla.insertRow();
       fila.innerHTML = `
@@ -97,4 +101,5 @@
 
 </body>
 </html>
+
 
