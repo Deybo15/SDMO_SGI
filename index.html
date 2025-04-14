@@ -58,38 +58,3 @@
 
 </body>
 </html>
-
-<!-- Agrega el cliente de Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-
-<script>
-  // Conexión a Supabase
-  const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co'; // Usa tu URL
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'; // 👈 Aquí pegas la API Key pública que copiaste
-  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-
-  // Función para cargar artículos
-  async function cargarArticulos() {
-    const { data, error } = await supabase.from('articulo_01').select('*');
-
-    if (error) {
-      console.error('Error al cargar artículos:', error);
-      return;
-    }
-
-    const tableBody = document.querySelector('tbody');
-    tableBody.innerHTML = ''; // Limpiar antes
-
-    data.forEach((articulo) => {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${articulo.codigo_articulo}</td>
-        <td>${articulo.nombre_articulo}</td>
-        <td>${articulo.unidad}</td>
-      `;
-      tableBody.appendChild(row);
-    });
-  }
-
-  cargarArticulos();
-</script>
