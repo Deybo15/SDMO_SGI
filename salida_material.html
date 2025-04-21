@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lista de Colaboradores</title>
+  <title>Colaboradores Autorizados</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.0.0"></script>
   <style>
     body {
@@ -13,6 +13,7 @@
     }
     h1 {
       color: #2c3e50;
+      text-align: center;
     }
     table {
       width: 100%;
@@ -48,7 +49,7 @@
 </head>
 <body>
 
-<h1>Lista de Colaboradores</h1>
+<h1>Lista de Colaboradores Autorizados</h1>
 
 <table id="colaboradoresTable">
   <thead>
@@ -59,7 +60,7 @@
     </tr>
   </thead>
   <tbody>
-    <!-- Aquí se llenarán los datos -->
+    <!-- Se cargan dinámicamente -->
   </tbody>
 </table>
 
@@ -72,10 +73,11 @@
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  async function cargarColaboradores() {
+  async function cargarColaboradoresAutorizados() {
     const { data, error } = await supabase
       .from('colaboradores_06')
-      .select('identificacion, colaborador, alias');
+      .select('identificacion, colaborador, alias')
+      .eq('autorizado', true);
 
     if (error) {
       console.error('Error cargando colaboradores:', error.message);
@@ -83,7 +85,7 @@
     }
 
     const tabla = document.getElementById('colaboradoresTable').getElementsByTagName('tbody')[0];
-    tabla.innerHTML = ''; // Limpia la tabla antes de cargar
+    tabla.innerHTML = '';
 
     data.forEach(item => {
       const fila = tabla.insertRow();
@@ -95,12 +97,11 @@
     });
   }
 
-  cargarColaboradores();
+  cargarColaboradoresAutorizados();
 </script>
 
 </body>
 </html>
-
 
 
 
