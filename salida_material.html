@@ -1,82 +1,89 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Colaboradores Autorizados</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.0.0"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Registrar Salida de Material</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: #f4f6f8;
       padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    form {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 500px;
     }
     h1 {
       color: #2c3e50;
+      margin-bottom: 20px;
       text-align: center;
     }
-    table {
+    input, select, textarea {
       width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-      background-color: white;
+      margin-bottom: 10px;
+      padding: 10px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
     }
-    th, td {
-      border: 1px solid #ddd;
+    .btn {
+      background-color: #3498db;
+      color: white;
       padding: 12px;
-      text-align: center;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
     }
-    th {
-      background-color: #3498db;
-      color: white;
-    }
-    tr:hover {
-      background-color: #f1f1f1;
-    }
-    a {
-      display: inline-block;
-      margin-top: 20px;
-      background-color: #3498db;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 8px;
-      text-decoration: none;
-    }
-    a:hover {
+    .btn:hover {
       background-color: #2980b9;
     }
   </style>
 </head>
 <body>
 
-<h1>Lista de Colaboradores Autorizados</h1>
+<h1>Salida de Material</h1>
 
-<table id="colaboradoresTable">
-  <thead>
-    <tr>
-      <th>Identificación</th>
-      <th>Colaborador</th>
-      <th>Alias</th>
-    </tr>
-  </thead>
-  <tbody>
-    <!-- Se cargan dinámicamente -->
-  </tbody>
-</table>
+<form id="formSalida">
+  <input type="number" id="numero_solicitud" placeholder="Número de Solicitud" required />
+  
+  <select id="autoriza" required>
+    <option value="">Seleccione quien autoriza</option>
+  </select>
+  
+  <input type="text" id="retira" placeholder="Retira" required />
+  <input type="text" id="destino" placeholder="Destino" required />
+  <input type="text" id="tipo_cliente" placeholder="Tipo de Cliente (CI/CE/etc)" required />
+  <input type="text" id="identificador" placeholder="Identificador del Material" required />
+  <textarea id="nota" placeholder="Nota (opcional)"></textarea>
 
-<a href="index.html">← Volver al Inicio</a>
+  <button type="submit" class="btn">Guardar Salida</button>
+</form>
 
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
   const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'; // Reemplaza con tu API KEY
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  async function cargarColaboradoresAutorizados() {
+  const selectAutoriza = document.getElementById('autoriza');
+
+  // Cargar aliases autorizados
+  async function cargarColaboradores() {
     const { data, error } = await supabase
       .from('colaboradores_06')
-      .select('identificacion, colaborador, alias')
+      .select('identificacion, alias')
       .eq('autorizado', true);
 
     if (error) {
@@ -84,24 +91,47 @@
       return;
     }
 
-    const tabla = document.getElementById('colaboradoresTable').getElementsByTagName('tbody')[0];
-    tabla.innerHTML = '';
-
-    data.forEach(item => {
-      const fila = tabla.insertRow();
-      fila.innerHTML = `
-        <td>${item.identificacion}</td>
-        <td>${item.colaborador}</td>
-        <td>${item.alias ?? ''}</td>
-      `;
+    data.forEach(colab => {
+      const option = document.createElement('option');
+      option.value = colab.identificacion;
+      option.textContent = colab.alias || colab.identificacion;
+      selectAutoriza.appendChild(option);
     });
   }
 
-  cargarColaboradoresAutorizados();
+  cargarColaboradores();
+
+  // Enviar formulario
+  document.getElementById('formSalida').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const salida = {
+      numero_solicitud: parseInt(document.getElementById('numero_solicitud').value),
+      autoriza: document.getElementById('autoriza').value,
+      retira: document.getElementById('retira').value,
+      destino: document.getElementById('destino').value,
+      tipo_cliente: document.getElementById('tipo_cliente').value,
+      identificador: document.getElementById('identificador').value,
+      nota: document.getElementById('nota').value || null,
+      fecha_salida: new Date().toISOString().split('T')[0]
+    };
+
+    const { error } = await supabase
+      .from('salida_articulo_08')
+      .insert([salida]);
+
+    if (error) {
+      alert('❌ Error al guardar: ' + error.message);
+    } else {
+      alert('✅ Registro guardado correctamente.');
+      document.getElementById('formSalida').reset();
+    }
+  });
 </script>
 
 </body>
 </html>
+
 
 
 
