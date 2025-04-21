@@ -1,28 +1,27 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Ver Colaboradores</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lista de Colaboradores</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.0.0"></script>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: #f4f6f8;
       padding: 20px;
     }
     h1 {
       color: #2c3e50;
-      text-align: center;
     }
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 20px;
-      background: white;
+      background-color: white;
     }
     th, td {
-      border: 1px solid #ccc;
+      border: 1px solid #ddd;
       padding: 12px;
       text-align: center;
     }
@@ -33,58 +32,74 @@
     tr:hover {
       background-color: #f1f1f1;
     }
+    a {
+      display: inline-block;
+      margin-top: 20px;
+      background-color: #3498db;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      text-decoration: none;
+    }
+    a:hover {
+      background-color: #2980b9;
+    }
   </style>
 </head>
 <body>
 
-  <h1>Lista de Colaboradores Autorizados</h1>
-  <table id="tablaColaboradores">
-    <thead>
-      <tr>
-        <th>Identificación</th>
-        <th>Colaborador</th>
-        <th>Alias</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Aquí se insertarán los datos -->
-    </tbody>
-  </table>
+<h1>Lista de Colaboradores</h1>
 
-  <script>
-    const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co'; // Reemplazá si cambia
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'; // ⚠️ Usar la key pública
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+<table id="colaboradoresTable">
+  <thead>
+    <tr>
+      <th>Identificación</th>
+      <th>Colaborador</th>
+      <th>Alias</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Aquí se llenarán los datos -->
+  </tbody>
+</table>
 
-    async function cargarColaboradores() {
-      const { data, error } = await supabase
-        .from('colaboradores_06')
-        .select('identificacion, colaborador, alias');
+<a href="index.html">← Volver al Inicio</a>
 
-      if (error) {
-        console.error("Error al obtener colaboradores:", error);
-        alert("Error al cargar colaboradores");
-        return;
-      }
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-      const tabla = document.getElementById("tablaColaboradores").getElementsByTagName("tbody")[0];
+  const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
-      data.forEach(colab => {
-        const fila = tabla.insertRow();
-        fila.innerHTML = `
-          <td>${colab.identificacion}</td>
-          <td>${colab.colaborador}</td>
-          <td>${colab.alias || "-"}</td>
-        `;
-      });
+  async function cargarColaboradores() {
+    const { data, error } = await supabase
+      .from('colaboradores_06')
+      .select('identificacion, colaborador, alias');
+
+    if (error) {
+      console.error('Error cargando colaboradores:', error.message);
+      return;
     }
 
-    cargarColaboradores();
-  </script>
+    const tabla = document.getElementById('colaboradoresTable').getElementsByTagName('tbody')[0];
+    tabla.innerHTML = ''; // Limpia la tabla antes de cargar
+
+    data.forEach(item => {
+      const fila = tabla.insertRow();
+      fila.innerHTML = `
+        <td>${item.identificacion}</td>
+        <td>${item.colaborador}</td>
+        <td>${item.alias ?? ''}</td>
+      `;
+    });
+  }
+
+  cargarColaboradores();
+</script>
 
 </body>
 </html>
-
 
 
 
