@@ -70,6 +70,16 @@
   <button type="submit" class="btn">Guardar Salida</button>
 </form>
 
+// Verificar si el usuario está autenticado
+const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+if (!user) {
+  // Redireccionar a login si no está autenticado
+  window.location.href = "login.html";
+}
+
+
+  
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
