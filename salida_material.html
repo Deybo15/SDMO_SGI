@@ -1,146 +1,62 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Salida de Material</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f4f6f8;
-      margin: 0;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-    }
-    h1 {
-      color: #2c3e50;
-      margin-bottom: 20px;
-    }
-    form {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      width: 100%;
-      max-width: 400px;
-    }
-    input, select, textarea {
-      padding: 10px;
-      font-size: 14px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-    .btn {
-      background-color: #3498db;
-      color: white;
-      padding: 12px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 16px;
-      text-align: center;
-      text-decoration: none;
-      display: inline-block;
-      margin-top: 10px;
-    }
-    .btn:hover {
-      background-color: #2980b9;
-    }
-    .footer-buttons {
-      margin-top: 20px;
-      display: flex;
-      gap: 10px;
-    }
-  </style>
-</head>
-<body>
+<script>
+  const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
+  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-  <h1>Salida de Material</h1>
+  const form = document.getElementById('formSalida');
+  const selectAutoriza = document.getElementById('autoriza');
 
-  <form id="formSalida">
-    <input type="number" id="numero_solicitud" placeholder="Número de solicitud" required>
+  // ✅ Cargar los colaboradores autorizados
+  async function cargarColaboradores() {
+    const { data, error } = await supabase
+      .from('colaboradores_06')
+      .select('identificacion, alias')
+      .eq('autorizado', true);
 
-    <!-- SELECT DINÁMICO PARA AUTORIZA -->
-    <select id="autoriza" required>
-      <option value="">Seleccione quien autoriza</option>
-    </select>
-
-    <input type="text" id="retira" placeholder="Retira" required>
-    <input type="text" id="destino" placeholder="Destino" required>
-    <input type="text" id="tipo_cliente" placeholder="Tipo de Cliente (CI/CE/etc)" required>
-    <input type="text" id="identificador" placeholder="Identificador del Material" required>
-    <textarea id="nota" placeholder="Nota (opcional)"></textarea>
-    <button type="submit" class="btn">Guardar Salida</button>
-  </form>
-
-  <div class="footer-buttons">
-    <a class="btn" href="cliente_interno.html">← Cliente Interno</a>
-    <a class="btn" href="index.html">← Página Principal</a>
-  </div>
-
-  <script>
-    const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-
-    const form = document.getElementById('formSalida');
-    const selectAutoriza = document.getElementById('autoriza');
-
-    // Cargar colaboradores autorizados en el <select>
-    async function cargarColaboradores() {
-      const { data, error } = await supabase
-        .from('colaboradores_06')
-        .select('identificacion, alias')
-        .eq('autorizado', true);
-
-      if (error) {
-        console.error("Error al cargar colaboradores:", error);
-        return;
-      }
-
-      data.forEach(colab => {
-        const option = document.createElement('option');
-        option.value = colab.identificacion;
-        option.textContent = colab.alias;
-        selectAutoriza.appendChild(option);
-      });
+    if (error) {
+      console.error("Error al cargar colaboradores:", error.message);
+      return;
     }
 
-    cargarColaboradores();
+    // Limpiar primero
+    selectAutoriza.innerHTML = `<option value="">Seleccione quien autoriza</option>`;
 
-    // Enviar formulario a Supabase
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const { error } = await supabase
-        .from('salida_articulo_08')
-        .insert([{
-          numero_solicitud: parseInt(document.getElementById('numero_solicitud').value),
-          autoriza: document.getElementById('autoriza').value, // Guarda la identificación
-          retira: document.getElementById('retira').value,
-          destino: document.getElementById('destino').value,
-          tipo_cliente: document.getElementById('tipo_cliente').value,
-          identificador: document.getElementById('identificador').value,
-          nota: document.getElementById('nota').value || null,
-          fecha_salida: new Date().toISOString().split('T')[0]
-        }]);
-
-      if (error) {
-        alert("❌ Error al guardar: " + error.message);
-      } else {
-        alert("✅ Registro guardado correctamente.");
-        form.reset();
-      }
+    // Agregar las opciones
+    data.forEach(colab => {
+      const option = document.createElement('option');
+      option.value = colab.identificacion; // se guarda esto
+      option.textContent = colab.alias; // se muestra esto
+      selectAutoriza.appendChild(option);
     });
-  </script>
+  }
 
-</body>
-</html>
+  cargarColaboradores();
+
+  // ✅ Manejo del formulario
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const { error } = await supabase
+      .from('salida_articulo_08')
+      .insert([{
+        numero_solicitud: parseInt(document.getElementById('numero_solicitud').value),
+        autoriza: document.getElementById('autoriza').value, // guarda identificación
+        retira: document.getElementById('retira').value,
+        destino: document.getElementById('destino').value,
+        tipo_cliente: document.getElementById('tipo_cliente').value,
+        identificador: document.getElementById('identificador').value,
+        nota: document.getElementById('nota').value || null,
+        fecha_salida: new Date().toISOString().split('T')[0]
+      }]);
+
+    if (error) {
+      alert("❌ Error al guardar: " + error.message);
+    } else {
+      alert("✅ Registro guardado correctamente.");
+      form.reset();
+      await cargarColaboradores(); // vuelve a cargar por si hubo cambios
+    }
+  });
+</script>
+
 
