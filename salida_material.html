@@ -54,8 +54,9 @@
   <script>
     const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co'; // Reemplazá si cambia
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'; // ⚠️ Usar la key pública
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
+       
     async function cargarColaboradores() {
       const { data, error } = await supabase
         .from('colaboradores_06')
