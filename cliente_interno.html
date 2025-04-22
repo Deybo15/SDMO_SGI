@@ -106,7 +106,7 @@
         const { error: insertError } = await supabase.from("solicitud_17").insert({
           numero_solicitud: nuevoNumero,
           id_solicitud_sa: null,
-          id_tipo_solicitud: "STI",
+          tipo_solicitud: "STI",
           fecha_solicitud: new Date().toISOString().split("T")[0],
           area_mantenimiento: document.getElementById("area_mantenimiento").value,
           tipologia_trabajo: null,
