@@ -23,6 +23,15 @@
         .replace(/'/g, "&#039;");
     };
 
+    // Función para ordenar arrays por propiedad alfabéticamente
+    const ordenarAlfabeticamente = (array, propiedad) => {
+      return array?.sort((a, b) => {
+        const textA = a[propiedad]?.toString().toUpperCase() || '';
+        const textB = b[propiedad]?.toString().toUpperCase() || '';
+        return textA.localeCompare(textB);
+      }) || [];
+    };
+
     // Función para obtener el próximo número de solicitud
     async function obtenerProximoNumero() {
       try {
@@ -34,7 +43,6 @@
         
         if (error) throw error;
         
-        // Si hay registros, devolver el máximo + 1, sino devolver 1
         return data.length > 0 ? data[0].numero_solicitud + 1 : 1;
       } catch (error) {
         console.error("Error obteniendo número de solicitud:", error);
@@ -42,7 +50,7 @@
       }
     }
 
-    // Cargar datos en los selects
+    // Cargar datos en los selects ordenados alfabéticamente
     async function cargarDesplegables() {
       try {
         const [areas, instalaciones, supervisores, profesionales, clientes] = await Promise.all([
@@ -54,8 +62,9 @@
         ]);
 
         const buildOptions = (data, valueKey, textKey) => {
+          const datosOrdenados = ordenarAlfabeticamente(data?.data, textKey);
           let options = '<option value="" selected disabled>-- Seleccione una opción --</option>';
-          options += (data?.data || []).map(opt => 
+          options += datosOrdenados.map(opt => 
             `<option value="${escapeHtml(opt[valueKey])}">${escapeHtml(opt[textKey])}</option>`
           ).join('');
           return options;
@@ -105,7 +114,7 @@
 
         // Insertar nueva solicitud con el número generado
         const { data, error } = await supabase.from("solicitud_17").insert([{
-          numero_solicitud: proximoNumero, // Número generado por nuestro código
+          numero_solicitud: proximoNumero,
           id_solicitud_sa: null,
           tipo_solicitud: "STI",
           fecha_solicitud: new Date().toISOString().split("T")[0],
@@ -138,13 +147,14 @@
       }
     }
 
-    // Cargar tabla de solicitudes
+    // Cargar tabla de solicitudes (últimos 5 registros)
     async function cargarTabla() {
       try {
         const { data, error } = await supabase
           .from("solicitud_17")
           .select("*")
-          .order("numero_solicitud", { ascending: false });
+          .order("numero_solicitud", { ascending: false })
+          .limit(5); // Solo mostramos los últimos 5 registros
 
         const tbody = document.getElementById("tablaSolicitudes");
         tbody.innerHTML = "";
@@ -385,7 +395,7 @@
     </div>
 
     <div>
-      <h2>Solicitudes Registradas</h2>
+      <h2>Últimas 5 Solicitudes Registradas</h2>
       <table>
         <thead>
           <tr>
