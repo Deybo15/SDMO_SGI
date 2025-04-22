@@ -40,21 +40,31 @@
     .btn {
       margin-top: 20px;
       padding: 10px 20px;
-      background-color: #e74c3c;
+      background-color: #3498db;
       color: white;
       border: none;
       border-radius: 8px;
       font-size: 16px;
       cursor: pointer;
+      text-decoration: none;
     }
     .btn:hover {
+      background-color: #2980b9;
+    }
+    .logout {
+      background-color: #e74c3c;
+    }
+    .logout:hover {
       background-color: #c0392b;
     }
   </style>
 </head>
 <body>
-  <h1>Sistema de Gestión Interna SDMO</h1>
+  <h1>Bienvenido al Sistema de Inventario Municipal</h1>
   <p>Usuario conectado: <strong id="usuario"></strong></p>
-  <button class="btn" onclick="logout()">Cerrar sesión</button>
+  <a class="btn" href="cliente_interno.html">Ir a Cliente Interno</a>
+  <br><br>
+  <button class="btn logout" onclick="logout()">Cerrar sesión</button>
 </body>
 </html>
+
