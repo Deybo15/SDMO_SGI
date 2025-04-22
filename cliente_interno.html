@@ -105,24 +105,6 @@
       }
     }
 
-    // Función para obtener el próximo número de solicitud
-    async function obtenerProximoNumeroSolicitud() {
-      try {
-        const { data, error } = await supabase
-          .from('solicitud_17')
-          .select('numero_solicitud')
-          .order('numero_solicitud', { ascending: false })
-          .limit(1);
-        
-        if (error) throw error;
-        
-        return data.length > 0 ? data[0].numero_solicitud + 1 : 1;
-      } catch (error) {
-        console.error("Error obteniendo número de solicitud:", error);
-        throw error;
-      }
-    }
-
     // Guardar solicitud
     window.guardarSolicitud = async () => {
       try {
@@ -133,23 +115,23 @@
           return;
         }
 
-        // Validar que se hayan seleccionado todas las opciones
-        const selects = document.querySelectorAll("select[required]");
-        for (const select of selects) {
+        // Validar selects
+        const selects = ["area_mantenimiento", "instalacion_municipal", 
+                        "supervisor_asignado", "profesional_responsable", 
+                        "cliente_interno"];
+        
+        for (const selectId of selects) {
+          const select = document.getElementById(selectId);
           if (!select.value) {
-            showNotification(`Por favor seleccione una opción en ${select.previousElementSibling.textContent}`, "error");
+            showNotification(`Por favor seleccione ${select.previousElementSibling.textContent}`, "error");
             return;
           }
         }
 
         showLoading(true);
         
-        // Obtener el próximo número de solicitud
-        const proximoNumero = await obtenerProximoNumeroSolicitud();
-        
-        // Insertar nueva solicitud con el número generado
-        const { error: insertError } = await supabase.from("solicitud_17").insert({
-          numero_solicitud: proximoNumero,  // Incluir el número de solicitud generado
+        // Insertar nueva solicitud (la base de datos generará automáticamente el numero_solicitud)
+        const { data, error } = await supabase.from("solicitud_17").insert({
           id_solicitud_sa: null,
           id_tipo_solicitud: "STI",
           fecha_solicitud: new Date().toISOString().split("T")[0],
@@ -169,11 +151,13 @@
           cliente_externo: null,
           numero_activo: null,
           dependencia_municipal: null
-        });
+        }).select();
 
-        if (insertError) throw insertError;
+        if (error) throw error;
 
-        showNotification(`Solicitud #${proximoNumero} guardada exitosamente`, "success");
+        // Mostrar el número generado por la base de datos
+        const numeroGenerado = data[0].numero_solicitud;
+        showNotification(`Solicitud #${numeroGenerado} guardada exitosamente`, "success");
         document.getElementById("formSolicitud").reset();
         document.getElementById("popup").style.display = "none";
 
@@ -235,7 +219,6 @@
     }
   </script>
   <style>
-    /* Estilos permanecen igual... */
     * {
       box-sizing: border-box;
       margin: 0;
