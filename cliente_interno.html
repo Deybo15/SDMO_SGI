@@ -41,7 +41,7 @@
       bases.data.forEach(b => baseSelect.innerHTML += `<option value="${b.id_base}">${b.base}</option>`);
       supervisores.data.forEach(s => supervisorSelect.innerHTML += `<option value="${s.identificacion}">${s.colaborador}</option>`);
       profesionales.data.forEach(p => profesionalSelect.innerHTML += `<option value="${p.identificacion}">${p.colaborador}</option>`);
-      clientes.data.forEach(c => clienteInternoSelect.innerHTML += `<option value="${c.id_cliente_interno}">${c.nombre}</option>`);
+      clientes.data.forEach(c => clienteInternoSelect.innerHTML += `<option value="${c.id_cliente}">${c.nombre}</option>`);
     }
 
     window.guardarSolicitud = async () => {
