@@ -1,64 +1,31 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sección Desarrollo y Mantenimiento de Obras</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f4f6f8;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      justify-content: center;
-    }
-    h1 {
-      color: #2c3e50;
-      margin-bottom: 10px;
-    }
-    p {
-      color: #34495e;
-      font-size: 18px;
-      margin-bottom: 10px;
-    }
-    .btn {
-      background-color: #3498db;
-      color: white;
-      padding: 12px 24px;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-      text-decoration: none;
-      transition: background-color 0.3s ease;
-      margin: 10px; /* Espacio entre botones */
-    }
-    .btn:hover {
-      background-color: #2980b9;
-    }
-    footer {
-      position: absolute;
-      bottom: 10px;
-      font-size: 14px;
-      color: #95a5a6;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Verificando sesión...</title>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const supabase = createClient(
+      'https://qpccqoeronbcdyejfjod.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'
+    );
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        // Si está autenticado, lo enviamos a la página principal (ej: salida_material.html)
+        window.location.href = "salida_material.html";
+      } else {
+        // Si NO está autenticado, lo enviamos al login
+        window.location.href = "login.html";
+      }
+    });
+  </script>
 </head>
 <body>
-
-  <h1>Sistema de Gestión Integral</h1>
-  <p>Sección Desarrollo y Mantenimiento de Obras</p>
-  <p>Municipalidad de San José</p>
-  
-  <a class="btn" href="inventario.html">Lista de Materiales</a>
-  <a class="btn" href="cliente_interno.html">Cliente Interno</a> <!-- ✅ Nuevo botón agregado -->
-
-  <footer>© 2025 SDMO</footer>
-
+  <h2 style="text-align: center; margin-top: 100px; color: #34495e;">Verificando sesión, por favor espere...</h2>
 </body>
 </html>
-
