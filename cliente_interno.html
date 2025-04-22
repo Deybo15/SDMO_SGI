@@ -104,7 +104,7 @@
 
         // Insertar nueva solicitud
         const { error: insertError } = await supabase.from("solicitud_17").insert({
-          numero_solicitud: nuevoNumero,
+          //numero_solicitud: nuevoNumero,
           id_solicitud_sa: null,
           tipo_solicitud: "STI",
           fecha_solicitud: new Date().toISOString().split("T")[0],
