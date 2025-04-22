@@ -274,6 +274,49 @@
     <div class="actions">
       <a href="cliente_interno.html" class="btn btn-primary">Ir a Cliente Interno</a>
       <button id="btnLogout" class="btn btn-danger">Cerrar sesión</button>
+
+<!-- Agrega este bloque en el <main class="container"> después del botón de Cerrar sesión -->
+<div style="margin-top: 30px;">
+  <h2>Insertar datos en tabla_de_prueba</h2>
+  <input id="dato1" type="text" placeholder="Dato 1" style="padding: 10px; border-radius: 6px; margin: 5px; width: 250px;">
+  <input id="dato2" type="text" placeholder="Dato 2" style="padding: 10px; border-radius: 6px; margin: 5px; width: 250px;">
+  <button class="btn btn-primary" onclick="guardarDatosTablaPrueba()">Guardar en tabla_de_prueba</button>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+  const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // Usa tu clave pública
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  window.guardarDatosTablaPrueba = async () => {
+    const dato1 = document.getElementById("dato1").value.trim();
+    const dato2 = document.getElementById("dato2").value.trim();
+
+    if (!dato1 || !dato2) {
+      alert("Debe completar ambos campos");
+      return;
+    }
+
+    const { error } = await supabase.from("tabla_de_prueba").insert([{ dato1, dato2 }]);
+
+    if (error) {
+      alert("❌ Error al guardar: " + error.message);
+    } else {
+      alert("✅ Datos guardados correctamente");
+      document.getElementById("dato1").value = "";
+      document.getElementById("dato2").value = "";
+    }
+  }
+</script>
+
+
+
+
+
+
+      
     </div>
   </main>
   
