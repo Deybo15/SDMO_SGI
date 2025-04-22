@@ -105,7 +105,24 @@
       }
     }
 
-    // [Resto del código permanece igual...]
+    // Función para obtener el próximo número de solicitud
+    async function obtenerProximoNumeroSolicitud() {
+      try {
+        const { data, error } = await supabase
+          .from('solicitud_17')
+          .select('numero_solicitud')
+          .order('numero_solicitud', { ascending: false })
+          .limit(1);
+        
+        if (error) throw error;
+        
+        return data.length > 0 ? data[0].numero_solicitud + 1 : 1;
+      } catch (error) {
+        console.error("Error obteniendo número de solicitud:", error);
+        throw error;
+      }
+    }
+
     // Guardar solicitud
     window.guardarSolicitud = async () => {
       try {
@@ -127,16 +144,14 @@
 
         showLoading(true);
         
-        // Obtener siguiente número de solicitud
-        //const { data: existing, error: countError } = await supabase.from("solicitud_17").select("numero_solicitud");
-       // if (countError) throw countError;
+        // Obtener el próximo número de solicitud
+        const proximoNumero = await obtenerProximoNumeroSolicitud();
         
-        //const nuevoNumero = existing.length > 0 ? Math.max(...existing.map(r => r.numero_solicitud)) + 1 : 1;
-
-        // Insertar nueva solicitud
+        // Insertar nueva solicitud con el número generado
         const { error: insertError } = await supabase.from("solicitud_17").insert({
+          numero_solicitud: proximoNumero,  // Incluir el número de solicitud generado
           id_solicitud_sa: null,
-          tipo_solicitud: "STI",
+          id_tipo_solicitud: "STI",
           fecha_solicitud: new Date().toISOString().split("T")[0],
           area_mantenimiento: document.getElementById("area_mantenimiento").value,
           tipologia_trabajo: null,
@@ -158,7 +173,7 @@
 
         if (insertError) throw insertError;
 
-        showNotification("Solicitud guardada exitosamente", "success");
+        showNotification(`Solicitud #${proximoNumero} guardada exitosamente`, "success");
         document.getElementById("formSolicitud").reset();
         document.getElementById("popup").style.display = "none";
 
