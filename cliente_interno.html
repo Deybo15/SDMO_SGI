@@ -15,11 +15,70 @@
     window.addEventListener('DOMContentLoaded', async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        window.location.href = "index.html"; // Redirige si no hay sesión
+        window.location.href = "index.html";
       } else {
         document.getElementById("usuario").textContent = user.email;
+        await cargarDesplegables();
       }
     });
+
+    async function cargarDesplegables() {
+      const areaSelect = document.getElementById("area_mantenimiento");
+      const baseSelect = document.getElementById("instalacion_municipal");
+      const supervisorSelect = document.getElementById("supervisor_asignado");
+      const profesionalSelect = document.getElementById("profesional_responsable");
+      const clienteInternoSelect = document.getElementById("cliente_interno");
+
+      const [areas, bases, supervisores, profesionales, clientes] = await Promise.all([
+        supabase.from("area_mantenimiento_20").select("id_area_mantenimiento, descripcion_area"),
+        supabase.from("instalacion_base").select("id_base, base"),
+        supabase.from("colaboradores_06").select("identificacion, colaborador").eq("supervisor", true),
+        supabase.from("colaboradores_06").select("identificacion, colaborador").eq("profesional_responsable", true),
+        supabase.from("cliente_interno_15").select("id_cliente_interno, nombre")
+      ]);
+
+      areas.data.forEach(a => areaSelect.innerHTML += `<option value="${a.id_area_mantenimiento}">${a.descripcion_area}</option>`);
+      bases.data.forEach(b => baseSelect.innerHTML += `<option value="${b.id_base}">${b.base}</option>`);
+      supervisores.data.forEach(s => supervisorSelect.innerHTML += `<option value="${s.identificacion}">${s.colaborador}</option>`);
+      profesionales.data.forEach(p => profesionalSelect.innerHTML += `<option value="${p.identificacion}">${p.colaborador}</option>`);
+      clientes.data.forEach(c => clienteInternoSelect.innerHTML += `<option value="${c.id_cliente_interno}">${c.nombre}</option>`);
+    }
+
+    window.guardarSolicitud = async () => {
+      const { data: existing } = await supabase.from("solicitud_17").select("numero_solicitud");
+      const nuevoNumero = existing.length > 0 ? Math.max(...existing.map(r => r.numero_solicitud)) + 1 : 1;
+
+      const { error } = await supabase.from("solicitud_17").insert({
+        numero_solicitud: nuevoNumero,
+        id_solicitud_sa: null,
+        id_tipo_solicitud: "STI",
+        fecha_solicitud: new Date().toISOString().split("T")[0],
+        area_mantenimiento: document.getElementById("area_mantenimiento").value,
+        tipologia_trabajo: null,
+        descripcion_solicitud: document.getElementById("descripcion_solicitud").value,
+        barrio_solicitud: null,
+        direccion_exacta: null,
+        latitud: null,
+        longitud: null,
+        link_ubicacion: null,
+        imagen_ubicacion: null,
+        instalacion_municipal: document.getElementById("instalacion_municipal").value,
+        supervisor_asignado: document.getElementById("supervisor_asignado").value,
+        profesional_responsable: document.getElementById("profesional_responsable").value,
+        cliente_interno: document.getElementById("cliente_interno").value,
+        cliente_externo: null,
+        numero_activo: null,
+        dependencia_municipal: null
+      });
+
+      if (error) {
+        alert("Error al guardar la solicitud: " + error.message);
+      } else {
+        alert("Solicitud guardada exitosamente");
+        document.getElementById("formSolicitud").reset();
+        document.getElementById("popup").style.display = "none";
+      }
+    };
 
     window.logout = async () => {
       await supabase.auth.signOut();
@@ -30,41 +89,76 @@
     body {
       font-family: 'Segoe UI', sans-serif;
       background-color: #f4f6f8;
-      margin: 0;
       padding: 40px;
       text-align: center;
     }
-    h1 {
-      color: #2c3e50;
-    }
     .btn {
-      margin-top: 20px;
       padding: 10px 20px;
-      background-color: #3498db;
-      color: white;
+      margin: 10px;
       border: none;
       border-radius: 8px;
+      background-color: #3498db;
+      color: white;
       font-size: 16px;
       cursor: pointer;
-      text-decoration: none;
     }
     .btn:hover {
       background-color: #2980b9;
     }
-    .logout {
-      background-color: #e74c3c;
+    .popup {
+      display: none;
+      position: fixed;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      z-index: 1000;
     }
-    .logout:hover {
-      background-color: #c0392b;
+    select, textarea {
+      width: 100%;
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 6px;
     }
   </style>
 </head>
 <body>
   <h1>Sección Cliente Interno</h1>
   <p>Usuario conectado: <strong id="usuario"></strong></p>
-
+  <button class="btn" onclick="document.getElementById('popup').style.display='block'">➕ Nueva Solicitud</button>
   <a class="btn" href="inicio.html">Volver al Inicio</a>
-  <br><br>
-  <button class="btn logout" onclick="logout()">Cerrar sesión</button>
+  <button class="btn" onclick="logout()">Cerrar sesión</button>
+
+  <div id="popup" class="popup">
+    <form id="formSolicitud" onsubmit="event.preventDefault(); guardarSolicitud();">
+      <h3>Registrar Solicitud</h3>
+      <label>Area Mantenimiento:</label>
+      <select id="area_mantenimiento"></select>
+
+      <label>Instalación Municipal:</label>
+      <select id="instalacion_municipal"></select>
+
+      <label>Supervisor Asignado:</label>
+      <select id="supervisor_asignado"></select>
+
+      <label>Profesional Responsable:</label>
+      <select id="profesional_responsable"></select>
+
+      <label>Cliente Interno:</label>
+      <select id="cliente_interno"></select>
+
+      <label>Descripción Solicitud:</label>
+      <textarea id="descripcion_solicitud" rows="4"></textarea>
+
+      <br>
+      <button class="btn" type="submit">Guardar</button>
+      <button class="btn" type="button" onclick="document.getElementById('popup').style.display='none'">Cancelar</button>
+    </form>
+  </div>
 </body>
 </html>
+
