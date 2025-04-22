@@ -34,7 +34,7 @@
         supabase.from("instalacion_base").select("id_base, base"),
         supabase.from("colaboradores_06").select("identificacion, colaborador").eq("supervisor", true),
         supabase.from("colaboradores_06").select("identificacion, colaborador").eq("profesional_responsable", true),
-        supabase.from("cliente_interno_15").select("id_cliente_interno, nombre")
+        supabase.from("cliente_interno_15").select("id_cliente, nombre")
       ]);
 
       areas.data.forEach(a => areaSelect.innerHTML += `<option value="${a.id_area_mantenimiento}">${a.descripcion_area}</option>`);
