@@ -4,80 +4,285 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login - SDMO</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    // Configuración Supabase (en producción usa variables de entorno)
+    const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', () => {
+      const loginForm = document.getElementById("loginForm");
+      
+      loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        await handleLogin();
+      });
+
+      // Opcional: Enter para enviar
+      document.getElementById("password").addEventListener("keypress", async (e) => {
+        if (e.key === "Enter") {
+          await handleLogin();
+        }
+      });
+    });
+
+    // Manejar el login
+    async function handleLogin() {
+      try {
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+        
+        // Validación básica
+        if (!email || !password) {
+          showError("Por favor complete todos los campos");
+          return;
+        }
+
+        showLoading(true);
+        clearError();
+
+        const { data, error } = await supabase.auth.signInWithPassword({ 
+          email, 
+          password 
+        });
+
+        if (error) throw error;
+
+        // Redirigir a página principal
+        window.location.href = "inicio.html";
+
+      } catch (error) {
+        console.error("Error de autenticación:", error);
+        showError("Credenciales inválidas o error de conexión");
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    // Mostrar mensaje de error
+    function showError(message) {
+      const errorElement = document.getElementById("errorMsg");
+      errorElement.textContent = message;
+      errorElement.style.display = "block";
+    }
+
+    // Limpiar mensaje de error
+    function clearError() {
+      document.getElementById("errorMsg").style.display = "none";
+    }
+
+    // Mostrar/ocultar loading
+    function showLoading(show) {
+      const submitBtn = document.getElementById("submitBtn");
+      const loader = document.getElementById("loader");
+      
+      if (show) {
+        submitBtn.disabled = true;
+        loader.style.display = "inline-block";
+        submitBtn.innerHTML = 'Iniciando sesión <span id="loader" class="loader"></span>';
+      } else {
+        submitBtn.disabled = false;
+        loader.style.display = "none";
+        submitBtn.textContent = 'Iniciar Sesión';
+      }
+    }
+  </script>
   <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
     body {
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: #f4f6f8;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
-      margin: 0;
+      min-height: 100vh;
+      padding: 20px;
+      color: #333;
+      line-height: 1.6;
     }
+    
+    .login-container {
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+    }
+    
+    h2 {
+      color: #2c3e50;
+      margin-bottom: 25px;
+      font-size: 24px;
+    }
+    
+    .logo {
+      margin-bottom: 30px;
+      max-width: 150px;
+    }
+    
     form {
       background: white;
       padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
       display: flex;
       flex-direction: column;
-      gap: 15px;
-      width: 100%;
-      max-width: 400px;
+      gap: 20px;
     }
-    input, button {
-      padding: 12px;
+    
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+    }
+    
+    label {
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #2c3e50;
+      font-size: 14px;
+    }
+    
+    input {
+      padding: 14px;
       font-size: 16px;
       border-radius: 8px;
-      border: 1px solid #ccc;
+      border: 1px solid #ddd;
+      transition: all 0.3s;
     }
+    
+    input:focus {
+      outline: none;
+      border-color: #3498db;
+      box-shadow: 0 0 0 3px rgba(52,152,219,0.2);
+    }
+    
     button {
+      padding: 14px;
+      font-size: 16px;
+      border-radius: 8px;
       background-color: #3498db;
       color: white;
       border: none;
       cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
     }
+    
     button:hover {
       background-color: #2980b9;
+      transform: translateY(-2px);
     }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
     .error {
-      color: red;
+      color: #e74c3c;
       font-size: 14px;
       text-align: center;
+      padding: 10px;
+      border-radius: 6px;
+      background-color: rgba(231, 76, 60, 0.1);
+      display: none;
+    }
+    
+    .loader {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .footer {
+      margin-top: 30px;
+      font-size: 14px;
+      color: #7f8c8d;
+    }
+    
+    .footer a {
+      color: #3498db;
+      text-decoration: none;
+    }
+    
+    .footer a:hover {
+      text-decoration: underline;
+    }
+    
+    @media (max-width: 480px) {
+      form {
+        padding: 20px;
+      }
+      
+      h2 {
+        font-size: 20px;
+      }
+      
+      input, button {
+        padding: 12px;
+      }
     }
   </style>
 </head>
 <body>
-  <h2>Ingreso al Sistema SDMO</h2>
-  <form id="loginForm">
-    <input type="email" id="email" placeholder="Correo electrónico" required>
-    <input type="password" id="password" placeholder="Contraseña" required>
-    <button type="submit">Iniciar Sesión</button>
-    <div id="errorMsg" class="error"></div>
-  </form>
-
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-    const supabase = createClient(
-      'https://qpccqoeronbcdyejfjod.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'
-    );
-
-    document.getElementById("loginForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-      if (error) {
-        document.getElementById("errorMsg").textContent = "❌ Credenciales inválidas";
-      } else {
-        window.location.href = "inicio.html"; // Página principal protegida
-      }
-    });
-  </script>
+  <div class="login-container">
+    <!-- Opcional: Agregar logo -->
+    <!-- <img src="logo.png" alt="Logo SDMO" class="logo"> -->
+    
+    <h2>Ingreso al Sistema SDMO</h2>
+    
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="email">Correo electrónico</label>
+        <input 
+          type="email" 
+          id="email" 
+          placeholder="tu@email.com" 
+          required
+          autocomplete="username"
+        >
+      </div>
+      
+      <div class="form-group">
+        <label for="password">Contraseña</label>
+        <input 
+          type="password" 
+          id="password" 
+          placeholder="••••••••" 
+          required
+          autocomplete="current-password"
+        >
+      </div>
+      
+      <div id="errorMsg" class="error"></div>
+      
+      <button type="submit" id="submitBtn">
+        Iniciar Sesión
+      </button>
+    </form>
+    
+    <div class="footer">
+      ¿Problemas para ingresar? <a href="#">Contactar soporte</a>
+    </div>
+  </div>
 </body>
 </html>
