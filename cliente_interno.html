@@ -23,14 +23,24 @@
         .replace(/'/g, "&#039;");
     };
 
-    // Función para ordenar arrays por propiedad
-    const sortByProperty = (array, property) => {
-      return array?.sort((a, b) => {
-        if (a[property] < b[property]) return -1;
-        if (a[property] > b[property]) return 1;
-        return 0;
-      }) || [];
-    };
+    // Función para obtener el próximo número de solicitud
+    async function obtenerProximoNumero() {
+      try {
+        const { data, error } = await supabase
+          .from('solicitud_17')
+          .select('numero_solicitud')
+          .order('numero_solicitud', { ascending: false })
+          .limit(1);
+        
+        if (error) throw error;
+        
+        // Si hay registros, devolver el máximo + 1, sino devolver 1
+        return data.length > 0 ? data[0].numero_solicitud + 1 : 1;
+      } catch (error) {
+        console.error("Error obteniendo número de solicitud:", error);
+        throw error;
+      }
+    }
 
     // Cargar datos en los selects
     async function cargarDesplegables() {
@@ -44,9 +54,8 @@
         ]);
 
         const buildOptions = (data, valueKey, textKey) => {
-          const sortedData = sortByProperty(data?.data, textKey);
           let options = '<option value="" selected disabled>-- Seleccione una opción --</option>';
-          options += sortedData.map(opt => 
+          options += (data?.data || []).map(opt => 
             `<option value="${escapeHtml(opt[valueKey])}">${escapeHtml(opt[textKey])}</option>`
           ).join('');
           return options;
@@ -73,7 +82,7 @@
         const profesional_responsable = document.getElementById("profesional_responsable").value;
         const cliente_interno = document.getElementById("cliente_interno").value;
 
-        // Validación mejorada
+        // Validación
         if (!descripcion) {
           showNotification("La descripción es requerida", "error");
           return;
@@ -91,8 +100,12 @@
           }
         }
 
-        // Insertar nueva solicitud
+        // Obtener el próximo número de solicitud
+        const proximoNumero = await obtenerProximoNumero();
+
+        // Insertar nueva solicitud con el número generado
         const { data, error } = await supabase.from("solicitud_17").insert([{
+          numero_solicitud: proximoNumero, // Número generado por nuestro código
           id_solicitud_sa: null,
           tipo_solicitud: "STI",
           fecha_solicitud: new Date().toISOString().split("T")[0],
@@ -116,7 +129,7 @@
 
         if (error) throw error;
 
-        showNotification(`Solicitud #${data[0].numero_solicitud} guardada exitosamente`, "success");
+        showNotification(`Solicitud #${proximoNumero} guardada exitosamente`, "success");
         document.getElementById("descripcion_solicitud").value = "";
         await cargarTabla();
       } catch (error) {
@@ -137,7 +150,7 @@
         tbody.innerHTML = "";
 
         if (error || !data) {
-          tbody.innerHTML = "<tr><td colspan='2'>Error al cargar los datos</td></tr>";
+          tbody.innerHTML = "<tr><td colspan='4'>Error al cargar los datos</td></tr>";
           throw error || new Error("No se encontraron datos");
         }
 
