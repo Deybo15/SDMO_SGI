@@ -7,7 +7,7 @@
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    // Configuración Supabase (en producción usa variables de entorno)
+    // Configuración Supabase
     const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -21,6 +21,15 @@
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+    };
+
+    // Función para ordenar arrays por propiedad
+    const sortByProperty = (array, property) => {
+      return array.sort((a, b) => {
+        if (a[property] < b[property]) return -1;
+        if (a[property] > b[property]) return 1;
+        return 0;
+      });
     };
 
     // Cargar cuando el DOM esté listo
@@ -39,7 +48,7 @@
         setupEventListeners();
       } catch (error) {
         console.error("Error de autenticación:", error);
-        alert("Error al verificar la sesión. Por favor recarga la página.");
+        showNotification("Error al verificar la sesión. Por favor recarga la página.", "error");
       }
     });
 
@@ -66,15 +75,27 @@
         const errors = [areasError, basesError, supervisoresError, profesionalesError, clientesError].filter(Boolean);
         if (errors.length) throw new Error(errors.map(e => e.message).join(', '));
 
-        // Construir opciones eficientemente
-        const buildOptions = (data, valueKey, textKey) => 
-          data.map(item => `<option value="${escapeHtml(item[valueKey])}">${escapeHtml(item[textKey])}</option>`).join('');
+        // Ordenar datos alfabéticamente
+        const areasOrdenadas = sortByProperty(areas, "descripcion_area");
+        const basesOrdenadas = sortByProperty(bases, "base");
+        const supervisoresOrdenados = sortByProperty(supervisores, "colaborador");
+        const profesionalesOrdenados = sortByProperty(profesionales, "colaborador");
+        const clientesOrdenados = sortByProperty(clientes, "nombre");
 
-        document.getElementById("area_mantenimiento").innerHTML = buildOptions(areas, "id_area_mantenimiento", "descripcion_area");
-        document.getElementById("instalacion_municipal").innerHTML = buildOptions(bases, "id_base", "base");
-        document.getElementById("supervisor_asignado").innerHTML = buildOptions(supervisores, "identificacion", "colaborador");
-        document.getElementById("profesional_responsable").innerHTML = buildOptions(profesionales, "identificacion", "colaborador");
-        document.getElementById("cliente_interno").innerHTML = buildOptions(clientes, "id_cliente", "nombre");
+        // Construir opciones con primer option vacío
+        const buildOptions = (data, valueKey, textKey) => {
+          let options = '<option value="" selected disabled>-- Seleccione una opción --</option>';
+          options += data.map(item => 
+            `<option value="${escapeHtml(item[valueKey])}">${escapeHtml(item[textKey])}</option>`
+          ).join('');
+          return options;
+        };
+
+        document.getElementById("area_mantenimiento").innerHTML = buildOptions(areasOrdenadas, "id_area_mantenimiento", "descripcion_area");
+        document.getElementById("instalacion_municipal").innerHTML = buildOptions(basesOrdenadas, "id_base", "base");
+        document.getElementById("supervisor_asignado").innerHTML = buildOptions(supervisoresOrdenados, "identificacion", "colaborador");
+        document.getElementById("profesional_responsable").innerHTML = buildOptions(profesionalesOrdenados, "identificacion", "colaborador");
+        document.getElementById("cliente_interno").innerHTML = buildOptions(clientesOrdenados, "id_cliente", "nombre");
 
       } catch (error) {
         console.error("Error cargando desplegables:", error);
@@ -84,6 +105,7 @@
       }
     }
 
+    // [Resto del código permanece igual...]
     // Guardar solicitud
     window.guardarSolicitud = async () => {
       try {
@@ -94,18 +116,27 @@
           return;
         }
 
+        // Validar que se hayan seleccionado todas las opciones
+        const selects = document.querySelectorAll("select[required]");
+        for (const select of selects) {
+          if (!select.value) {
+            showNotification(`Por favor seleccione una opción en ${select.previousElementSibling.textContent}`, "error");
+            return;
+          }
+        }
+
         showLoading(true);
         
         // Obtener siguiente número de solicitud
-        const { data: existing, error: countError } = await supabase.from("solicitud_17").select("numero_solicitud");
-        if (countError) throw countError;
+        //const { data: existing, error: countError } = await supabase.from("solicitud_17").select("numero_solicitud");
+       // if (countError) throw countError;
         
-        const nuevoNumero = existing.length > 0 ? Math.max(...existing.map(r => r.numero_solicitud)) + 1 : 1;
+        //const nuevoNumero = existing.length > 0 ? Math.max(...existing.map(r => r.numero_solicitud)) + 1 : 1;
 
         // Insertar nueva solicitud
         const { error: insertError } = await supabase.from("solicitud_17").insert({
           id_solicitud_sa: null,
-          tipo_solicitud: "STI",
+          id_tipo_solicitud: "STI",
           fecha_solicitud: new Date().toISOString().split("T")[0],
           area_mantenimiento: document.getElementById("area_mantenimiento").value,
           tipologia_trabajo: null,
@@ -189,6 +220,7 @@
     }
   </script>
   <style>
+    /* Estilos permanecen igual... */
     * {
       box-sizing: border-box;
       margin: 0;
