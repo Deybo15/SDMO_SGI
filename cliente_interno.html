@@ -7,158 +7,464 @@
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    const supabase = createClient(
-      'https://qpccqoeronbcdyejfjod.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'
-    );
+    // Configuración Supabase (en producción usa variables de entorno)
+    const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Función para sanitizar inputs
+    const escapeHtml = (unsafe) => {
+      if (!unsafe) return '';
+      return unsafe.toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    };
+
+    // Cargar cuando el DOM esté listo
     window.addEventListener('DOMContentLoaded', async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        window.location.href = "index.html";
-      } else {
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError) throw authError;
+        if (!user) {
+          window.location.href = "index.html";
+          return;
+        }
+
         document.getElementById("usuario").textContent = user.email;
         await cargarDesplegables();
+        setupEventListeners();
+      } catch (error) {
+        console.error("Error de autenticación:", error);
+        alert("Error al verificar la sesión. Por favor recarga la página.");
       }
     });
 
+    // Cargar datos en los selects
     async function cargarDesplegables() {
-      const areaSelect = document.getElementById("area_mantenimiento");
-      const baseSelect = document.getElementById("instalacion_municipal");
-      const supervisorSelect = document.getElementById("supervisor_asignado");
-      const profesionalSelect = document.getElementById("profesional_responsable");
-      const clienteInternoSelect = document.getElementById("cliente_interno");
+      try {
+        showLoading(true);
+        
+        const [
+          { data: areas, error: areasError },
+          { data: bases, error: basesError },
+          { data: supervisores, error: supervisoresError },
+          { data: profesionales, error: profesionalesError },
+          { data: clientes, error: clientesError }
+        ] = await Promise.all([
+          supabase.from("area_mantenimiento_20").select("id_area_mantenimiento, descripcion_area"),
+          supabase.from("instalacion_base").select("id_base, base"),
+          supabase.from("colaboradores_06").select("identificacion, colaborador").eq("supervisor", true),
+          supabase.from("colaboradores_06").select("identificacion, colaborador").eq("profesional_responsable", true),
+          supabase.from("cliente_interno_15").select("id_cliente, nombre")
+        ]);
 
-      const [areas, bases, supervisores, profesionales, clientes] = await Promise.all([
-        supabase.from("area_mantenimiento_20").select("id_area_mantenimiento, descripcion_area"),
-        supabase.from("instalacion_base").select("id_base, base"),
-        supabase.from("colaboradores_06").select("identificacion, colaborador").eq("supervisor", true),
-        supabase.from("colaboradores_06").select("identificacion, colaborador").eq("profesional_responsable", true),
-        supabase.from("cliente_interno_15").select("id_cliente, nombre")
-      ]);
+        // Verificar errores
+        const errors = [areasError, basesError, supervisoresError, profesionalesError, clientesError].filter(Boolean);
+        if (errors.length) throw new Error(errors.map(e => e.message).join(', '));
 
-      areas.data.forEach(a => areaSelect.innerHTML += `<option value="${a.id_area_mantenimiento}">${a.descripcion_area}</option>`);
-      bases.data.forEach(b => baseSelect.innerHTML += `<option value="${b.id_base}">${b.base}</option>`);
-      supervisores.data.forEach(s => supervisorSelect.innerHTML += `<option value="${s.identificacion}">${s.colaborador}</option>`);
-      profesionales.data.forEach(p => profesionalSelect.innerHTML += `<option value="${p.identificacion}">${p.colaborador}</option>`);
-      clientes.data.forEach(c => clienteInternoSelect.innerHTML += `<option value="${c.id_cliente}">${c.nombre}</option>`);
+        // Construir opciones eficientemente
+        const buildOptions = (data, valueKey, textKey) => 
+          data.map(item => `<option value="${escapeHtml(item[valueKey])}">${escapeHtml(item[textKey])}</option>`).join('');
+
+        document.getElementById("area_mantenimiento").innerHTML = buildOptions(areas, "id_area_mantenimiento", "descripcion_area");
+        document.getElementById("instalacion_municipal").innerHTML = buildOptions(bases, "id_base", "base");
+        document.getElementById("supervisor_asignado").innerHTML = buildOptions(supervisores, "identificacion", "colaborador");
+        document.getElementById("profesional_responsable").innerHTML = buildOptions(profesionales, "identificacion", "colaborador");
+        document.getElementById("cliente_interno").innerHTML = buildOptions(clientes, "id_cliente", "nombre");
+
+      } catch (error) {
+        console.error("Error cargando desplegables:", error);
+        showNotification("Error al cargar los datos. Por favor recarga la página.", "error");
+      } finally {
+        showLoading(false);
+      }
     }
 
+    // Guardar solicitud
     window.guardarSolicitud = async () => {
-      const { data: existing } = await supabase.from("solicitud_17").select("numero_solicitud");
-      const nuevoNumero = existing.length > 0 ? Math.max(...existing.map(r => r.numero_solicitud)) + 1 : 1;
+      try {
+        // Validar campos requeridos
+        const descripcion = document.getElementById("descripcion_solicitud").value.trim();
+        if (!descripcion) {
+          showNotification("La descripción es requerida", "error");
+          return;
+        }
 
-      const { error } = await supabase.from("solicitud_17").insert({
-        numero_solicitud: nuevoNumero,
-        id_solicitud_sa: null,
-        id_tipo_solicitud: "STI",
-        fecha_solicitud: new Date().toISOString().split("T")[0],
-        area_mantenimiento: document.getElementById("area_mantenimiento").value,
-        tipologia_trabajo: null,
-        descripcion_solicitud: document.getElementById("descripcion_solicitud").value,
-        barrio_solicitud: null,
-        direccion_exacta: null,
-        latitud: null,
-        longitud: null,
-        link_ubicacion: null,
-        imagen_ubicacion: null,
-        instalacion_municipal: document.getElementById("instalacion_municipal").value,
-        supervisor_asignado: document.getElementById("supervisor_asignado").value,
-        profesional_responsable: document.getElementById("profesional_responsable").value,
-        cliente_interno: document.getElementById("cliente_interno").value,
-        cliente_externo: null,
-        numero_activo: null,
-        dependencia_municipal: null
-      });
+        showLoading(true);
+        
+        // Obtener siguiente número de solicitud
+        const { data: existing, error: countError } = await supabase.from("solicitud_17").select("numero_solicitud");
+        if (countError) throw countError;
+        
+        const nuevoNumero = existing.length > 0 ? Math.max(...existing.map(r => r.numero_solicitud)) + 1 : 1;
 
-      if (error) {
-        alert("Error al guardar la solicitud: " + error.message);
-      } else {
-        alert("Solicitud guardada exitosamente");
+        // Insertar nueva solicitud
+        const { error: insertError } = await supabase.from("solicitud_17").insert({
+          numero_solicitud: nuevoNumero,
+          id_solicitud_sa: null,
+          id_tipo_solicitud: "STI",
+          fecha_solicitud: new Date().toISOString().split("T")[0],
+          area_mantenimiento: document.getElementById("area_mantenimiento").value,
+          tipologia_trabajo: null,
+          descripcion_solicitud: escapeHtml(descripcion),
+          barrio_solicitud: null,
+          direccion_exacta: null,
+          latitud: null,
+          longitud: null,
+          link_ubicacion: null,
+          imagen_ubicacion: null,
+          instalacion_municipal: document.getElementById("instalacion_municipal").value,
+          supervisor_asignado: document.getElementById("supervisor_asignado").value,
+          profesional_responsable: document.getElementById("profesional_responsable").value,
+          cliente_interno: document.getElementById("cliente_interno").value,
+          cliente_externo: null,
+          numero_activo: null,
+          dependencia_municipal: null
+        });
+
+        if (insertError) throw insertError;
+
+        showNotification("Solicitud guardada exitosamente", "success");
         document.getElementById("formSolicitud").reset();
         document.getElementById("popup").style.display = "none";
+
+      } catch (error) {
+        console.error("Error guardando solicitud:", error);
+        showNotification("Error al guardar la solicitud: " + error.message, "error");
+      } finally {
+        showLoading(false);
       }
     };
 
+    // Cerrar sesión
     window.logout = async () => {
-      await supabase.auth.signOut();
-      window.location.href = "index.html";
+      try {
+        showLoading(true);
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+        window.location.href = "index.html";
+      } catch (error) {
+        console.error("Error al cerrar sesión:", error);
+        showNotification("Error al cerrar sesión", "error");
+      } finally {
+        showLoading(false);
+      }
     };
+
+    // Configurar event listeners
+    function setupEventListeners() {
+      document.getElementById("btnNuevaSolicitud").addEventListener("click", () => {
+        document.getElementById("popup").style.display = "block";
+      });
+      
+      document.getElementById("btnCancelar").addEventListener("click", () => {
+        document.getElementById("popup").style.display = "none";
+      });
+    }
+
+    // Mostrar notificación
+    function showNotification(message, type = "info") {
+      const notification = document.createElement("div");
+      notification.className = `notification ${type}`;
+      notification.textContent = message;
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.classList.add("fade-out");
+        setTimeout(() => notification.remove(), 500);
+      }, 3000);
+    }
+
+    // Mostrar/ocultar loading
+    function showLoading(show) {
+      const loader = document.getElementById("loader");
+      if (show) {
+        loader.style.display = "block";
+      } else {
+        loader.style.display = "none";
+      }
+    }
   </script>
   <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
     body {
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: #f4f6f8;
-      padding: 40px;
+      padding: 20px;
+      line-height: 1.6;
+      color: #333;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    h1 {
+      color: #2c3e50;
+      margin-bottom: 20px;
       text-align: center;
     }
-    .btn {
-      padding: 10px 20px;
-      margin: 10px;
-      border: none;
+    
+    .user-info {
+      background: #fff;
+      padding: 15px;
       border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      margin: 10px 5px;
+      border: none;
+      border-radius: 6px;
       background-color: #3498db;
       color: white;
       font-size: 16px;
       cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
     }
+    
     .btn:hover {
       background-color: #2980b9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
+    
+    .btn-danger {
+      background-color: #e74c3c;
+    }
+    
+    .btn-danger:hover {
+      background-color: #c0392b;
+    }
+    
+    .btn-secondary {
+      background-color: #95a5a6;
+    }
+    
+    .btn-secondary:hover {
+      background-color: #7f8c8d;
+    }
+    
     .popup {
       display: none;
       position: fixed;
-      top: 10%;
+      top: 50%;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translate(-50%, -50%);
       background: white;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 20px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 25px;
+      width: 90%;
+      max-width: 600px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
       z-index: 1000;
     }
+    
+    .popup h3 {
+      margin-bottom: 20px;
+      color: #2c3e50;
+      text-align: center;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: #2c3e50;
+    }
+    
     select, textarea {
       width: 100%;
-      margin-top: 10px;
-      padding: 8px;
+      padding: 10px;
+      border: 1px solid #ddd;
       border-radius: 6px;
+      font-size: 16px;
+      transition: border 0.3s;
+    }
+    
+    select:focus, textarea:focus {
+      outline: none;
+      border-color: #3498db;
+      box-shadow: 0 0 0 2px rgba(52,152,219,0.2);
+    }
+    
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px 25px;
+      border-radius: 6px;
+      color: white;
+      animation: slideIn 0.5s forwards;
+      z-index: 1100;
+    }
+    
+    .notification.success {
+      background-color: #2ecc71;
+    }
+    
+    .notification.error {
+      background-color: #e74c3c;
+    }
+    
+    .notification.info {
+      background-color: #3498db;
+    }
+    
+    .fade-out {
+      animation: fadeOut 0.5s forwards;
+    }
+    
+    #loader {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255,255,255,0.7);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+    
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+      
+      .popup {
+        width: 95%;
+        padding: 15px;
+      }
+      
+      .btn {
+        display: block;
+        width: 100%;
+        margin: 10px 0;
+      }
+      
+      .form-actions {
+        flex-direction: column;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>Sección Cliente Interno</h1>
-  <p>Usuario conectado: <strong id="usuario"></strong></p>
-  <button class="btn" onclick="document.getElementById('popup').style.display='block'">➕ Nueva Solicitud</button>
-  <a class="btn" href="inicio.html">Volver al Inicio</a>
-  <button class="btn" onclick="logout()">Cerrar sesión</button>
-
-  <div id="popup" class="popup">
-    <form id="formSolicitud" onsubmit="event.preventDefault(); guardarSolicitud();">
-      <h3>Registrar Solicitud</h3>
-      <label>Area Mantenimiento:</label>
-      <select id="area_mantenimiento"></select>
-
-      <label>Instalación Municipal:</label>
-      <select id="instalacion_municipal"></select>
-
-      <label>Supervisor Asignado:</label>
-      <select id="supervisor_asignado"></select>
-
-      <label>Profesional Responsable:</label>
-      <select id="profesional_responsable"></select>
-
-      <label>Cliente Interno:</label>
-      <select id="cliente_interno"></select>
-
-      <label>Descripción Solicitud:</label>
-      <textarea id="descripcion_solicitud" rows="4"></textarea>
-
-      <br>
-      <button class="btn" type="submit">Guardar</button>
-      <button class="btn" type="button" onclick="document.getElementById('popup').style.display='none'">Cancelar</button>
-    </form>
+  <div class="container">
+    <h1>Sección Cliente Interno</h1>
+    
+    <div class="user-info">
+      <p>Usuario conectado: <strong id="usuario"></strong></p>
+    </div>
+    
+    <div class="actions">
+      <button id="btnNuevaSolicitud" class="btn">➕ Nueva Solicitud</button>
+      <a class="btn btn-secondary" href="inicio.html">Volver al Inicio</a>
+      <button class="btn btn-danger" onclick="logout()">Cerrar sesión</button>
+    </div>
+    
+    <div id="popup" class="popup">
+      <form id="formSolicitud" onsubmit="event.preventDefault(); guardarSolicitud();">
+        <h3>Registrar Solicitud</h3>
+        
+        <div class="form-group">
+          <label for="area_mantenimiento">Área de Mantenimiento:</label>
+          <select id="area_mantenimiento" required></select>
+        </div>
+        
+        <div class="form-group">
+          <label for="instalacion_municipal">Instalación Municipal:</label>
+          <select id="instalacion_municipal" required></select>
+        </div>
+        
+        <div class="form-group">
+          <label for="supervisor_asignado">Supervisor Asignado:</label>
+          <select id="supervisor_asignado" required></select>
+        </div>
+        
+        <div class="form-group">
+          <label for="profesional_responsable">Profesional Responsable:</label>
+          <select id="profesional_responsable" required></select>
+        </div>
+        
+        <div class="form-group">
+          <label for="cliente_interno">Cliente Interno:</label>
+          <select id="cliente_interno" required></select>
+        </div>
+        
+        <div class="form-group">
+          <label for="descripcion_solicitud">Descripción de la Solicitud:</label>
+          <textarea id="descripcion_solicitud" required></textarea>
+        </div>
+        
+        <div class="form-actions">
+          <button id="btnCancelar" class="btn btn-secondary" type="button">Cancelar</button>
+          <button class="btn" type="submit">Guardar Solicitud</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <div id="loader">
+    <div class="spinner"></div>
   </div>
 </body>
 </html>
-
