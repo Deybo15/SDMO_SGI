@@ -81,6 +81,27 @@
       }
     }
 
+    // Función para resetear el formulario
+    function resetForm() {
+      // Limpiar textarea
+      document.getElementById("descripcion_solicitud").value = "";
+      
+      // Lista de todos los selects a resetear
+      const selects = [
+        "area_mantenimiento", 
+        "instalacion_municipal",
+        "supervisor_asignado", 
+        "profesional_responsable", 
+        "cliente_interno"
+      ];
+      
+      // Resetear cada select
+      selects.forEach(id => {
+        const select = document.getElementById(id);
+        if (select) select.selectedIndex = 0;
+      });
+    }
+
     // Guardar solicitud
     async function guardarSolicitud() {
       try {
@@ -139,7 +160,13 @@
         if (error) throw error;
 
         showNotification(`Solicitud #${proximoNumero} guardada exitosamente`, "success");
-        document.getElementById("descripcion_solicitud").value = "";
+        
+        // Restablecer el formulario
+        resetForm();
+        
+        // Enfocar el campo de descripción para nueva entrada
+        document.getElementById("descripcion_solicitud").focus();
+        
         await cargarTabla();
       } catch (error) {
         console.error("Error guardando solicitud:", error);
