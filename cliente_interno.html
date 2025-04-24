@@ -68,7 +68,7 @@ async function cargarDesplegables() {
         .select("identificacion, alias")
         .eq("supervisor", true)
         .eq("condicion_laboral", false), // 👈 Filtro adicional aplicado correctamente
-      supabase.from("colaboradores_06").select("identificacion, alias").eq("profesional_responsable", true),
+      supabase.from("colaboradores_06").select("identificacion, alias").eq("autorizado", true),
       supabase.from("cliente_interno_15").select("id_cliente, nombre")
     ]);
 
