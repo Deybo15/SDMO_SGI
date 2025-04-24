@@ -75,8 +75,8 @@ async function cargarDesplegables() {
         // Almacenar datos para búsquedas
         areasData = ordenarAlfabeticamente(areas?.data, 'descripcion_area') || [];
         instalacionesData = ordenarAlfabeticamente(instalaciones?.data, 'instalacion_municipal') || [];
-        supervisoresData = ordenarAlfabeticamente(supervisores?.data, 'colaborador') || [];
-        profesionalesData = ordenarAlfabeticamente(profesionales?.data, 'colaborador') || [];
+        supervisoresData = ordenarAlfabeticamente(supervisores?.data, 'alias') || [];
+        profesionalesData = ordenarAlfabeticamente(profesionales?.data, 'alias') || [];
         clientesData = ordenarAlfabeticamente(clientes?.data, 'nombre') || [];
 
         const buildOptions = (data, valueKey, textKey) => {
@@ -90,8 +90,8 @@ async function cargarDesplegables() {
 
         document.getElementById("area_mantenimiento").innerHTML = buildOptions(areas, 'id_area_mantenimiento', 'descripcion_area');
         document.getElementById("instalacion_municipal").innerHTML = buildOptions(instalaciones, 'id_instalacion_municipal', 'instalacion_municipal');
-        document.getElementById("supervisor_asignado").innerHTML = buildOptions(supervisores, 'identificacion', 'colaborador');
-        document.getElementById("profesional_responsable").innerHTML = buildOptions(profesionales, 'identificacion', 'colaborador');
+        document.getElementById("supervisor_asignado").innerHTML = buildOptions(supervisores, 'identificacion', 'alias');
+        document.getElementById("profesional_responsable").innerHTML = buildOptions(profesionales, 'identificacion', 'alias');
         document.getElementById("cliente_interno").innerHTML = buildOptions(clientes, 'id_cliente', 'nombre');
       } catch (error) {
         console.error("Error cargando desplegables:", error);
