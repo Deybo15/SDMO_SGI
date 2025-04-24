@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Inventario Actual</title>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        window.location.href = 'login.html';
+        return;
+      }
+      document.getElementById('usuario').textContent = user.email;
+      cargarInventario();
+    });
+
+    async function cargarInventario() {
+      const { data: entradas } = await supabase.from('dato_entrada_12').select();
+      const { data: salidas } = await supabase.from('dato_salida_13').select();
+
+      const inventario = {};
+
+      entradas.forEach(({ articulo, cantidad }) => {
+        if (!inventario[articulo]) inventario[articulo] = { entrada: 0, salida: 0 };
+        inventario[articulo].entrada += parseFloat(cantidad);
+      });
+
+      salidas.forEach(({ articulo, cantidad }) => {
+        if (!inventario[articulo]) inventario[articulo] = { entrada: 0, salida: 0 };
+        inventario[articulo].salida += parseFloat(cantidad);
+      });
+
+      const tabla = document.getElementById('tablaInventario');
+      tabla.innerHTML = '';
+
+      Object.keys(inventario).forEach((codigo) => {
+        const disponible = (inventario[codigo].entrada || 0) - (inventario[codigo].salida || 0);
+        const row = `
+          <tr>
+            <td>${codigo}</td>
+            <td>${codigo.replace(/_/g, ' ')}</td>
+            <td>Unidades</td>
+            <td>${disponible}</td>
+            <td>${new Date().toISOString().slice(0, 16).replace('T', ' ')}</td>
+          </tr>`;
+        tabla.innerHTML += row;
+      });
+    }
+
+    window.filtrarTabla = () => {
+      const filtroCodigo = document.getElementById("buscarCodigo").value.toLowerCase();
+      const filtroArticulo = document.getElementById("buscarArticulo").value.toLowerCase();
+      const filas = document.querySelectorAll("#tablaInventario tr");
+
+      filas.forEach(fila => {
+        const [codigo, articulo] = fila.children;
+        const visible = 
+          codigo.textContent.toLowerCase().includes(filtroCodigo) &&
+          articulo.textContent.toLowerCase().includes(filtroArticulo);
+        fila.style.display = visible ? "" : "none";
+      });
+    }
+  </script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+    #usuario {
+      float: right;
+      font-size: 14px;
+      color: #555;
+    }
+    input {
+      padding: 8px;
+      margin: 5px;
+      width: 200px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th {
+      background-color: #3498db;
+      color: white;
+      padding: 10px;
+      text-align: left;
+    }
+    td {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+  <h2>Inventario Actual</h2>
+  <div id="usuario"></div>
+  <input type="text" id="buscarCodigo" placeholder="Buscar por Código de Artículo" oninput="filtrarTabla()" />
+  <input type="text" id="buscarArticulo" placeholder="Buscar por Artículo" oninput="filtrarTabla()" />
+
+  <table>
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Artículo</th>
+        <th>Unidad</th>
+        <th>Cantidad Disponible</th>
+        <th>Última Actualización</th>
+      </tr>
+    </thead>
+    <tbody id="tablaInventario"></tbody>
+  </table>
+</body>
+</html>
