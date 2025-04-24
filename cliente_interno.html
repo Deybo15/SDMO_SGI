@@ -12,6 +12,13 @@
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Variables para almacenar datos de los selects
+    let areasData = [];
+    let instalacionesData = [];
+    let supervisoresData = [];
+    let profesionalesData = [];
+    let clientesData = [];
+
     // Función para sanitizar inputs
     const escapeHtml = (unsafe) => {
       if (!unsafe) return '';
@@ -61,6 +68,13 @@
           supabase.from("cliente_interno_15").select("id_cliente, nombre")
         ]);
 
+        // Almacenar datos para búsquedas
+        areasData = ordenarAlfabeticamente(areas?.data, 'descripcion_area') || [];
+        instalacionesData = ordenarAlfabeticamente(instalaciones?.data, 'instalacion_municipal') || [];
+        supervisoresData = ordenarAlfabeticamente(supervisores?.data, 'colaborador') || [];
+        profesionalesData = ordenarAlfabeticamente(profesionales?.data, 'colaborador') || [];
+        clientesData = ordenarAlfabeticamente(clientes?.data, 'nombre') || [];
+
         const buildOptions = (data, valueKey, textKey) => {
           const datosOrdenados = ordenarAlfabeticamente(data?.data, textKey);
           let options = '<option value="" selected disabled>-- Seleccione una opción --</option>';
@@ -79,6 +93,127 @@
         console.error("Error cargando desplegables:", error);
         showNotification("Error al cargar los datos de los select", "error");
       }
+    }
+
+    // Función para abrir modal de búsqueda
+    function abrirModalBusqueda(tipo) {
+      const modal = document.getElementById('modalBusqueda');
+      const tituloModal = document.getElementById('tituloModal');
+      const listaResultados = document.getElementById('listaResultados');
+      const inputBusqueda = document.getElementById('inputBusqueda');
+      
+      // Configurar según el tipo
+      let datos = [];
+      let campoTexto = '';
+      let campoValor = '';
+      
+      switch(tipo) {
+        case 'area':
+          datos = areasData;
+          campoTexto = 'descripcion_area';
+          campoValor = 'id_area_mantenimiento';
+          tituloModal.textContent = 'Buscar Área de Mantenimiento';
+          break;
+        case 'instalacion':
+          datos = instalacionesData;
+          campoTexto = 'instalacion_municipal';
+          campoValor = 'id_instalacion_municipal';
+          tituloModal.textContent = 'Buscar Instalación Municipal';
+          break;
+        case 'supervisor':
+          datos = supervisoresData;
+          campoTexto = 'colaborador';
+          campoValor = 'identificacion';
+          tituloModal.textContent = 'Buscar Supervisor';
+          break;
+        case 'profesional':
+          datos = profesionalesData;
+          campoTexto = 'colaborador';
+          campoValor = 'identificacion';
+          tituloModal.textContent = 'Buscar Profesional';
+          break;
+        case 'cliente':
+          datos = clientesData;
+          campoTexto = 'nombre';
+          campoValor = 'id_cliente';
+          tituloModal.textContent = 'Buscar Cliente Interno';
+          break;
+      }
+      
+      // Guardar información en el modal para usar al seleccionar
+      modal.dataset.tipo = tipo;
+      modal.dataset.campoTexto = campoTexto;
+      modal.dataset.campoValor = campoValor;
+      
+      // Mostrar todos los datos inicialmente
+      mostrarResultados(datos, campoTexto);
+      
+      // Configurar evento de búsqueda
+      inputBusqueda.oninput = () => {
+        const termino = inputBusqueda.value.toLowerCase();
+        const resultados = datos.filter(item => 
+          item[campoTexto].toLowerCase().includes(termino)
+        );
+        mostrarResultados(resultados, campoTexto);
+      };
+      
+      // Mostrar modal
+      modal.style.display = 'block';
+    }
+
+    // Mostrar resultados en el modal
+    function mostrarResultados(resultados, campoTexto) {
+      const listaResultados = document.getElementById('listaResultados');
+      listaResultados.innerHTML = '';
+      
+      if (resultados.length === 0) {
+        listaResultados.innerHTML = '<li class="no-results">No se encontraron resultados</li>';
+        return;
+      }
+      
+      resultados.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item[campoTexto];
+        li.onclick = () => seleccionarItem(item);
+        listaResultados.appendChild(li);
+      });
+    }
+
+    // Seleccionar un item del modal
+    function seleccionarItem(item) {
+      const modal = document.getElementById('modalBusqueda');
+      const tipo = modal.dataset.tipo;
+      const campoValor = modal.dataset.campoValor;
+      const campoTexto = modal.dataset.campoTexto;
+      
+      // Asignar valor al select correspondiente
+      let selectId = '';
+      switch(tipo) {
+        case 'area': selectId = 'area_mantenimiento'; break;
+        case 'instalacion': selectId = 'instalacion_municipal'; break;
+        case 'supervisor': selectId = 'supervisor_asignado'; break;
+        case 'profesional': selectId = 'profesional_responsable'; break;
+        case 'cliente': selectId = 'cliente_interno'; break;
+      }
+      
+      const select = document.getElementById(selectId);
+      if (select) {
+        // Buscar la opción correspondiente en el select
+        for (let i = 0; i < select.options.length; i++) {
+          if (select.options[i].value === item[campoValor].toString()) {
+            select.selectedIndex = i;
+            break;
+          }
+        }
+      }
+      
+      // Cerrar modal
+      cerrarModalBusqueda();
+    }
+
+    // Cerrar modal de búsqueda
+    function cerrarModalBusqueda() {
+      document.getElementById('modalBusqueda').style.display = 'none';
     }
 
     // Función para resetear el formulario
@@ -222,10 +357,19 @@
 
     // Inicialización
     window.guardarSolicitud = guardarSolicitud;
+    window.abrirModalBusqueda = abrirModalBusqueda;
+    window.cerrarModalBusqueda = cerrarModalBusqueda;
 
     window.addEventListener("DOMContentLoaded", async () => {
       await cargarDesplegables();
       await cargarTabla();
+      
+      // Cerrar modal al hacer clic fuera de él
+      document.getElementById('modalBusqueda').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('modalBusqueda')) {
+          cerrarModalBusqueda();
+        }
+      });
     });
   </script>
   <style>
@@ -261,6 +405,7 @@
     
     .form-group {
       margin-bottom: 15px;
+      position: relative;
     }
     
     label {
@@ -302,6 +447,31 @@
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
     
+    .btn-buscar {
+      position: absolute;
+      right: 0;
+      top: 30px;
+      padding: 12px;
+      background-color: #f39c12;
+      border-radius: 0 6px 6px 0;
+      cursor: pointer;
+      width: auto;
+      max-width: none;
+    }
+    
+    .btn-buscar:hover {
+      background-color: #e67e22;
+    }
+    
+    .select-container {
+      position: relative;
+      max-width: 500px;
+    }
+    
+    .select-container select {
+      padding-right: 50px;
+    }
+    
     table {
       width: 100%;
       border-collapse: collapse;
@@ -324,6 +494,90 @@
     
     tr:hover {
       background-color: #f5f5f5;
+    }
+    
+    /* Modal de búsqueda */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1001;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.4);
+    }
+    
+    .modal-content {
+      background-color: #fefefe;
+      margin: 5% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 600px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .modal-header h3 {
+      margin: 0;
+      color: #2c3e50;
+    }
+    
+    .close {
+      color: #aaa;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    .close:hover {
+      color: #333;
+    }
+    
+    #inputBusqueda {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    #listaResultados {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    #listaResultados li {
+      padding: 10px 15px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+    }
+    
+    #listaResultados li:hover {
+      background-color: #f5f5f5;
+    }
+    
+    #listaResultados li:last-child {
+      border-bottom: none;
+    }
+    
+    .no-results {
+      color: #777;
+      text-align: center;
+      padding: 20px;
     }
     
     .notification {
@@ -372,6 +626,11 @@
         width: 100%;
       }
       
+      .modal-content {
+        width: 95%;
+        margin: 10% auto;
+      }
+      
       table {
         font-size: 14px;
       }
@@ -395,27 +654,42 @@
       
       <div class="form-group">
         <label for="area_mantenimiento">Área de Mantenimiento:</label>
-        <select id="area_mantenimiento"></select>
+        <div class="select-container">
+          <select id="area_mantenimiento"></select>
+          <button class="btn-buscar" onclick="abrirModalBusqueda('area')">🔍</button>
+        </div>
       </div>
       
       <div class="form-group">
         <label for="instalacion_municipal">Instalación Municipal:</label>
-        <select id="instalacion_municipal"></select>
+        <div class="select-container">
+          <select id="instalacion_municipal"></select>
+          <button class="btn-buscar" onclick="abrirModalBusqueda('instalacion')">🔍</button>
+        </div>
       </div>
       
       <div class="form-group">
         <label for="supervisor_asignado">Supervisor Asignado:</label>
-        <select id="supervisor_asignado"></select>
+        <div class="select-container">
+          <select id="supervisor_asignado"></select>
+          <button class="btn-buscar" onclick="abrirModalBusqueda('supervisor')">🔍</button>
+        </div>
       </div>
       
       <div class="form-group">
         <label for="profesional_responsable">Profesional Responsable:</label>
-        <select id="profesional_responsable"></select>
+        <div class="select-container">
+          <select id="profesional_responsable"></select>
+          <button class="btn-buscar" onclick="abrirModalBusqueda('profesional')">🔍</button>
+        </div>
       </div>
       
       <div class="form-group">
         <label for="cliente_interno">Cliente Interno:</label>
-        <select id="cliente_interno"></select>
+        <div class="select-container">
+          <select id="cliente_interno"></select>
+          <button class="btn-buscar" onclick="abrirModalBusqueda('cliente')">🔍</button>
+        </div>
       </div>
       
       <button onclick="guardarSolicitud()">Guardar Solicitud</button>
@@ -436,6 +710,18 @@
           <tr><td colspan="4">Cargando datos...</td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- Modal de búsqueda -->
+  <div id="modalBusqueda" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="tituloModal">Buscar</h3>
+        <span class="close" onclick="cerrarModalBusqueda()">&times;</span>
+      </div>
+      <input type="text" id="inputBusqueda" placeholder="Buscar...">
+      <ul id="listaResultados"></ul>
     </div>
   </div>
 </body>
