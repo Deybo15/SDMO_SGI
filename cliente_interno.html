@@ -57,16 +57,20 @@
       }
     }
 
-    // Cargar datos en los selects ordenados alfabéticamente
-    async function cargarDesplegables() {
-      try {
-        const [areas, instalaciones, supervisores, profesionales, clientes] = await Promise.all([
-          supabase.from("area_mantenimiento_20").select("id_area_mantenimiento, descripcion_area"),
-          supabase.from("instalaciones_municipales_16").select("id_instalacion_municipal, instalacion_municipal"),
-          supabase.from("colaboradores_06").select("identificacion, colaborador").eq("supervisor", true),
-          supabase.from("colaboradores_06").select("identificacion, colaborador").eq("profesional_responsable", true),
-          supabase.from("cliente_interno_15").select("id_cliente, nombre")
-        ]);
+// Cargar datos en los selects ordenados alfabéticamente
+async function cargarDesplegables() {
+  try {
+    const [areas, instalaciones, supervisores, profesionales, clientes] = await Promise.all([
+      supabase.from("area_mantenimiento_20").select("id_area_mantenimiento, descripcion_area"),
+      supabase.from("instalaciones_municipales_16").select("id_instalacion_municipal, instalacion_municipal"),
+      supabase
+        .from("colaboradores_06")
+        .select("identificacion, alias")
+        .eq("supervisor", true)
+        .eq("condicion_laboral", false), // 👈 Filtro adicional aplicado correctamente
+      supabase.from("colaboradores_06").select("identificacion, alias").eq("profesional_responsable", true),
+      supabase.from("cliente_interno_15").select("id_cliente, nombre")
+    ]);
 
         // Almacenar datos para búsquedas
         areasData = ordenarAlfabeticamente(areas?.data, 'descripcion_area') || [];
