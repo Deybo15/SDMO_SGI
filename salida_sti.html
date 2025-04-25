@@ -1,188 +1,113 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Formulario-Solicitudes-CI</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registrar Salida de Artículo</title>
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    // Configuración Supabase
+    // ———————— CONFIGURACIÓN SUPABASE ————————
+    // Se asume que esta página es invocada desde un contexto autorizado
     const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    let areasData = [], instalacionesData = [], supervisoresData = [], profesionalesData = [], clientesData = [];
-
-    const escapeHtml = unsafe => unsafe ? unsafe.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#039;') : '';
-
-    const ordenarAlfabeticamente = (arr, prop) => arr?.sort((a,b)=>
-      (a[prop]||'').toString().localeCompare((b[prop]||'').toString(), 'es', { sensitivity: 'base' })
-    )||[];
-
-    async function obtenerProximoNumero() {
-      const { data, error } = await supabase.from('solicitud_17')
-        .select('numero_solicitud').order('numero_solicitud', { ascending: false }).limit(1);
-      if (error) throw error;
-      return data.length ? data[0].numero_solicitud + 1 : 1;
-    }
-
-    async function cargarDesplegables() {
-      try {
-        const [areas, inst, supv, prof, cli] = await Promise.all([
-          supabase.from('area_mantenimiento_20').select('id_area_mantenimiento, descripcion_area'),
-          supabase.from('instalaciones_municipales_16').select('id_instalacion_municipal, instalacion_municipal'),
-          supabase.from('colaboradores_06').select('identificacion, alias').eq('supervisor', true).eq('condicion_laboral', false),
-          supabase.from('colaboradores_06').select('identificacion, alias').eq('autorizado', true),
-          supabase.from('cliente_interno_15').select('id_cliente, nombre')
-        ]);
-
-        areasData = ordenarAlfabeticamente(areas.data, 'descripcion_area');
-        instalacionesData = ordenarAlfabeticamente(inst.data, 'instalacion_municipal');
-        supervisoresData = ordenarAlfabeticamente(supv.data, 'alias');
-        profesionalesData = ordenarAlfabeticamente(prof.data, 'alias');
-        clientesData = ordenarAlfabeticamente(cli.data, 'nombre');
-
-        const buildOptions = (data, valKey, txtKey) => {
-          let opts = '<option value="" disabled selected>-- Seleccione una opción --</option>';
-          ordenarAlfabeticamente(data, txtKey).forEach(o => {
-            opts += `<option value="${escapeHtml(o[valKey])}">${escapeHtml(o[txtKey])}</option>`;
-          });
-          return opts;
-        };
-
-        document.getElementById('area_mantenimiento').innerHTML = buildOptions(areas.data, 'id_area_mantenimiento', 'descripcion_area');
-        document.getElementById('instalacion_municipal').innerHTML = buildOptions(inst.data, 'id_instalacion_municipal', 'instalacion_municipal');
-        document.getElementById('supervisor_asignado').innerHTML = buildOptions(supervisoresData, 'identificacion', 'alias');
-        document.getElementById('profesional_responsable').innerHTML = buildOptions(profesionalesData, 'identificacion', 'alias');
-        document.getElementById('cliente_interno').innerHTML = buildOptions(clientesData, 'id_cliente', 'nombre');
-      } catch(e) {
-        console.error('Error desplegables', e);
-        alert('No se pudieron cargar los selects');
+    // Verificar sesión (redireccionar si no hay usuario)
+    async function checkAuth() {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error || !session) {
+        // Redirigir a login o página de autorización
+        window.location.href = '/login.html';
       }
     }
 
-    async function cargarTabla(filtro='') {
-      const { data, error } = await supabase.from('solicitud_17')
-        .select('*').eq('tipo_solicitud','STI').order('numero_solicitud',{ascending:false}).limit(100);
-      if (error) return console.error(error);
-      let arr = data.filter(s=>
-        s.numero_solicitud.toString().includes(filtro.toLowerCase()) ||
-        (s.descripcion_solicitud||'').toLowerCase().includes(filtro.toLowerCase())
-      ).slice(0,5);
-
-      const tbody = document.getElementById('tablaSolicitudes');
-      tbody.innerHTML = '';
-      if(!arr.length) return tbody.innerHTML = '<tr><td colspan="4">No se encontraron registros</td></tr>';
-      arr.forEach(s=>{
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${s.numero_solicitud}</td>
-          <td>${escapeHtml(s.descripcion_solicitud)}</td>
-          <td>${new Date(s.fecha_solicitud).toLocaleDateString()}</td>
-          <td>${s.area_mantenimiento||'-'}</td>
-        `;
-        tbody.appendChild(tr);
-      });
+    // Obtener siguiente id_salida
+    async function obtenerNuevoIdSalida() {
+      const { data, error } = await supabase
+        .from('salida_articulo_08')
+        .select('id_salida')
+        .order('id_salida', { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return data.length ? data[0].id_salida + 1 : 1;
     }
 
-    window.showModalSalidaSTI = () => {
-      const modal = document.getElementById('modalSalidaSTI');
-      const ifr = document.getElementById('iframeSalidaSTI');
-      if (!ifr.src) ifr.src = ifr.dataset.src;
-      modal.style.display = 'block';
-    };
-    window.closeModalSalidaSTI = () => document.getElementById('modalSalidaSTI').style.display='none';
+    document.addEventListener('DOMContentLoaded', async () => {
+      await checkAuth();
 
-    window.addEventListener('DOMContentLoaded', async()=>{
-      await cargarDesplegables();
-      await cargarTabla();
-      document.getElementById('busqueda').addEventListener('input', e=> cargarTabla(e.target.value));
-      document.getElementById('registrarSTI').addEventListener('click', window.showModalSalidaSTI);
-      document.getElementById('modalSalidaSTI').addEventListener('click', e=>{
-        if(e.target.id==='modalSalidaSTI') window.closeModalSalidaSTI();
+      const form = document.getElementById('salida-form');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        // Leer campos
+        const autoriza = document.getElementById('autoriza').value.trim();
+        const retira = document.getElementById('retira').value.trim();
+        const numeroSolicitud = parseInt(document.getElementById('numero_solicitud').value, 10);
+
+        try {
+          // Calcular ID y fecha
+          const newId = await obtenerNuevoIdSalida();
+          const today = new Date().toISOString().split('T')[0];
+
+          // Insertar en salida_articulo_08
+          let { error: err1 } = await supabase.from('salida_articulo_08').insert([{ 
+            id_salida: newId,
+            fecha_salida: today,
+            autoriza,
+            retira,
+            numero_solicitud: numeroSolicitud
+          }]);
+          if (err1) throw err1;
+
+          // Insertar en dato_salida_13
+          let { error: err2 } = await supabase.from('dato_salida_13').insert([{ id_salida: newId }]);
+          if (err2) throw err2;
+
+          alert(`Registro creado con éxito → id_salida: ${newId}`);
+          window.history.back();
+        } catch (err) {
+          console.error(err);
+          alert('Error: ' + (err.message || err));
+        }
+      });
+
+      // Cancelar y volver
+      document.getElementById('btn-cancel').addEventListener('click', () => {
+        window.history.back();
       });
     });
   </script>
-
   <style>
-    *{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:'Segoe UI',sans-serif;background:#f4f6f8;padding:20px;color:#333}
-    .container{max-width:1200px;margin:0 auto}
-    h1,h2{color:#2c3e50;margin-bottom:15px}
-    .form-group{margin-bottom:12px;position:relative}
-    label{display:block;font-weight:600}
-    input,select,textarea{width:100%;max-width:500px;padding:10px;border:1px solid #ddd;border-radius:4px}
-    button{padding:10px 20px;border:none;border-radius:4px;background:#3498db;color:#fff;cursor:pointer;transition:0.2s}
-    button:hover{background:#2980b9}
-    table{width:100%;border-collapse:collapse;margin-top:20px;background:#fff}
-    th,td{padding:12px;border:1px solid #ddd}
-    th{background:#3498db;color:#fff;text-align:left}
-    tr:hover{background:#f5f5f5}
-
-    /* Modal */
-    .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:1001}
-    .modal-content-large{background:#fff;margin:2% auto;padding:0;width:95%;max-width:1200px;position:relative;border-radius:6px}
-    .modal-content-large .close{position:absolute;top:10px;right:20px;font-size:28px;color:#aaa;cursor:pointer}
-    .modal-content-large .close:hover{color:#333}
+    body { font-family: 'Segoe UI', sans-serif; max-width: 400px; margin: 2rem auto; color: #333; }
+    h1 { color: #2c3e50; margin-bottom: 1rem; }
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; font-weight: 600; margin-bottom: 0.3rem; }
+    input { width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; }
+    button { margin-right: 0.5rem; padding: 0.6rem 1.2rem; border: none; border-radius: 4px; cursor: pointer; }
+    #btn-save { background: #27ae60; color: #fff; }
+    #btn-save:hover { background: #219150; }
+    #btn-cancel { background: #c0392b; color: #fff; }
+    #btn-cancel:hover { background: #a83224; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Formulario para ingreso de solicitudes de cliente interno</h1>
-
-    <!-- Campos del formulario -->
+  <h1>Registrar Salida de Artículo</h1>
+  <form id="salida-form">
     <div class="form-group">
-      <label for="descripcion_solicitud">Descripción de la solicitud:</label>
-      <textarea id="descripcion_solicitud" placeholder="Describa la solicitud..."></textarea>
+      <label for="autoriza">Autoriza:</label>
+      <input type="text" id="autoriza" name="autoriza" required />
     </div>
     <div class="form-group">
-      <label for="area_mantenimiento">Área de Mantenimiento:</label>
-      <select id="area_mantenimiento"></select>
-      <button class="btn" onclick="abrirModalBusqueda('area')">🔍</button>
+      <label for="retira">Retira:</label>
+      <input type="text" id="retira" name="retira" required />
     </div>
-    <!-- (Repite estructura para los demás selects...) -->
-
     <div class="form-group">
-      <button id="registrarSTI">➕ Registrar Nueva Salida STI</button>
+      <label for="numero_solicitud">Número de Solicitud:</label>
+      <input type="number" id="numero_solicitud" name="numero_solicitud" required />
     </div>
-
-    <!-- Búsqueda activa -->
-    <div class="form-group">
-      <label for="busqueda">Buscar por # Solicitud o Descripción:</label>
-      <input type="text" id="busqueda" placeholder="Ej: 8461 o vestimenta">
-    </div>
-
-    <h2>Últimas 5 Solicitudes Registradas</h2>
-    <table>
-      <thead>
-        <tr>
-          <th># Solicitud</th><th>Descripción</th><th>Fecha</th><th>Área</th>
-        </tr>
-      </thead>
-      <tbody id="tablaSolicitudes">
-        <tr><td colspan="4">Cargando datos...</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Modal de Salida STI -->
-  <div id="modalSalidaSTI" class="modal">
-    <div class="modal-content-large">
-      <span class="close" onclick="closeModalSalidaSTI()">&times;</span>
-      <iframe
-        id="iframeSalidaSTI"
-        data-src="./salida_sti.html"
-        src=""
-        frameborder="0"
-        style="width:100%;height:90vh;border:none;"
-      ></iframe>
-    </div>
-  </div>
-</body>
-</html>
-
-  <button id="btnGuardar">Guardar Salida</button>
+    <button type="submit" id="btn-save">Guardar</button>
+    <button type="button" id="btn-cancel">Menú Anterior</button>
+  </form>
 </body>
 </html>
