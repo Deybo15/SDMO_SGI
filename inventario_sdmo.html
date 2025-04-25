@@ -88,12 +88,17 @@
       const tbody = document.querySelector('#tabla-inventario tbody');
       tbody.innerHTML = '';
       data.forEach(row => {
+        console.log('Artículo:', row.nombre_articulo, 'Cantidad:', row.cantidad_disponible);
         const tr = document.createElement('tr');
+        let cantidad = parseFloat(row.cantidad_disponible);
+        const cantidadFormateada = (!isNaN(cantidad) && isFinite(cantidad))
+          ? cantidad.toLocaleString('es-CR', { minimumFractionDigits: 2 })
+          : 'N/D';
         tr.innerHTML = `
           <td>${row.codigo_articulo}</td>
           <td>${row.nombre_articulo}</td>
           <td>${row.unidad}</td>
-          <td>${row.cantidad_disponible}</td>
+          <td>${cantidadFormateada}</td>
           <td>${new Date(row.ultima_actualizacion).toLocaleString()}</td>
         `;
         tbody.appendChild(tr);
