@@ -78,7 +78,15 @@
       let query = supabase.from('inventario_actual').select('*', { count: 'exact' });
       if (codigo) query = query.ilike('codigo_articulo', `%${codigo}%`);
       if (articulo) query = query.ilike('nombre_articulo', `%${articulo}%`);
-      const { data, count } = await query.order('nombre_articulo').range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
+      const { data, count, error } = await query.order('nombre_articulo').range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
+      if (error) {
+        console.error('Error desde Supabase:', error);
+        return;
+      }
+      if (!data) {
+        console.error('No se recibió data desde Supabase. Respuesta:', data);
+        return;
+      }
       totalItems = count;
       renderizarTabla(data);
       document.getElementById('page-info').textContent = `Página ${currentPage} de ${Math.ceil(totalItems / itemsPerPage)}`;
