@@ -400,11 +400,15 @@ async function cargarTabla(filtro = '') {
 function mostrarModalSalidaSTI() {
   document.getElementById("modalSalidaSTI").style.display = "block";
 }
+window.mostrarModalSalidaSTI = mostrarModalSalidaSTI;
+
 
 // Función para cerrar el modal
 function cerrarModalSalidaSTI() {
   document.getElementById("modalSalidaSTI").style.display = "none";
 }
+window.cerrarModalSalidaSTI = cerrarModalSalidaSTI;
+
 
 // Cerrar modal al hacer clic fuera del modal
 window.addEventListener('click', (e) => {
@@ -787,7 +791,7 @@ window.addEventListener('click', (e) => {
 
 <div style="text-align: right; margin-bottom: 10px;">
   <button onclick="mostrarModalSalidaSTI()" style="padding: 10px 20px; background-color: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer;">
-    ➕ Registrar Nueva Salida STI
+    ➕ Registrar Nueva Salida
   </button>
 </div>
     
