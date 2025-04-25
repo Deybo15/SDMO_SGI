@@ -313,39 +313,52 @@ async function cargarDesplegables() {
       }
     }
 
-    // Cargar tabla de solicitudes (últimos 5 registros)
-    async function cargarTabla() {
-      try {
-        const { data, error } = await supabase
-          .from("solicitud_17")
-          .select("*")
-          .eq("tipo_solicitud", "STI") // 👈 Filtro aplicado aquí
-          .order("numero_solicitud", { ascending: false })
-          .limit(5); // Solo mostramos los últimos 5 registros
+// 🔄 Modificada función cargarTabla para incluir filtro y tipo_solicitud
+async function cargarTabla(filtro = '') {
+  try {
+    const { data, error } = await supabase
+      .from("solicitud_17")
+      .select("*")
+      .eq("tipo_solicitud", "STI")
+      .order("numero_solicitud", { ascending: false })
+      .limit(100); // buscamos más registros por si hay que filtrar
 
-        const tbody = document.getElementById("tablaSolicitudes");
-        tbody.innerHTML = "";
+    const tbody = document.getElementById("tablaSolicitudes");
+    tbody.innerHTML = "";
 
-        if (error || !data) {
-          tbody.innerHTML = "<tr><td colspan='4'>Error al cargar los datos</td></tr>";
-          throw error || new Error("No se encontraron datos");
-        }
-
-        data.forEach(solicitud => {
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${solicitud.numero_solicitud}</td>
-            <td>${escapeHtml(solicitud.descripcion_solicitud)}</td>
-            <td>${new Date(solicitud.fecha_solicitud).toLocaleDateString()}</td>
-            <td>${solicitud.area_mantenimiento || '-'}</td>
-          `;
-          tbody.appendChild(row);
-        });
-      } catch (error) {
-        console.error("Error cargando tabla:", error);
-        showNotification("Error al cargar las solicitudes", "error");
-      }
+    if (error || !data) {
+      tbody.innerHTML = "<tr><td colspan='4'>Error al cargar los datos</td></tr>";
+      throw error || new Error("No se encontraron datos");
     }
+
+    // 🔍 Aplicar filtro por número o descripción
+    const filtroLower = filtro.toLowerCase();
+    const resultados = data.filter(solicitud =>
+      solicitud.numero_solicitud.toString().includes(filtroLower) ||
+      solicitud.descripcion_solicitud.toLowerCase().includes(filtroLower)
+    ).slice(0, 5); // mostrar solo 5
+
+    if (resultados.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='4'>No se encontraron coincidencias</td></tr>";
+      return;
+    }
+
+    resultados.forEach(solicitud => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${solicitud.numero_solicitud}</td>
+        <td>${escapeHtml(solicitud.descripcion_solicitud)}</td>
+        <td>${new Date(solicitud.fecha_solicitud).toLocaleDateString()}</td>
+        <td>${solicitud.area_mantenimiento || '-'}</td>
+      `;
+      tbody.appendChild(row);
+    });
+  } catch (error) {
+    console.error("Error cargando tabla:", error);
+    showNotification("Error al cargar las solicitudes", "error");
+  }
+}
+
 
     // Mostrar notificación
     function showNotification(message, type = "info") {
@@ -366,16 +379,27 @@ async function cargarDesplegables() {
     window.cerrarModalBusqueda = cerrarModalBusqueda;
 
     window.addEventListener("DOMContentLoaded", async () => {
-      await cargarDesplegables();
-      await cargarTabla();
-      
-      // Cerrar modal al hacer clic fuera de él
-      document.getElementById('modalBusqueda').addEventListener('click', (e) => {
-        if (e.target === document.getElementById('modalBusqueda')) {
-          cerrarModalBusqueda();
-        }
-      });
-    });
+  await cargarDesplegables();
+  await cargarTabla();
+
+  // 🎯 Búsqueda en tiempo real
+  document.getElementById('busqueda').addEventListener('input', async (e) => {
+    const termino = e.target.value;
+    await cargarTabla(termino);
+  });
+
+  // Cerrar modal al hacer clic fuera de él
+  document.getElementById('modalBusqueda').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('modalBusqueda')) {
+      cerrarModalBusqueda();
+    }
+  });
+});
+
+ 
+  
+  
+  
   </script>
   <style>
     * {
@@ -476,6 +500,11 @@ async function cargarDesplegables() {
     .select-container select {
       padding-right: 50px;
     }
+    
+    <div class="form-group">
+  <label for="busqueda">Buscar por # Solicitud o Descripción:</label>
+  <input type="text" id="busqueda" placeholder="Buscar...">
+</div>
     
     table {
       width: 100%;
@@ -701,21 +730,27 @@ async function cargarDesplegables() {
       <button onclick="guardarSolicitud()">Guardar Solicitud</button>
     </div>
 
-    <div>
-      <h2>Últimas 5 Solicitudes Registradas</h2>
-      <table>
-        <thead>
-          <tr>
-            <th># Solicitud</th>
-            <th>Descripción</th>
-            <th>Fecha</th>
-            <th>Área</th>
-          </tr>
-        </thead>
-        <tbody id="tablaSolicitudes">
-          <tr><td colspan="4">Cargando datos...</td></tr>
-        </tbody>
-      </table>
+    <!-- 🔍 Campo de búsqueda -->
+<div class="form-group">
+  <label for="busqueda">Buscar por # Solicitud o Descripción:</label>
+  <input type="text" id="busqueda" placeholder="Ej: 8461 o vestimenta">
+</div>
+
+<h2>Últimas 5 Solicitudes Registradas</h2>
+<table>
+  <thead>
+    <tr>
+      <th># Solicitud</th>
+      <th>Descripción</th>
+      <th>Fecha</th>
+      <th>Área</th>
+    </tr>
+  </thead>
+  <tbody id="tablaSolicitudes">
+    <tr><td colspan="4">Cargando datos...</td></tr>
+  </tbody>
+</table>
+
     </div>
   </div>
 
