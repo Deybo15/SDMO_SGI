@@ -81,28 +81,13 @@
   <h1>Asociar imagen a artículo</h1>
 
   <div class="upload-container">
-    <input 
-      type="text" 
-      id="codigo" 
-      placeholder="Código del artículo" 
-      required
-    />
-    
-    <input 
-      type="file" 
-      id="imagen" 
-      accept="image/jpeg, image/png, image/webp" 
-      aria-label="Seleccionar imagen"
-      required
-    />
-    
+    <input type="text" id="codigo" placeholder="Código del artículo" required />
+    <input type="file" id="imagen" accept="image/jpeg, image/png, image/webp" required />
     <img id="preview" alt="Vista previa de la imagen" />
-    
     <button id="btnSubir" disabled>
       <span class="spinner">⏳</span>
       <span class="btn-text">Subir imagen y asociar</span>
     </button>
-
     <div id="mensaje" class="mensaje"></div>
   </div>
 
@@ -114,7 +99,6 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'
     );
 
-    // Elementos del DOM
     const elements = {
       codigo: document.getElementById('codigo'),
       imagen: document.getElementById('imagen'),
@@ -125,12 +109,10 @@
       btnText: document.querySelector('.btn-text')
     };
 
-    // Event Listeners
     elements.imagen.addEventListener('change', handleImageSelect);
     elements.codigo.addEventListener('input', validateForm);
     elements.btnSubir.addEventListener('click', handleUpload);
 
-    // Handlers
     function handleImageSelect() {
       const file = elements.imagen.files[0];
       elements.mensaje.classList.remove('success', 'error');
@@ -175,7 +157,7 @@
         if (error) return;
 
         const nombreArchivo = await uploadImage(codigo, file);
-        const publicUrl = getPublicUrl(nombreArchivo);
+        const publicUrl = await getPublicUrl(nombreArchivo); // ✅ corrección aquí
         await updateArticle(codigo, publicUrl);
 
         showMessage(
@@ -184,7 +166,7 @@
           <button onclick="navigator.clipboard.writeText('${publicUrl}')">Copiar URL</button>`,
           'success'
         );
-        
+
         resetForm();
       } catch (error) {
         showMessage(`❌ Error: ${error.message}`, 'error');
@@ -193,7 +175,6 @@
       }
     }
 
-    // Helpers
     function getUploadData() {
       const codigo = elements.codigo.value.trim();
       const file = elements.imagen.files[0];
@@ -218,11 +199,13 @@
       return fileName;
     }
 
-    function getPublicUrl(fileName) {
-      const { data: { publicUrl } } = supabase.storage
+    async function getPublicUrl(fileName) {
+      const { data, error } = await supabase.storage
         .from('imagenes')
         .getPublicUrl(fileName);
-      return publicUrl;
+      
+      if (error || !data) throw new Error('No se pudo obtener la URL pública');
+      return data.publicUrl;
     }
 
     async function updateArticle(codigo, url) {
