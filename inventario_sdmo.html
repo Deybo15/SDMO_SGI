@@ -56,12 +56,21 @@
       const byName = document.getElementById('filtro-articulo');
       const tbody = document.querySelector('#tabla-inventario tbody');
 
+      function normalizarTexto(txt) {
+        return txt
+          .toLowerCase()
+          .normalize("NFD") // Quita acentos
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/\s+/g, " ") // Normaliza espacios múltiples
+          .trim();
+      }
+
       function filtrar() {
-        const codeQ = byCode.value.toLowerCase();
-        const nameQ = byName.value.toLowerCase();
+        const codeQ = normalizarTexto(byCode.value);
+        const nameQ = normalizarTexto(byName.value);
         for (const tr of tbody.rows) {
-          const code = tr.cells[0].textContent.toString().toLowerCase();
-          const name = tr.cells[1].textContent.toLowerCase();
+          const code = normalizarTexto(tr.cells[0].textContent);
+          const name = normalizarTexto(tr.cells[1].textContent);
           const visible = code.includes(codeQ) && name.includes(nameQ);
           tr.style.display = visible ? '' : 'none';
         }
