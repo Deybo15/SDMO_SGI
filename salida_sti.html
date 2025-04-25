@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Registrar Salida de Artículo</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
@@ -16,18 +18,85 @@
       const form = document.getElementById('salida-form');
       const addRowBtn = document.getElementById('add-row');
       const tbody = document.querySelector('#detalle-tabla tbody');
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Mostrar fecha actual
+      document.getElementById('fecha-actual').textContent = `Fecha: ${formatDate(today)}`;
+
+      // Función para formatear fecha
+      function formatDate(dateString) {
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        return new Date(dateString).toLocaleDateString('es-ES', options);
+      }
+
+      // Función para validar formulario antes de enviar
+      function validateForm() {
+        const filas = Array.from(document.querySelectorAll('#detalle-tabla tbody tr'));
+        if (filas.length === 0) {
+          showAlert('Debe agregar al menos un artículo', 'danger');
+          return false;
+        }
+        
+        let isValid = true;
+        filas.forEach(tr => {
+          const articulo = tr.querySelector('input[name="articulo"]').value.trim();
+          const cantidad = tr.querySelector('input[name="cantidad"]').value;
+          
+          if (!articulo || !cantidad) {
+            isValid = false;
+            tr.classList.add('table-danger');
+          } else {
+            tr.classList.remove('table-danger');
+          }
+        });
+        
+        if (!isValid) {
+          showAlert('Complete todos los campos de los artículos', 'danger');
+        }
+        
+        return isValid;
+      }
+
+      // Mostrar alerta personalizada
+      function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.role = 'alert';
+        alertDiv.innerHTML = `
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        const container = document.querySelector('.alert-container');
+        container.innerHTML = '';
+        container.appendChild(alertDiv);
+      }
 
       // Función para agregar una fila al detalle
       function agregarFila() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><input type="text" name="articulo" placeholder="Artículo" required /></td>
-          <td><input type="number" name="cantidad" placeholder="Cantidad" min="0" step="any" required /></td>
-          <td><button type="button" class="btn-remove">Eliminar</button></td>
+          <td>
+            <input type="text" name="articulo" class="form-control" placeholder="Nombre del artículo" required />
+          </td>
+          <td>
+            <input type="number" name="cantidad" class="form-control" placeholder="0.00" min="0" step="0.01" required />
+          </td>
+          <td class="text-center">
+            <button type="button" class="btn btn-danger btn-sm btn-remove">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </td>
         `;
         // Quitar fila
-        tr.querySelector('.btn-remove').addEventListener('click', () => tr.remove());
+        tr.querySelector('.btn-remove').addEventListener('click', () => {
+          tr.classList.add('animate__animated', 'animate__fadeOut');
+          setTimeout(() => tr.remove(), 500);
+        });
         tbody.appendChild(tr);
+        
+        // Enfocar el campo de artículo
+        setTimeout(() => tr.querySelector('input[name="articulo"]').focus(), 100);
       }
 
       // Inicializar con una fila
@@ -36,9 +105,22 @@
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        
+        if (!validateForm()) return;
+        
         const autoriza = document.getElementById('autoriza').value.trim();
         const retira = document.getElementById('retira').value.trim();
         const numeroSolicitud = parseInt(document.getElementById('numero_solicitud').value, 10);
+        const observaciones = document.getElementById('observaciones').value.trim();
+
+        // Mostrar spinner de carga
+        const submitBtn = document.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.innerHTML = `
+          <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          Procesando...
+        `;
+        submitBtn.disabled = true;
 
         try {
           // Obtener siguiente id_salida
@@ -57,7 +139,14 @@
           // Insertar encabezado
           const { error: errEnc } = await supabase
             .from('salida_articulo_08')
-            .insert([{ id_salida: newId, fecha_salida: fechaHoy, autoriza, retira, numero_solicitud: numeroSolicitud }]);
+            .insert([{ 
+              id_salida: newId, 
+              fecha_salida: fechaHoy, 
+              autoriza, 
+              retira, 
+              numero_solicitud: numeroSolicitud,
+              observaciones 
+            }]);
           if (errEnc) throw errEnc;
 
           // Recopilar datos detalle
@@ -74,64 +163,164 @@
             .insert(detalles);
           if (errDet) throw errDet;
 
-          alert(`Guardado correctamente. ID Salida: ${newId}`);
-          window.history.back();
+          showAlert(`Registro guardado correctamente. ID Salida: ${newId}`, 'success');
+          
+          // Redirigir después de 2 segundos
+          setTimeout(() => {
+            window.location.href = 'lista_salidas.html'; // Cambiar por la URL correcta
+          }, 2000);
         } catch (err) {
           console.error(err);
-          alert('Error al guardar: ' + err.message);
+          showAlert('Error al guardar: ' + err.message, 'danger');
+        } finally {
+          submitBtn.innerHTML = originalBtnText;
+          submitBtn.disabled = false;
         }
       });
 
-      document.getElementById('btn-cancel').addEventListener('click', () => window.history.back());
+      document.getElementById('btn-cancel').addEventListener('click', () => {
+        if (confirm('¿Está seguro que desea cancelar? Los datos no guardados se perderán.')) {
+          window.history.back();
+        }
+      });
     });
   </script>
 
   <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: 2rem auto; color: #333; }
-    h1 { text-align: center; margin-bottom: 1.5rem; }
-    .form-group { margin-bottom: 1rem; }
-    label { display: block; font-weight: bold; margin-bottom: 0.3rem; }
-    input { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-    th, td { border: 1px solid #ddd; padding: 0.5rem; text-align: left; }
-    th { background: #f0f0f0; }
-    #add-row { margin-top: 0.5rem; padding: 0.4rem 0.8rem; }
-    .btn-remove { background: #dc3545; color: #fff; border: none; padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; }
-    .buttons { text-align: center; margin-top: 1.5rem; }
-    button[type="submit"] { background: #28a745; color: #fff; border: none; padding: 0.6rem 1.2rem; border-radius: 4px; cursor: pointer; }
-    #btn-cancel { background: #6c757d; color: #fff; border: none; padding: 0.6rem 1.2rem; border-radius: 4px; cursor: pointer; margin-left: 0.5rem; }
+    :root {
+      --primary-color: #3498db;
+      --secondary-color: #2c3e50;
+      --success-color: #28a745;
+      --danger-color: #dc3545;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f8f9fa;
+      color: #343a40;
+    }
+    
+    .card {
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      border: none;
+    }
+    
+    .card-header {
+      background-color: var(--secondary-color);
+      color: white;
+      border-radius: 10px 10px 0 0 !important;
+      padding: 1.2rem;
+    }
+    
+    .form-control:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+    }
+    
+    .btn-primary {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    
+    .btn-primary:hover {
+      background-color: #2980b9;
+      border-color: #2980b9;
+    }
+    
+    .table th {
+      background-color: #e9ecef;
+      border-top: none;
+    }
+    
+    .animate__animated {
+      animation-duration: 0.5s;
+    }
+    
+    #detalle-tabla input {
+      border: 1px solid #ced4da;
+    }
+    
+    .fecha-actual {
+      font-size: 0.9rem;
+      color: #6c757d;
+      margin-bottom: 1rem;
+    }
+    
+    .required-field::after {
+      content: " *";
+      color: var(--danger-color);
+    }
   </style>
 </head>
 <body>
-  <h1>Registrar Salida de Artículo</h1>
-  <form id="salida-form">
-    <div class="form-group">
-      <label for="autoriza">Autoriza:</label>
-      <input type="text" id="autoriza" name="autoriza" required />
+  <div class="container py-4">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header text-center">
+            <h2 class="mb-0"><i class="fas fa-box-open me-2"></i>Registrar Salida de Artículos</h2>
+          </div>
+          <div class="card-body">
+            <div class="alert-container mb-3"></div>
+            <div class="fecha-actual" id="fecha-actual"></div>
+            
+            <form id="salida-form">
+              <div class="row mb-4">
+                <div class="col-md-6 mb-3">
+                  <label for="autoriza" class="form-label required-field">Persona que autoriza</label>
+                  <input type="text" id="autoriza" name="autoriza" class="form-control" required />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="retira" class="form-label required-field">Persona que retira</label>
+                  <input type="text" id="retira" name="retira" class="form-control" required />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="numero_solicitud" class="form-label required-field">Número de solicitud</label>
+                  <input type="number" id="numero_solicitud" name="numero_solicitud" class="form-control" required />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="observaciones" class="form-label">Observaciones</label>
+                  <input type="text" id="observaciones" name="observaciones" class="form-control" />
+                </div>
+              </div>
+              
+              <h5 class="mb-3"><i class="fas fa-list-ul me-2"></i>Detalle de Artículos</h5>
+              
+              <div class="table-responsive mb-3">
+                <table class="table table-hover" id="detalle-tabla">
+                  <thead class="table-light">
+                    <tr>
+                      <th width="60%">Artículo</th>
+                      <th width="30%">Cantidad</th>
+                      <th width="10%">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+              
+              <button type="button" id="add-row" class="btn btn-outline-primary btn-sm mb-4">
+                <i class="fas fa-plus-circle me-1"></i> Agregar Artículo
+              </button>
+              
+              <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <button type="button" id="btn-cancel" class="btn btn-outline-secondary me-md-2">
+                  <i class="fas fa-times-circle me-1"></i> Cancelar
+                </button>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-save me-1"></i> Guardar Salida
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="form-group">
-      <label for="retira">Retira:</label>
-      <input type="text" id="retira" name="retira" required />
-    </div>
-    <div class="form-group">
-      <label for="numero_solicitud">Número de Solicitud:</label>
-      <input type="number" id="numero_solicitud" name="numero_solicitud" required />
-    </div>
+  </div>
 
-    <h2>Detalle de Artículos</h2>
-    <table id="detalle-tabla">
-      <thead>
-        <tr><th>Artículo</th><th>Cantidad</th><th>Acción</th></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-    <button type="button" id="add-row">Agregar Fila</button>
-
-    <div class="buttons">
-      <button type="submit">Guardar</button>
-      <button type="button" id="btn-cancel">Menú Anterior</button>
-    </div>
-  </form>
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 </body>
 </html>
-
