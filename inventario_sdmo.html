@@ -88,7 +88,9 @@
       const tbody = document.querySelector('#tabla-inventario tbody');
       tbody.innerHTML = '';
       data.forEach(row => {
-        console.log('Artículo:', row.nombre_articulo, 'Cantidad:', row.cantidad_disponible);
+        console.log('--- FILA ---');
+        console.log('Artículo:', row.nombre_articulo);
+        console.log('Cantidad cruda:', row.cantidad_disponible, '| Tipo:', typeof row.cantidad_disponible);
         const tr = document.createElement('tr');
         let cantidad = parseFloat(row.cantidad_disponible);
         const cantidadFormateada = (!isNaN(cantidad) && isFinite(cantidad))
