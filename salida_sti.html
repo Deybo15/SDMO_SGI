@@ -20,338 +20,93 @@
     });
 
     async function cargarInventario() {
-      try {
-        const { data, error } = await supabase.from('inventario_actual').select('*');
-        if (error) throw error;
-        
-        const contenedor = document.getElementById('inventario');
-        contenedor.innerHTML = '';
-        
-        data.forEach(item => {
-          const div = document.createElement('div');
-          div.className = 'item';
-          div.innerHTML = `
-            <img src="${item.imagen_url}" alt="${item.nombre_articulo}" class="item-img" 
-                 ondblclick='seleccionarArticulo(${JSON.stringify(item)})'/>
-            <p class="item-name">${item.nombre_articulo}</p>
-            <small class="item-stock">Stock: ${item.cantidad_disponible}</small>
-          `;
-          contenedor.appendChild(div);
-        });
-      } catch (error) {
-        mostrarError('Error cargando inventario: ' + error.message);
-      }
+      const { data, error } = await supabase.from('inventario_actual').select('*');
+      if (error) return alert('Error cargando inventario');
+      const contenedor = document.getElementById('inventario');
+      contenedor.innerHTML = '';
+      data.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = `
+          <img src="${item.imagen_url}" alt="Imagen" style="width:60px;cursor:pointer" ondblclick='seleccionarArticulo(${JSON.stringify(item)})'/>
+          <p>${item.nombre_articulo}</p>
+          <small>Stock: ${item.cantidad_disponible}</small>
+        `;
+        contenedor.appendChild(div);
+      });
     }
 
     window.seleccionarArticulo = async (item) => {
-      const cantidad = prompt(`Ingrese cantidad para: ${item.nombre_articulo}\nStock disponible: ${item.cantidad_disponible}`);
-      
-      if (!cantidad) return;
-      if (isNaN(cantidad) || parseFloat(cantidad) <= 0) {
-        return mostrarError('Ingrese una cantidad válida');
-      }
-      if (parseFloat(cantidad) > item.cantidad_disponible) {
-        return mostrarError('La cantidad no puede ser mayor al stock disponible');
-      }
-      
-      // Verificar si el artículo ya fue seleccionado
-      const index = articulosSeleccionados.findIndex(a => a.articulo === item.codigo_articulo);
-      if (index >= 0) {
-        articulosSeleccionados[index].cantidad += parseFloat(cantidad);
-      } else {
-        articulosSeleccionados.push({
-          articulo: item.codigo_articulo,
-          nombre: item.nombre_articulo,
-          cantidad: parseFloat(cantidad)
-        });
-      }
-      
+      const cantidad = prompt(`Ingrese cantidad para: ${item.nombre_articulo}`);
+      if (!cantidad || isNaN(cantidad)) return;
+      articulosSeleccionados.push({ articulo: item.codigo_articulo, nombre: item.nombre_articulo, cantidad: parseFloat(cantidad) });
       mostrarArticulosSeleccionados();
     }
 
     function mostrarArticulosSeleccionados() {
       const tabla = document.getElementById('detalle');
-      tabla.innerHTML = `
-        <thead>
-          <tr><th>Artículo</th><th>Cantidad</th><th>Acción</th></tr>
-        </thead>
-        <tbody>
-          ${articulosSeleccionados.map(a => `
-            <tr>
-              <td>${a.nombre}</td>
-              <td>${a.cantidad}</td>
-              <td><button class="btn-eliminar" onclick="eliminarArticulo('${a.articulo}')">✕</button></td>
-            </tr>
-          `).join('')}
-        </tbody>
-      `;
-    }
-
-    window.eliminarArticulo = (codigoArticulo) => {
-      articulosSeleccionados = articulosSeleccionados.filter(a => a.articulo !== codigoArticulo);
-      mostrarArticulosSeleccionados();
+      tabla.innerHTML = '<tr><th>Artículo</th><th>Cantidad</th></tr>';
+      articulosSeleccionados.forEach(a => {
+        tabla.innerHTML += `<tr><td>${a.nombre}</td><td>${a.cantidad}</td></tr>`;
+      });
     }
 
     async function guardarSalida() {
-      const autoriza = document.getElementById('autoriza').value.trim();
-      const retira = document.getElementById('retira').value.trim();
-      const solicitud = document.getElementById('solicitud').value.trim();
+      const autoriza = document.getElementById('autoriza').value;
+      const retira = document.getElementById('retira').value;
+      const vehiculo = document.getElementById('vehiculo').value;
+      const operador = document.getElementById('operador').value;
+      const solicitud = parseInt(document.getElementById('solicitud').value);
 
-      if (!autoriza || !retira || !solicitud) {
-        return mostrarError('Complete todos los campos obligatorios');
+      if (!autoriza || !retira || !solicitud || articulosSeleccionados.length === 0) {
+        alert('Complete todos los datos');
+        return;
       }
-      if (articulosSeleccionados.length === 0) {
-        return mostrarError('Seleccione al menos un artículo');
-      }
 
-      try {
-        // Registrar la salida principal
-        const { data: salida, error } = await supabase
-          .from('salida_articulo_08')
-          .insert([{ 
-            autoriza, 
-            retira, 
-            numero_solicitud: solicitud, 
-            tipo_cliente: 'interno', 
-            fecha_salida: new Date().toISOString().split('T')[0]
-          }])
-          .select();
+      const { data: salida, error } = await supabase.from('salida_articulo_08').insert([{ 
+        autoriza, retira, placa_vehiculo: vehiculo, operador_vehiculo: operador, numero_solicitud: solicitud, tipo_cliente: 'interno', fecha_salida: new Date().toISOString().split('T')[0]
+      ]).select();
 
-        if (error || !salida[0]) throw error || new Error('No se pudo registrar la salida');
+      if (error || !salida[0]) return alert('Error al guardar salida');
 
-        const id_salida = salida[0].id_salida;
+      const id_salida = salida[0].id_salida;
 
-        // Registrar los detalles de la salida
-        const detalles = articulosSeleccionados.map(a => ({
-          id_salida,
-          articulo: a.articulo,
-          cantidad: a.cantidad
-        }));
+      const detalles = articulosSeleccionados.map(a => ({
+        id_salida,
+        articulo: a.articulo,
+        cantidad: a.cantidad
+      }));
 
-        const { error: errorDetalles } = await supabase.from('dato_salida_13').insert(detalles);
-        if (errorDetalles) throw errorDetalles;
+      const { error: errorDetalles } = await supabase.from('dato_salida_13').insert(detalles);
 
-        mostrarExito('Salida registrada con éxito');
-        setTimeout(() => location.reload(), 1500);
-      } catch (error) {
-        mostrarError('Error al guardar: ' + error.message);
-      }
-    }
+      if (errorDetalles) return alert('Error al guardar detalles');
 
-    function mostrarError(mensaje) {
-      const alerta = document.createElement('div');
-      alerta.className = 'alerta error';
-      alerta.textContent = mensaje;
-      document.body.prepend(alerta);
-      setTimeout(() => alerta.remove(), 5000);
-    }
-
-    function mostrarExito(mensaje) {
-      const alerta = document.createElement('div');
-      alerta.className = 'alerta exito';
-      alerta.textContent = mensaje;
-      document.body.prepend(alerta);
-      setTimeout(() => alerta.remove(), 5000);
+      alert('Salida registrada con éxito');
+      location.reload();
     }
   </script>
   <style>
-    :root {
-      --color-primario: #2c3e50;
-      --color-secundario: #3498db;
-      --color-exito: #27ae60;
-      --color-error: #e74c3c;
-      --color-fondo: #f4f6f8;
-      --color-texto: #333;
-      --color-borde: #ddd;
-    }
-    
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: var(--color-fondo);
-      color: var(--color-texto);
-      line-height: 1.6;
-    }
-    
-    h2, h3 {
-      color: var(--color-primario);
-    }
-    
-    .form-container {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-      max-width: 600px;
-    }
-    
-    label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: 500;
-    }
-    
-    input, select {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 15px;
-      border: 1px solid var(--color-borde);
-      border-radius: 4px;
-      font-size: 16px;
-    }
-    
-    .item {
-      display: inline-block;
-      width: 180px;
-      margin: 10px;
-      text-align: center;
-      background: #fff;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      transition: transform 0.2s;
-    }
-    
-    .item:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-    
-    .item-img {
-      width: 80px;
-      height: 80px;
-      object-fit: contain;
-      cursor: pointer;
-      border-radius: 4px;
-      margin-bottom: 10px;
-    }
-    
-    .item-name {
-      font-weight: 600;
-      margin: 5px 0;
-    }
-    
-    .item-stock {
-      color: #666;
-      font-size: 0.9em;
-    }
-    
-    table {
-      width: 100%;
-      margin: 20px 0;
-      border-collapse: collapse;
-      background: white;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    
-    th, td {
-      border: 1px solid var(--color-borde);
-      padding: 12px;
-      text-align: left;
-    }
-    
-    th {
-      background-color: var(--color-primario);
-      color: white;
-    }
-    
-    tr:nth-child(even) {
-      background-color: #f9f9f9;
-    }
-    
-    .btn-eliminar {
-      background: var(--color-error);
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 5px 10px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    
-    .btn-eliminar:hover {
-      background: #c0392b;
-    }
-    
-    #btnGuardar {
-      background-color: var(--color-secundario);
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      font-size: 16px;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background 0.3s;
-      display: block;
-      margin: 20px auto;
-    }
-    
-    #btnGuardar:hover {
-      background-color: #2980b9;
-    }
-    
-    .alerta {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 15px 25px;
-      border-radius: 4px;
-      color: white;
-      font-weight: 500;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      z-index: 1000;
-      animation: slideIn 0.3s ease-out;
-    }
-    
-    .error {
-      background-color: var(--color-error);
-    }
-    
-    .exito {
-      background-color: var(--color-exito);
-    }
-    
-    @keyframes slideIn {
-      from { top: -50px; opacity: 0; }
-      to { top: 20px; opacity: 1; }
-    }
-    
-    #inventario {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: flex-start;
-      margin: 20px 0;
-    }
+    body { font-family: sans-serif; margin: 20px; background: #f4f6f8; }
+    label, input, select { display: block; margin: 8px 0; }
+    .item { display: inline-block; width: 180px; margin: 10px; text-align: center; background: #fff; padding: 8px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
   </style>
 </head>
 <body>
-  <div class="form-container">
-    <h2>Registrar Salida para Cliente Interno</h2>
-    
-    <label for="autoriza">Autoriza:</label>
-    <input type="text" id="autoriza" required>
-    
-    <label for="retira">Persona que retira:</label>
-    <input type="text" id="retira" required>
-    
-    <label for="solicitud">N° de Solicitud:</label>
-    <input type="number" id="solicitud" required>
-  </div>
+  <h2>Registrar Salida para Cliente Interno</h2>
+  <label>Autoriza: <input type="text" id="autoriza"></label>
+  <label>Retira: <input type="text" id="retira"></label>
+  <label>Vehículo: <input type="text" id="vehiculo"></label>
+  <label>Operador: <input type="text" id="operador"></label>
+  <label>N° de Solicitud: <input type="number" id="solicitud"></label>
 
   <h3>Inventario Disponible</h3>
-  <div id="inventario"></div>
+  <div id="inventario" style="display:flex; flex-wrap:wrap;"></div>
 
   <h3>Artículos Seleccionados</h3>
   <table id="detalle">
-    <thead>
-      <tr><th>Artículo</th><th>Cantidad</th><th>Acción</th></tr>
-    </thead>
-    <tbody></tbody>
+    <tr><th>Artículo</th><th>Cantidad</th></tr>
   </table>
 
   <button id="btnGuardar">Guardar Salida</button>
