@@ -8,87 +8,98 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
     // ———————— CONFIGURACIÓN SUPABASE ————————
-    // Se asume que esta página es invocada desde un contexto autorizado
     const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Verificar sesión (redireccionar si no hay usuario)
-    async function checkAuth() {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error || !session) {
-        // Redirigir a login o página de autorización
-        window.location.href = '/login.html';
-      }
-    }
-
-    // Obtener siguiente id_salida
-    async function obtenerNuevoIdSalida() {
-      const { data, error } = await supabase
-        .from('salida_articulo_08')
-        .select('id_salida')
-        .order('id_salida', { ascending: false })
-        .limit(1);
-      if (error) throw error;
-      return data.length ? data[0].id_salida + 1 : 1;
-    }
-
-    document.addEventListener('DOMContentLoaded', async () => {
-      await checkAuth();
-
+    document.addEventListener('DOMContentLoaded', () => {
       const form = document.getElementById('salida-form');
+      const addRowBtn = document.getElementById('add-row');
+      const tbody = document.querySelector('#detalle-tabla tbody');
+
+      // Función para agregar una fila al detalle
+      function agregarFila() {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input type="text" name="articulo" placeholder="Artículo" required /></td>
+          <td><input type="number" name="cantidad" placeholder="Cantidad" min="0" step="any" required /></td>
+          <td><button type="button" class="btn-remove">Eliminar</button></td>
+        `;
+        // Quitar fila
+        tr.querySelector('.btn-remove').addEventListener('click', () => tr.remove());
+        tbody.appendChild(tr);
+      }
+
+      // Inicializar con una fila
+      agregarFila();
+      addRowBtn.addEventListener('click', agregarFila);
+
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
-
-        // Leer campos
         const autoriza = document.getElementById('autoriza').value.trim();
         const retira = document.getElementById('retira').value.trim();
         const numeroSolicitud = parseInt(document.getElementById('numero_solicitud').value, 10);
 
         try {
-          // Calcular ID y fecha
-          const newId = await obtenerNuevoIdSalida();
-          const today = new Date().toISOString().split('T')[0];
+          // Obtener siguiente id_salida
+          const { data: last, error: errMax } = await supabase
+            .from('salida_articulo_08')
+            .select('id_salida')
+            .order('id_salida', { ascending: false })
+            .limit(1);
+          if (errMax) throw errMax;
+          const maxId = last.length ? last[0].id_salida : 0;
+          const newId = maxId + 1;
 
-          // Insertar en salida_articulo_08
-          let { error: err1 } = await supabase.from('salida_articulo_08').insert([{ 
-            id_salida: newId,
-            fecha_salida: today,
-            autoriza,
-            retira,
-            numero_solicitud: numeroSolicitud
-          }]);
-          if (err1) throw err1;
+          // Fecha actual
+          const fechaHoy = new Date().toISOString().split('T')[0];
 
-          // Insertar en dato_salida_13
-          let { error: err2 } = await supabase.from('dato_salida_13').insert([{ id_salida: newId }]);
-          if (err2) throw err2;
+          // Insertar encabezado
+          const { error: errEnc } = await supabase
+            .from('salida_articulo_08')
+            .insert([{ id_salida: newId, fecha_salida: fechaHoy, autoriza, retira, numero_solicitud: numeroSolicitud }]);
+          if (errEnc) throw errEnc;
 
-          alert(`Registro creado con éxito → id_salida: ${newId}`);
+          // Recopilar datos detalle
+          const filas = Array.from(document.querySelectorAll('#detalle-tabla tbody tr'));
+          const detalles = filas.map(tr => {
+            const articulo = tr.querySelector('input[name="articulo"]').value.trim();
+            const cantidad = parseFloat(tr.querySelector('input[name="cantidad"]').value);
+            return { id_salida: newId, articulo, cantidad };
+          });
+
+          // Insertar detalle
+          const { error: errDet } = await supabase
+            .from('dato_salida_13')
+            .insert(detalles);
+          if (errDet) throw errDet;
+
+          alert(`Guardado correctamente. ID Salida: ${newId}`);
           window.history.back();
         } catch (err) {
           console.error(err);
-          alert('Error: ' + (err.message || err));
+          alert('Error al guardar: ' + err.message);
         }
       });
 
-      // Cancelar y volver
-      document.getElementById('btn-cancel').addEventListener('click', () => {
-        window.history.back();
-      });
+      document.getElementById('btn-cancel').addEventListener('click', () => window.history.back());
     });
   </script>
+
   <style>
-    body { font-family: 'Segoe UI', sans-serif; max-width: 400px; margin: 2rem auto; color: #333; }
-    h1 { color: #2c3e50; margin-bottom: 1rem; }
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 2rem auto; color: #333; }
+    h1 { text-align: center; margin-bottom: 1.5rem; }
     .form-group { margin-bottom: 1rem; }
-    label { display: block; font-weight: 600; margin-bottom: 0.3rem; }
-    input { width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; }
-    button { margin-right: 0.5rem; padding: 0.6rem 1.2rem; border: none; border-radius: 4px; cursor: pointer; }
-    #btn-save { background: #27ae60; color: #fff; }
-    #btn-save:hover { background: #219150; }
-    #btn-cancel { background: #c0392b; color: #fff; }
-    #btn-cancel:hover { background: #a83224; }
+    label { display: block; font-weight: bold; margin-bottom: 0.3rem; }
+    input { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #ddd; padding: 0.5rem; text-align: left; }
+    th { background: #f0f0f0; }
+    #add-row { margin-top: 0.5rem; padding: 0.4rem 0.8rem; }
+    .btn-remove { background: #dc3545; color: #fff; border: none; padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; }
+    .buttons { text-align: center; margin-top: 1.5rem; }
+    button[type="submit"] { background: #28a745; color: #fff; border: none; padding: 0.6rem 1.2rem; border-radius: 4px; cursor: pointer; }
+    #btn-cancel { background: #6c757d; color: #fff; border: none; padding: 0.6rem 1.2rem; border-radius: 4px; cursor: pointer; margin-left: 0.5rem; }
   </style>
 </head>
 <body>
@@ -106,8 +117,21 @@
       <label for="numero_solicitud">Número de Solicitud:</label>
       <input type="number" id="numero_solicitud" name="numero_solicitud" required />
     </div>
-    <button type="submit" id="btn-save">Guardar</button>
-    <button type="button" id="btn-cancel">Menú Anterior</button>
+
+    <h2>Detalle de Artículos</h2>
+    <table id="detalle-tabla">
+      <thead>
+        <tr><th>Artículo</th><th>Cantidad</th><th>Acción</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button type="button" id="add-row">Agregar Fila</button>
+
+    <div class="buttons">
+      <button type="submit">Guardar</button>
+      <button type="button" id="btn-cancel">Menú Anterior</button>
+    </div>
   </form>
 </body>
 </html>
+
