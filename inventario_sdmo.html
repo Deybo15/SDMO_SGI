@@ -4,94 +4,189 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Inventario Actual - SDMO</title>
+  
+  <!-- Configuración Segura Supabase -->
+  <script type="importmap">
+    {
+      "imports": {
+        "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
+      }
+    }
+  </script>
+  
   <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    import { createClient } from '@supabase/supabase-js';
+    import { debounce } from 'https://cdn.jsdelivr.net/npm/lodash-es/debounce.js';
 
-    const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Configuración desde variables de entorno (deberían ser reemplazadas en build)
+    const supabase = createClient(
+      import.meta.env.VITE_SUPABASE_URL || 'https://qpccqoeronbcdyejfjod.supabase.co',
+      import.meta.env.VITE_SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'
+    );
 
     let inventarioCompleto = [];
+    let currentPage = 1;
+    const itemsPerPage = 25;
 
     window.addEventListener('DOMContentLoaded', async () => {
+      await verifySession();
+      await cargarInventario();
+      setupUI();
+      setupEventListeners();
+    });
+
+    async function verifySession() {
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error || !user) {
         window.location.href = 'index.html';
         return;
       }
       document.getElementById('usuario').textContent = user.email;
-      await cargarInventario();
-      setupSearch();
-    });
+    }
 
     async function cargarInventario() {
-      const { data, error } = await supabase
-        .from('inventario_actual')
-        .select(`
-          codigo_articulo,
-          nombre_articulo,
-          unidad,
-          cantidad_disponible,
-          ultima_actualizacion
-        `)
-        .order('nombre_articulo', { ascending: true })
-        .limit(10000);
+      showLoader();
+      try {
+        const { data, error, count } = await supabase
+          .from('inventario_actual')
+          .select('*', { count: 'exact' })
+          .order('nombre_articulo', { ascending: true })
+          .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
 
-      if (error) {
-        alert('Error cargando inventario: ' + error.message);
-        return;
+        if (error) throw error;
+        
+        inventarioCompleto = data;
+        renderizarTabla(inventarioCompleto);
+        updatePaginationControls(count);
+      } catch (error) {
+        showError('Error cargando inventario: ' + error.message);
+      } finally {
+        hideLoader();
       }
-
-      inventarioCompleto = data;
-      renderizarTabla(inventarioCompleto.slice(0, 15));
     }
 
     function renderizarTabla(lista) {
       const tbody = document.querySelector('#tabla-inventario tbody');
       tbody.innerHTML = lista.map(row => `
         <tr>
-          <td>${row.codigo_articulo?.toString() || ''}</td>
-          <td>${row.nombre_articulo || ''}</td>
-          <td>${row.unidad || ''}</td>
-          <td>${row.cantidad_disponible ?? ''}</td>
-          <td>${row.ultima_actualizacion ? new Date(row.ultima_actualizacion).toLocaleString() : ''}</td>
+          <td>${row.codigo_articulo?.toString().padStart(6, '0') || ''}</td>
+          <td>${row.nombre_articulo || 'Sin nombre'}</td>
+          <td>${row.unidad || 'N/A'}</td>
+          <td class="${row.cantidad_disponible < 0 ? 'text-danger' : ''}">
+            ${row.cantidad_disponible?.toLocaleString() ?? '0'}
+          </td>
+          <td>${formatDate(row.ultima_actualizacion)}</td>
         </tr>
       `).join('');
+      updateCounter(lista.length);
+    }
+
+    function setupUI() {
+      setupSearch();
+      setupSorting();
+    }
+
+    function setupEventListeners() {
+      document.getElementById('prev-page').addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          cargarInventario();
+        }
+      });
+
+      document.getElementById('next-page').addEventListener('click', () => {
+        currentPage++;
+        cargarInventario();
+      });
+
+      document.getElementById('mostrar-todos').addEventListener('click', () => {
+        itemsPerPage = Infinity;
+        cargarInventario();
+      });
     }
 
     function setupSearch() {
-      const byCode = document.getElementById('filtro-codigo');
-      const byName = document.getElementById('filtro-articulo');
+      const searchInputs = ['filtro-codigo', 'filtro-articulo'].map(id => 
+        document.getElementById(id)
+      );
 
-      function normalizarTexto(txt) {
-        return txt
-          .toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .replace(/\s+/g, " ")
-          .trim();
-      }
+      const handleSearch = debounce(async () => {
+        const [codeQ, nameQ] = searchInputs.map(input => 
+          normalizarTexto(input.value)
+        );
 
-      function filtrar() {
-        const codeQ = normalizarTexto(byCode.value);
-        const nameQ = normalizarTexto(byName.value);
+        const query = supabase
+          .from('inventario_actual')
+          .select('*', { count: 'exact' })
+          .ilike('codigo_articulo', `%${codeQ}%`)
+          .ilike('nombre_articulo', `%${nameQ}%`)
+          .order('nombre_articulo', { ascending: true });
 
-        const filtrados = inventarioCompleto.filter(row => {
-          const code = normalizarTexto(row.codigo_articulo?.toString() || '');
-          const name = normalizarTexto(row.nombre_articulo || '');
-          return code.includes(codeQ) && name.includes(nameQ);
+        const { data, error, count } = await query;
+        
+        if (!error) {
+          inventarioCompleto = data;
+          renderizarTabla(data);
+          updatePaginationControls(count);
+        }
+      }, 300);
+
+      searchInputs.forEach(input => 
+        input.addEventListener('input', handleSearch)
+      );
+    }
+
+    function setupSorting() {
+      document.querySelectorAll('th[data-sort]').forEach(header => {
+        header.addEventListener('click', () => {
+          const sortKey = header.dataset.sort;
+          const isAsc = header.classList.toggle('asc');
+          
+          inventarioCompleto.sort((a, b) => 
+            isAsc ? compareValues(a[sortKey], b[sortKey]) 
+                  : compareValues(b[sortKey], a[sortKey])
+          );
+          
+          renderizarTabla(inventarioCompleto);
         });
-
-        renderizarTabla(filtrados.slice(0, 15));
-        document.getElementById('mostrar-todos').style.display = filtrados.length > 15 ? 'inline-block' : 'none';
-      }
-
-      byCode.addEventListener('input', filtrar);
-      byName.addEventListener('input', filtrar);
-
-      document.getElementById('mostrar-todos').addEventListener('click', () => {
-        renderizarTabla(inventarioCompleto);
       });
+    }
+
+    // Funciones utilitarias
+    const normalizarTexto = txt => txt.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    const formatDate = date => date ? new Date(date).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }) : 'Nunca';
+    
+    const compareValues = (a, b) => (a ?? '').toString().localeCompare((b ?? '').toString());
+    
+    function showLoader() {
+      document.getElementById('loading').classList.remove('hidden');
+    }
+    
+    function hideLoader() {
+      document.getElementById('loading').classList.add('hidden');
+    }
+    
+    function showError(message) {
+      const errorEl = document.getElementById('error-message');
+      errorEl.textContent = message;
+      errorEl.classList.remove('hidden');
+      setTimeout(() => errorEl.classList.add('hidden'), 5000);
+    }
+    
+    function updateCounter(count) {
+      document.getElementById('contador').textContent = 
+        `Mostrando ${count} de ${inventarioCompleto.length} registros`;
+    }
+    
+    function updatePaginationControls(total) {
+      document.getElementById('page-info').textContent = 
+        `Página ${currentPage} de ${Math.ceil(total / itemsPerPage)}`;
     }
 
     async function logout() {
@@ -101,32 +196,194 @@
   </script>
 
   <style>
-    * { box-sizing: border-box; margin:0; padding:0; }
-    body { font-family:'Segoe UI',sans-serif; background:#f4f6f8; color:#333; }
-    header { background:#2c3e50; color:#fff; padding:20px; text-align:center; }
-    .container { max-width:1000px; margin:20px auto; background:#fff; border-radius:8px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
-    .top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; }
-    .user-info { background:#fff; padding:10px 15px; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
-    .btn { padding:10px 20px; border:none; border-radius:6px; cursor:pointer; font-size:14px; transition:0.2s; }
-    .btn-primary { background:#3498db; color:#fff; }
-    .btn-primary:hover { background:#2980b9; }
-    .btn-secondary { background:#95a5a6; color:#fff; }
-    .btn-secondary:hover { background:#7f8c8d; }
-    .filters { display:flex; gap:10px; margin-bottom:15px; }
-    .filters input { flex:1; padding:10px; border:1px solid #ccc; border-radius:6px; }
-    table { width:100%; border-collapse:collapse; }
-    th,td { padding:12px; border-bottom:1px solid #eee; text-align:left; }
-    thead { background:#3498db; color:#fff; }
-    #mostrar-todos {
-      display: none;
-      margin-top: 10px;
-      background: #2ecc71;
+    :root {
+      --primary-color: #2c3e50;
+      --secondary-color: #3498db;
+      --success-color: #27ae60;
+      --danger-color: #e74c3c;
+      --text-color: #333;
+      --background-color: #f8f9fa;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body { 
+      font-family: 'Segoe UI', system-ui, sans-serif; 
+      background: var(--background-color); 
+      color: var(--text-color);
+      line-height: 1.6;
+    }
+
+    header { 
+      background: var(--primary-color); 
       color: white;
+      padding: 1.5rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 1.5rem;
+      background: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+    }
+
+    .top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .filters input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 0.375rem;
+      transition: border-color 0.2s;
+    }
+
+    .filters input:focus {
+      border-color: var(--secondary-color);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      overflow-x: auto;
+      display: block;
+    }
+
+    th, td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+      white-space: nowrap;
+    }
+
+    th {
+      background: var(--secondary-color);
+      color: white;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    th:hover {
+      background: #2980b9;
+    }
+
+    th.asc::after {
+      content: ' ↑';
+    }
+
+    th.desc::after {
+      content: ' ↓';
+    }
+
+    .text-danger {
+      color: var(--danger-color);
+      font-weight: 500;
+    }
+
+    .pagination-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1rem;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-secondary {
+      background: #95a5a6;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #7f8c8d;
+    }
+
+    .btn-primary {
+      background: var(--secondary-color);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2980b9;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    #loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .spinner {
+      width: 3rem;
+      height: 3rem;
+      border: 0.25rem solid #f3f3f3;
+      border-top: 0.25rem solid var(--secondary-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        margin: 1rem;
+        padding: 1rem;
+      }
+      
+      th, td {
+        padding: 0.75rem;
+      }
     }
   </style>
 </head>
 
 <body>
+  <div id="loading" class="hidden">
+    <div class="spinner"></div>
+  </div>
+
   <header>
     <h1>Inventario Actual</h1>
     <p>Sección Desarrollo y Mantenimiento de Obras</p>
@@ -134,37 +391,55 @@
 
   <div class="container">
     <div class="top-bar">
-      <div>
-        <button class="btn btn-secondary" onclick="window.location='inicio.html'">← Regresar</button>
-        <button class="btn btn-secondary" onclick="window.location='articulos.html'">Artículos</button>
+      <div class="flex gap-2">
+        <button class="btn btn-secondary" onclick="window.location='inicio.html'">
+          ← Regresar
+        </button>
+        <button class="btn btn-secondary" onclick="window.location='articulos.html'">
+          Artículos
+        </button>
       </div>
-      <div class="user-info">
-        Usuario: <strong id="usuario"></strong>
-        <button class="btn btn-primary" style="margin-left:10px" onclick="logout()">Cerrar sesión</button>
+      
+      <div class="user-info flex items-center gap-3">
+        <span>Usuario: <strong id="usuario"></strong></span>
+        <button class="btn btn-primary" onclick="logout()">
+          Cerrar sesión
+        </button>
       </div>
     </div>
 
     <div class="filters">
-      <input id="filtro-codigo" type="text" placeholder="Buscar por Código de Artículo">
-      <input id="filtro-articulo" type="text" placeholder="Buscar por Artículo">
+      <input id="filtro-codigo" type="text" placeholder="Buscar por código..."
+             aria-label="Buscar por código de artículo">
+      <input id="filtro-articulo" type="text" placeholder="Buscar por artículo..."
+             aria-label="Buscar por nombre de artículo">
     </div>
 
-    <table id="tabla-inventario">
-      <thead>
-        <tr>
-          <th>Código</th>
-          <th>Artículo</th>
-          <th>Unidad</th>
-          <th>Cantidad Disponible</th>
-          <th>Última Actualización</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- filas inyectadas por JS -->
-      </tbody>
-    </table>
+    <div class="table-container">
+      <table id="tabla-inventario">
+        <thead>
+          <tr>
+            <th data-sort="codigo_articulo">Código</th>
+            <th data-sort="nombre_articulo">Artículo</th>
+            <th data-sort="unidad">Unidad</th>
+            <th data-sort="cantidad_disponible">Cantidad</th>
+            <th data-sort="ultima_actualizacion">Última Actualización</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
 
-    <button id="mostrar-todos" class="btn btn-primary">Mostrar todos los registros</button>
+    <div class="pagination-controls">
+      <div id="contador" class="text-sm text-gray-600"></div>
+      <div class="flex gap-2 items-center">
+        <button id="prev-page" class="btn btn-secondary">Anterior</button>
+        <span id="page-info" class="px-4"></span>
+        <button id="next-page" class="btn btn-secondary">Siguiente</button>
+      </div>
+    </div>
+
+    <div id="error-message" class="hidden fixed bottom-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded"></div>
   </div>
 </body>
 </html>
