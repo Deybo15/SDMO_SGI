@@ -19,6 +19,7 @@
       const addRowBtn = document.getElementById('add-row');
       const tbody = document.querySelector('#detalle-tabla tbody');
       const today = new Date().toISOString().split('T')[0];
+      let comentarios = ''; // Variable para almacenar los comentarios
       
       // Mostrar fecha actual
       document.getElementById('fecha-actual').textContent = `Fecha: ${formatDate(today)}`;
@@ -28,6 +29,29 @@
         const options = { year: 'numeric', month: 'long', day: 'numeric' };
         return new Date(dateString).toLocaleDateString('es-ES', options);
       }
+
+      // Función para mostrar el modal de comentarios
+      function showComentariosModal() {
+        const modal = new bootstrap.Modal(document.getElementById('comentariosModal'));
+        document.getElementById('comentarios-text').value = comentarios;
+        modal.show();
+      }
+
+      // Guardar comentarios cuando se cierra el modal
+      document.getElementById('save-comentarios').addEventListener('click', () => {
+        comentarios = document.getElementById('comentarios-text').value;
+        const modal = bootstrap.Modal.getInstance(document.getElementById('comentariosModal'));
+        modal.hide();
+        
+        // Mostrar indicador de que hay comentarios guardados
+        const comentariosBadge = document.getElementById('comentarios-badge');
+        if (comentarios.trim()) {
+          comentariosBadge.classList.remove('d-none');
+          comentariosBadge.innerHTML = `<i class="fas fa-check-circle me-1"></i>Comentarios agregados`;
+        } else {
+          comentariosBadge.classList.add('d-none');
+        }
+      });
 
       // Función para validar formulario antes de enviar
       function validateForm() {
@@ -111,7 +135,6 @@
         const autoriza = document.getElementById('autoriza').value.trim();
         const retira = document.getElementById('retira').value.trim();
         const numeroSolicitud = parseInt(document.getElementById('numero_solicitud').value, 10);
-        const observaciones = document.getElementById('observaciones').value.trim();
 
         // Mostrar spinner de carga
         const submitBtn = document.querySelector('button[type="submit"]');
@@ -136,7 +159,7 @@
           // Fecha actual
           const fechaHoy = new Date().toISOString().split('T')[0];
 
-          // Insertar encabezado
+          // Insertar encabezado (ahora usando 'comentarios' en lugar de 'observaciones')
           const { error: errEnc } = await supabase
             .from('salida_articulo_08')
             .insert([{ 
@@ -145,7 +168,7 @@
               autoriza, 
               retira, 
               numero_solicitud: numeroSolicitud,
-              observaciones 
+              comentarios: comentarios  // ← Aquí se guarda en la columna comentarios
             }]);
           if (errEnc) throw errEnc;
 
@@ -251,6 +274,15 @@
       content: " *";
       color: var(--danger-color);
     }
+    
+    #comentarios-badge {
+      font-size: 0.8rem;
+      margin-left: 0.5rem;
+    }
+    
+    .comentarios-btn {
+      margin-bottom: 1rem;
+    }
   </style>
 </head>
 <body>
@@ -279,10 +311,16 @@
                   <label for="numero_solicitud" class="form-label required-field">Número de solicitud</label>
                   <input type="number" id="numero_solicitud" name="numero_solicitud" class="form-control" required />
                 </div>
-                <div class="col-md-6 mb-3">
-                  <label for="observaciones" class="form-label">Observaciones</label>
-                  <input type="text" id="observaciones" name="observaciones" class="form-control" />
-                </div>
+              </div>
+              
+              <!-- Botón para agregar comentarios -->
+              <div class="d-flex align-items-center mb-3 comentarios-btn">
+                <button type="button" class="btn btn-outline-secondary" onclick="showComentariosModal()">
+                  <i class="fas fa-comment me-1"></i> Agregar Comentarios
+                </button>
+                <span id="comentarios-badge" class="badge bg-success d-none">
+                  <i class="fas fa-check-circle me-1"></i>Comentarios agregados
+                </span>
               </div>
               
               <h5 class="mb-3"><i class="fas fa-list-ul me-2"></i>Detalle de Artículos</h5>
@@ -314,6 +352,28 @@
               </div>
             </form>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Comentarios -->
+  <div class="modal fade" id="comentariosModal" tabindex="-1" aria-labelledby="comentariosModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="comentariosModalLabel"><i class="fas fa-comment me-2"></i>Agregar Comentarios</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="comentarios-text" class="form-label">Comentarios adicionales</label>
+            <textarea class="form-control" id="comentarios-text" rows="5" placeholder="Escribe aquí tus comentarios..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="save-comentarios">Guardar Comentarios</button>
         </div>
       </div>
     </div>
