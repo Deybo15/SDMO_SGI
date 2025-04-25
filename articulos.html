@@ -51,9 +51,15 @@
       window.location.href = 'inventario_sdmo.html';
     }
 
+    // Función para ir a insertar_imagen.html
+    function irAInsertarImagen() {
+      window.location.href = 'insertar_imagen.html';
+    }
+
     // Exponer funciones al ámbito global
     window.regresarInicio = regresarInicio;
     window.verInventario = verInventario;
+    window.irAInsertarImagen = irAInsertarImagen;
   </script>
   <style>
     * {
@@ -219,7 +225,7 @@
       
       <div style="margin-top: 30px; display: flex; justify-content: center; gap: 20px;">
         <button class="btn btn-primary" onclick="verInventario()">Ver Inventario</button>
-        <!-- Aquí puedes agregar más botones de funcionalidad -->
+        <button class="btn btn-primary" onclick="irAInsertarImagen()">Insertar Imagen</button>
       </div>
     </div>
   </div>
