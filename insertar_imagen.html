@@ -99,6 +99,8 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'
     );
 
+    const BUCKET_NAME = 'imagenes-articulos'; // ✅ tu bucket real
+
     const elements = {
       codigo: document.getElementById('codigo'),
       imagen: document.getElementById('imagen'),
@@ -157,7 +159,7 @@
         if (error) return;
 
         const nombreArchivo = await uploadImage(codigo, file);
-        const publicUrl = await getPublicUrl(nombreArchivo); // ✅ corrección aquí
+        const publicUrl = await getPublicUrl(nombreArchivo);
         await updateArticle(codigo, publicUrl);
 
         showMessage(
@@ -192,7 +194,7 @@
       const fileName = `${codigo}_${Date.now()}.${fileExt}`;
 
       const { error } = await supabase.storage
-        .from('imagenes')
+        .from(BUCKET_NAME)
         .upload(fileName, file);
 
       if (error) throw new Error(`Error al subir: ${error.message}`);
@@ -201,7 +203,7 @@
 
     async function getPublicUrl(fileName) {
       const { data, error } = await supabase.storage
-        .from('imagenes')
+        .from(BUCKET_NAME)
         .getPublicUrl(fileName);
       
       if (error || !data) throw new Error('No se pudo obtener la URL pública');
