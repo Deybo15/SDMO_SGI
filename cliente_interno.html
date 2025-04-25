@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Formulario-Solicitudes-CI</title>
+  <title>Solicitudes Cliente Interno</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
@@ -57,20 +59,20 @@
       }
     }
 
-// Cargar datos en los selects ordenados alfabéticamente
-async function cargarDesplegables() {
-  try {
-    const [areas, instalaciones, supervisores, profesionales, clientes] = await Promise.all([
-      supabase.from("area_mantenimiento_20").select("id_area_mantenimiento, descripcion_area"),
-      supabase.from("instalaciones_municipales_16").select("id_instalacion_municipal, instalacion_municipal"),
-      supabase
-        .from("colaboradores_06")
-        .select("identificacion, alias")
-        .eq("supervisor", true)
-        .eq("condicion_laboral", false), // 👈 Filtro adicional aplicado correctamente
-      supabase.from("colaboradores_06").select("identificacion, alias").eq("autorizado", true),
-      supabase.from("cliente_interno_15").select("id_cliente, nombre")
-    ]);
+    // Cargar datos en los selects ordenados alfabéticamente
+    async function cargarDesplegables() {
+      try {
+        const [areas, instalaciones, supervisores, profesionales, clientes] = await Promise.all([
+          supabase.from("area_mantenimiento_20").select("id_area_mantenimiento, descripcion_area"),
+          supabase.from("instalaciones_municipales_16").select("id_instalacion_municipal, instalacion_municipal"),
+          supabase
+            .from("colaboradores_06")
+            .select("identificacion, alias")
+            .eq("supervisor", true)
+            .eq("condicion_laboral", false),
+          supabase.from("colaboradores_06").select("identificacion, alias").eq("autorizado", true),
+          supabase.from("cliente_interno_15").select("id_cliente, nombre")
+        ]);
 
         // Almacenar datos para búsquedas
         areasData = ordenarAlfabeticamente(areas?.data, 'descripcion_area') || [];
@@ -101,9 +103,8 @@ async function cargarDesplegables() {
 
     // Función para abrir modal de búsqueda
     function abrirModalBusqueda(tipo) {
-      const modal = document.getElementById('modalBusqueda');
+      const modal = new bootstrap.Modal(document.getElementById('modalBusqueda'));
       const tituloModal = document.getElementById('tituloModal');
-      const listaResultados = document.getElementById('listaResultados');
       const inputBusqueda = document.getElementById('inputBusqueda');
       
       // Configurar según el tipo
@@ -145,9 +146,9 @@ async function cargarDesplegables() {
       }
       
       // Guardar información en el modal para usar al seleccionar
-      modal.dataset.tipo = tipo;
-      modal.dataset.campoTexto = campoTexto;
-      modal.dataset.campoValor = campoValor;
+      document.getElementById('modalBusqueda').dataset.tipo = tipo;
+      document.getElementById('modalBusqueda').dataset.campoTexto = campoTexto;
+      document.getElementById('modalBusqueda').dataset.campoValor = campoValor;
       
       // Mostrar todos los datos inicialmente
       mostrarResultados(datos, campoTexto);
@@ -162,7 +163,7 @@ async function cargarDesplegables() {
       };
       
       // Mostrar modal
-      modal.style.display = 'block';
+      modal.show();
     }
 
     // Mostrar resultados en el modal
@@ -171,12 +172,13 @@ async function cargarDesplegables() {
       listaResultados.innerHTML = '';
       
       if (resultados.length === 0) {
-        listaResultados.innerHTML = '<li class="no-results">No se encontraron resultados</li>';
+        listaResultados.innerHTML = '<li class="list-group-item text-muted">No se encontraron resultados</li>';
         return;
       }
       
       resultados.forEach(item => {
         const li = document.createElement('li');
+        li.className = 'list-group-item list-group-item-action';
         li.textContent = item[campoTexto];
         li.onclick = () => seleccionarItem(item);
         listaResultados.appendChild(li);
@@ -212,17 +214,11 @@ async function cargarDesplegables() {
       }
       
       // Cerrar modal
-      cerrarModalBusqueda();
-    }
-
-    // Cerrar modal de búsqueda
-    function cerrarModalBusqueda() {
-      document.getElementById('modalBusqueda').style.display = 'none';
+      bootstrap.Modal.getInstance(modal).hide();
     }
 
     // Función para resetear el formulario
     function resetForm() {
-      // Limpiar textarea
       document.getElementById("descripcion_solicitud").value = "";
       
       // Lista de todos los selects a resetear
@@ -254,6 +250,7 @@ async function cargarDesplegables() {
         // Validación
         if (!descripcion) {
           showNotification("La descripción es requerida", "error");
+          document.getElementById("descripcion_solicitud").focus();
           return;
         }
 
@@ -264,10 +261,20 @@ async function cargarDesplegables() {
         for (const selectId of selects) {
           const select = document.getElementById(selectId);
           if (!select.value) {
-            showNotification(`Por favor seleccione una opción en ${select.previousElementSibling.textContent}`, "error");
+            const label = document.querySelector(`label[for="${selectId}"]`).textContent;
+            showNotification(`Por favor seleccione una opción en ${label}`, "error");
+            select.focus();
             return;
           }
         }
+
+        // Mostrar loading
+        const submitBtn = document.querySelector("#btn-guardar");
+        submitBtn.innerHTML = `
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          Guardando...
+        `;
+        submitBtn.disabled = true;
 
         // Obtener el próximo número de solicitud
         const proximoNumero = await obtenerProximoNumero();
@@ -310,536 +317,482 @@ async function cargarDesplegables() {
       } catch (error) {
         console.error("Error guardando solicitud:", error);
         showNotification("Error al guardar la solicitud: " + error.message, "error");
+      } finally {
+        const submitBtn = document.querySelector("#btn-guardar");
+        if (submitBtn) {
+          submitBtn.innerHTML = '<i class="fas fa-save me-2"></i> Guardar Solicitud';
+          submitBtn.disabled = false;
+        }
       }
     }
 
-// 🔄 Modificada función cargarTabla para incluir filtro y tipo_solicitud
-async function cargarTabla(filtro = '') {
-  try {
-    const { data, error } = await supabase
-      .from("solicitud_17")
-      .select("*")
-      .eq("tipo_solicitud", "STI")
-      .order("numero_solicitud", { ascending: false })
-      .limit(100); // buscamos más registros por si hay que filtrar
+    // Cargar tabla de solicitudes
+    async function cargarTabla(filtro = '') {
+      try {
+        const { data, error } = await supabase
+          .from("solicitud_17")
+          .select("*")
+          .eq("tipo_solicitud", "STI")
+          .order("numero_solicitud", { ascending: false })
+          .limit(100);
 
-    const tbody = document.getElementById("tablaSolicitudes");
-    tbody.innerHTML = "";
+        const tbody = document.getElementById("tablaSolicitudes");
+        tbody.innerHTML = "";
 
-    if (error || !data) {
-      tbody.innerHTML = "<tr><td colspan='4'>Error al cargar los datos</td></tr>";
-      throw error || new Error("No se encontraron datos");
+        if (error || !data) {
+          tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4">Error al cargar los datos</td></tr>`;
+          throw error || new Error("No se encontraron datos");
+        }
+
+        // Aplicar filtro por número o descripción
+        const filtroLower = filtro.toLowerCase();
+        const resultados = data.filter(solicitud =>
+          solicitud.numero_solicitud.toString().includes(filtroLower) ||
+          solicitud.descripcion_solicitud.toLowerCase().includes(filtroLower)
+        ).slice(0, 5); // mostrar solo 5
+
+        if (resultados.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4">No se encontraron coincidencias</td></tr>`;
+          return;
+        }
+
+        resultados.forEach(solicitud => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td class="fw-bold">${solicitud.numero_solicitud}</td>
+            <td>${escapeHtml(solicitud.descripcion_solicitud)}</td>
+            <td>${new Date(solicitud.fecha_solicitud).toLocaleDateString('es-ES')}</td>
+            <td>${solicitud.area_mantenimiento || '-'}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (error) {
+        console.error("Error cargando tabla:", error);
+        showNotification("Error al cargar las solicitudes", "error");
+      }
     }
-
-    // 🔍 Aplicar filtro por número o descripción
-    const filtroLower = filtro.toLowerCase();
-    const resultados = data.filter(solicitud =>
-      solicitud.numero_solicitud.toString().includes(filtroLower) ||
-      solicitud.descripcion_solicitud.toLowerCase().includes(filtroLower)
-    ).slice(0, 5); // mostrar solo 5
-
-    if (resultados.length === 0) {
-      tbody.innerHTML = "<tr><td colspan='4'>No se encontraron coincidencias</td></tr>";
-      return;
-    }
-
-    resultados.forEach(solicitud => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${solicitud.numero_solicitud}</td>
-        <td>${escapeHtml(solicitud.descripcion_solicitud)}</td>
-        <td>${new Date(solicitud.fecha_solicitud).toLocaleDateString()}</td>
-        <td>${solicitud.area_mantenimiento || '-'}</td>
-      `;
-      tbody.appendChild(row);
-    });
-  } catch (error) {
-    console.error("Error cargando tabla:", error);
-    showNotification("Error al cargar las solicitudes", "error");
-  }
-}
-
 
     // Mostrar notificación
     function showNotification(message, type = "info") {
       const notification = document.createElement("div");
-      notification.className = `notification ${type}`;
-      notification.textContent = message;
-      document.body.appendChild(notification);
+      notification.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'primary'} border-0`;
+      notification.setAttribute('role', 'alert');
+      notification.setAttribute('aria-live', 'assertive');
+      notification.setAttribute('aria-atomic', 'true');
+      notification.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body">
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-2"></i>
+            ${message}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      `;
       
-      setTimeout(() => {
-        notification.classList.add("fade-out");
-        setTimeout(() => notification.remove(), 500);
-      }, 3000);
+      const toastContainer = document.getElementById('toastContainer');
+      toastContainer.appendChild(notification);
+      const toast = new bootstrap.Toast(notification);
+      toast.show();
+      
+      // Eliminar el toast después de ocultarse
+      notification.addEventListener('hidden.bs.toast', () => {
+        notification.remove();
+      });
     }
 
     // Inicialización
     window.guardarSolicitud = guardarSolicitud;
     window.abrirModalBusqueda = abrirModalBusqueda;
-    window.cerrarModalBusqueda = cerrarModalBusqueda;
 
     window.addEventListener("DOMContentLoaded", async () => {
-  await cargarDesplegables();
-  await cargarTabla();
+      await cargarDesplegables();
+      await cargarTabla();
 
-  // 🎯 Búsqueda en tiempo real
-  document.getElementById('busqueda').addEventListener('input', async (e) => {
-    const termino = e.target.value;
-    await cargarTabla(termino);
-  });
+      // Búsqueda en tiempo real
+      document.getElementById('busqueda').addEventListener('input', async (e) => {
+        const termino = e.target.value;
+        await cargarTabla(termino);
+      });
+    });
 
-  // Cerrar modal al hacer clic fuera de él
-  document.getElementById('modalBusqueda').addEventListener('click', (e) => {
-    if (e.target === document.getElementById('modalBusqueda')) {
-      cerrarModalBusqueda();
-    }
-  });
-});
-
- // Función para mostrar el modal
-function mostrarModalSalidaSTI() {
-  document.getElementById("modalSalidaSTI").style.display = "block";
-}
-window.mostrarModalSalidaSTI = mostrarModalSalidaSTI;
-
-
-// Función para cerrar el modal
-function cerrarModalSalidaSTI() {
-  document.getElementById("modalSalidaSTI").style.display = "none";
-}
-window.cerrarModalSalidaSTI = cerrarModalSalidaSTI;
-
-
-// Cerrar modal al hacer clic fuera del modal
-window.addEventListener('click', (e) => {
-  const modal = document.getElementById('modalSalidaSTI');
-  if (e.target === modal) cerrarModalSalidaSTI();
-});
-  
-  
+    // Función para mostrar/cerrar modal de salida STI
+    window.mostrarModalSalidaSTI = function() {
+      const modal = new bootstrap.Modal(document.getElementById('modalSalidaSTI'));
+      modal.show();
+    };
   </script>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    :root {
+      --primary-color: #2c3e50;
+      --secondary-color: #3498db;
+      --accent-color: #e74c3c;
+      --light-bg: #f8f9fa;
+      --dark-text: #343a40;
     }
     
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f4f6f8;
-      padding: 20px;
-      line-height: 1.6;
-      color: #333;
+      background-color: var(--light-bg);
+      color: var(--dark-text);
     }
     
-    .container {
+    .main-container {
       max-width: 1200px;
       margin: 0 auto;
       padding: 20px;
     }
-
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 1001;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.6);
-}
-
-.modal-content-large {
-  background-color: #fefefe;
-  margin: 3% auto;
-  padding: 20px;
-  border: 1px solid #888;
-  width: 95%;
-  max-width: 1200px;
-  border-radius: 8px;
-  position: relative;
-}
-
-.modal-content-large .close {
-  color: #aaa;
-  font-size: 28px;
-  font-weight: bold;
-  position: absolute;
-  right: 20px;
-  top: 10px;
-  cursor: pointer;
-}
-
-.modal-content-large .close:hover {
-  color: #333;
-}
     
-    h1 {
-      color: #2c3e50;
+    .card {
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      border: none;
       margin-bottom: 20px;
     }
     
-    h2 {
-      color: #2c3e50;
-      margin: 30px 0 15px 0;
+    .card-header {
+      background-color: var(--primary-color);
+      color: white;
+      border-bottom: 3px solid var(--secondary-color);
+      padding: 1.25rem 1.5rem;
     }
     
-    .form-group {
-      margin-bottom: 15px;
+    .form-section {
+      padding: 1.5rem;
+      background-color: white;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .section-title {
       position: relative;
+      padding-bottom: 0.75rem;
+      margin-bottom: 1.5rem;
+      color: var(--primary-color);
     }
     
-    label {
-      display: block;
-      margin-bottom: 8px;
+    .section-title:after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 60px;
+      height: 3px;
+      background-color: var(--secondary-color);
+    }
+    
+    .form-label {
       font-weight: 600;
-      color: #2c3e50;
+      color: var(--primary-color);
+      margin-bottom: 0.5rem;
     }
     
-    input, select, textarea {
-      width: 100%;
-      max-width: 500px;
-      padding: 12px;
-      border: 1px solid #ddd;
+    .required-field::after {
+      content: " *";
+      color: var(--accent-color);
+    }
+    
+    .form-control, .form-select {
       border-radius: 6px;
-      font-size: 16px;
-      margin-bottom: 10px;
+      padding: 0.75rem 1rem;
+      border: 1px solid #ced4da;
     }
     
-    textarea {
-      min-height: 100px;
+    .form-control:focus, .form-select:focus {
+      border-color: var(--secondary-color);
+      box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+    }
+    
+    textarea.form-control {
+      min-height: 120px;
       resize: vertical;
     }
     
-    button {
-      background-color: #3498db;
-      color: white;
-      border: none;
-      padding: 12px 24px;
+    .btn {
+      padding: 0.75rem 1.5rem;
       border-radius: 6px;
-      font-size: 16px;
-      cursor: pointer;
-      transition: all 0.3s;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
     
-    button:hover {
-      background-color: #2980b9;
+    .btn-primary {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    
+    .btn-primary:hover {
+      background-color: #1a252f;
       transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
     
-    .btn-buscar {
+    .btn-outline-primary {
+      color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    
+    .btn-outline-primary:hover {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    .btn-secondary {
+      background-color: #6c757d;
+      border-color: #6c757d;
+    }
+    
+    .btn-success {
+      background-color: #28a745;
+      border-color: #28a745;
+    }
+    
+    .btn-search {
       position: absolute;
       right: 0;
-      top: 30px;
-      padding: 12px;
-      background-color: #f39c12;
+      top: 0;
+      height: 100%;
       border-radius: 0 6px 6px 0;
-      cursor: pointer;
-      width: auto;
-      max-width: none;
+      background-color: var(--secondary-color);
+      color: white;
+      border: none;
+      width: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     
-    .btn-buscar:hover {
-      background-color: #e67e22;
+    .btn-search:hover {
+      background-color: #2980b9;
     }
     
     .select-container {
       position: relative;
-      max-width: 500px;
     }
     
-    .select-container select {
-      padding-right: 50px;
+    .table {
+      background-color: white;
     }
     
-    <div class="form-group">
-  <label for="busqueda">Buscar por # Solicitud o Descripción:</label>
-  <input type="text" id="busqueda" placeholder="Buscar...">
-</div>
-    
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-      background: white;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    th, td {
-      padding: 12px 15px;
-      text-align: left;
-      border-bottom: 1px solid #ddd;
-    }
-    
-    th {
-      background-color: #3498db;
+    .table th {
+      background-color: var(--primary-color);
       color: white;
       font-weight: 600;
+      padding: 1rem;
     }
     
-    tr:hover {
-      background-color: #f5f5f5;
+    .table td {
+      padding: 0.75rem 1rem;
+      vertical-align: middle;
     }
     
-    /* Modal de búsqueda */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1001;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0,0,0,0.4);
+    .table tr:hover {
+      background-color: rgba(52, 152, 219, 0.05);
     }
     
-    .modal-content {
-      background-color: #fefefe;
-      margin: 5% auto;
-      padding: 20px;
-      border: 1px solid #888;
-      width: 80%;
-      max-width: 600px;
-      border-radius: 8px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-    
-    .modal-header h3 {
-      margin: 0;
-      color: #2c3e50;
-    }
-    
-    .close {
-      color: #aaa;
-      font-size: 28px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    
-    .close:hover {
-      color: #333;
-    }
-    
-    #inputBusqueda {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 15px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-    }
-    
-    #listaResultados {
-      max-height: 400px;
-      overflow-y: auto;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-    
-    #listaResultados li {
-      padding: 10px 15px;
-      border-bottom: 1px solid #eee;
-      cursor: pointer;
-    }
-    
-    #listaResultados li:hover {
-      background-color: #f5f5f5;
-    }
-    
-    #listaResultados li:last-child {
-      border-bottom: none;
-    }
-    
-    .no-results {
-      color: #777;
-      text-align: center;
-      padding: 20px;
-    }
-    
-    .notification {
+    .toast-container {
       position: fixed;
       top: 20px;
       right: 20px;
-      padding: 15px 25px;
-      border-radius: 6px;
-      color: white;
-      animation: slideIn 0.3s forwards;
-      z-index: 1000;
+      z-index: 1100;
     }
     
-    .notification.success {
-      background-color: #2ecc71;
-    }
-    
-    .notification.error {
-      background-color: #e74c3c;
-    }
-    
-    .notification.info {
-      background-color: #3498db;
-    }
-    
-    .fade-out {
-      animation: fadeOut 0.5s forwards;
-    }
-    
-    @keyframes slideIn {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-    
-    @keyframes fadeOut {
-      from { opacity: 1; }
-      to { opacity: 0; }
+    .badge-indicator {
+      font-size: 0.8rem;
+      padding: 0.35rem 0.6rem;
+      font-weight: 500;
     }
     
     @media (max-width: 768px) {
-      body {
+      .main-container {
         padding: 15px;
       }
       
-      input, select, textarea {
-        width: 100%;
+      .card-header {
+        padding: 1rem;
       }
       
-      .modal-content {
-        width: 95%;
-        margin: 10% auto;
+      .form-section {
+        padding: 1rem;
       }
       
-      table {
-        font-size: 14px;
+      .section-title {
+        font-size: 1.25rem;
       }
       
-      th, td {
-        padding: 8px 10px;
+      .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
       }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Formulario para ingreso de solicitudes de cliente interno</h1>
+  <div class="main-container">
+    <!-- Contenedor de notificaciones -->
+    <div id="toastContainer" class="toast-container"></div>
     
-    <div>
-      <h2> </h2>
-      <div class="form-group">
-        <label for="descripcion_solicitud">Descripción de la solicitud:</label>
-        <textarea id="descripcion_solicitud" placeholder="Describa la solicitud..."></textarea>
+    <!-- Tarjeta principal -->
+    <div class="card">
+      <div class="card-header">
+        <h1 class="h4 mb-0"><i class="fas fa-file-alt me-2"></i>SOLICITUDES DE CLIENTE INTERNO</h1>
       </div>
       
-      <div class="form-group">
-        <label for="area_mantenimiento">Área de Mantenimiento:</label>
-        <div class="select-container">
-          <select id="area_mantenimiento"></select>
-          <button class="btn-buscar" onclick="abrirModalBusqueda('area')">🔍</button>
+      <div class="card-body">
+        <!-- Formulario de solicitud -->
+        <div class="form-section">
+          <h3 class="section-title"><i class="fas fa-edit me-2"></i>Nueva Solicitud</h3>
+          
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label for="descripcion_solicitud" class="form-label required-field">Descripción de la solicitud</label>
+              <textarea id="descripcion_solicitud" class="form-control" placeholder="Describa detalladamente la solicitud..."></textarea>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="area_mantenimiento" class="form-label required-field">Área de Mantenimiento</label>
+              <div class="select-container">
+                <select id="area_mantenimiento" class="form-select"></select>
+                <button class="btn-search" onclick="abrirModalBusqueda('area')">
+                  <i class="fas fa-search"></i>
+                </button>
+              </div>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label for="instalacion_municipal" class="form-label required-field">Instalación Municipal</label>
+              <div class="select-container">
+                <select id="instalacion_municipal" class="form-select"></select>
+                <button class="btn-search" onclick="abrirModalBusqueda('instalacion')">
+                  <i class="fas fa-search"></i>
+                </button>
+              </div>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label for="supervisor_asignado" class="form-label required-field">Supervisor Asignado</label>
+              <div class="select-container">
+                <select id="supervisor_asignado" class="form-select"></select>
+                <button class="btn-search" onclick="abrirModalBusqueda('supervisor')">
+                  <i class="fas fa-search"></i>
+                </button>
+              </div>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label for="profesional_responsable" class="form-label required-field">Profesional Responsable</label>
+              <div class="select-container">
+                <select id="profesional_responsable" class="form-select"></select>
+                <button class="btn-search" onclick="abrirModalBusqueda('profesional')">
+                  <i class="fas fa-search"></i>
+                </button>
+              </div>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label for="cliente_interno" class="form-label required-field">Cliente Interno</label>
+              <div class="select-container">
+                <select id="cliente_interno" class="form-select"></select>
+                <button class="btn-search" onclick="abrirModalBusqueda('cliente')">
+                  <i class="fas fa-search"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="d-flex justify-content-between mt-4">
+            <button onclick="window.location.href='inicio.html'" class="btn btn-secondary" type="button">
+              <i class="fas fa-arrow-left me-2"></i> Volver al Inicio
+            </button>
+            <button id="btn-guardar" onclick="guardarSolicitud()" class="btn btn-primary">
+              <i class="fas fa-save me-2"></i> Guardar Solicitud
+            </button>
+          </div>
+        </div>
+        
+        <!-- Búsqueda y tabla -->
+        <div class="form-section">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="section-title mb-0"><i class="fas fa-list me-2"></i>Historial de Solicitudes</h3>
+            
+            <div class="d-flex">
+              <div class="input-group me-3" style="width: 250px;">
+                <input type="text" id="busqueda" class="form-control" placeholder="Buscar por # o descripción...">
+                <button class="btn btn-outline-primary" type="button">
+                  <i class="fas fa-search"></i>
+                </button>
+              </div>
+              
+              <button onclick="mostrarModalSalidaSTI()" class="btn btn-success">
+                <i class="fas fa-plus-circle me-2"></i> Nueva Salida
+              </button>
+            </div>
+          </div>
+          
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th># Solicitud</th>
+                  <th>Descripción</th>
+                  <th>Fecha</th>
+                  <th>Área</th>
+                </tr>
+              </thead>
+              <tbody id="tablaSolicitudes">
+                <tr>
+                  <td colspan="4" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Cargando...</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-      
-      <div class="form-group">
-        <label for="instalacion_municipal">Instalación Municipal:</label>
-        <div class="select-container">
-          <select id="instalacion_municipal"></select>
-          <button class="btn-buscar" onclick="abrirModalBusqueda('instalacion')">🔍</button>
-        </div>
-      </div>
-      
-      <div class="form-group">
-        <label for="supervisor_asignado">Supervisor Asignado:</label>
-        <div class="select-container">
-          <select id="supervisor_asignado"></select>
-          <button class="btn-buscar" onclick="abrirModalBusqueda('supervisor')">🔍</button>
-        </div>
-      </div>
-      
-      <div class="form-group">
-        <label for="profesional_responsable">Profesional Responsable:</label>
-        <div class="select-container">
-          <select id="profesional_responsable"></select>
-          <button class="btn-buscar" onclick="abrirModalBusqueda('profesional')">🔍</button>
-        </div>
-      </div>
-      
-      <div class="form-group">
-        <label for="cliente_interno">Cliente Interno:</label>
-        <div class="select-container">
-          <select id="cliente_interno"></select>
-          <button class="btn-buscar" onclick="abrirModalBusqueda('cliente')">🔍</button>
-        </div>
-      </div>
-      
-      <button onclick="window.location.href='inicio.html'" class="btn btn-secondary" type="button">⬅ Volver al Inicio</button>
-      <button onclick="guardarSolicitud()">Guardar Solicitud</button>
-    </div>
-
-    <!-- 🔍 Campo de búsqueda -->
-<div class="form-group">
-  <label for="busqueda">Buscar por # Solicitud o Descripción:</label>
-  <input type="text" id="busqueda" placeholder="Ej: 1234 o Reparar...">
-</div>
-
-<div style="text-align: right; margin-bottom: 10px;">
-  <button onclick="mostrarModalSalidaSTI()" style="padding: 10px 20px; background-color: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer;">
-    ➕ Registrar Nueva Salida
-  </button>
-</div>
-    
-    <h2>Últimas 5 Solicitudes Registradas</h2>
-<table>
-  <thead>
-    <tr>
-      <th># Solicitud</th>
-      <th>Descripción</th>
-      <th>Fecha</th>
-      <th>Área</th>
-    </tr>
-  </thead>
-  <tbody id="tablaSolicitudes">
-    <tr><td colspan="4">Cargando datos...</td></tr>
-  </tbody>
-</table>
-
     </div>
   </div>
 
   <!-- Modal de búsqueda -->
-  <div id="modalBusqueda" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 id="tituloModal">Buscar</h3>
-        <span class="close" onclick="cerrarModalBusqueda()">&times;</span>
+  <div class="modal fade" id="modalBusqueda" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="tituloModal">Buscar</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <input type="text" id="inputBusqueda" class="form-control" placeholder="Escriba para buscar...">
+          </div>
+          <ul id="listaResultados" class="list-group" style="max-height: 400px; overflow-y: auto;"></ul>
+        </div>
       </div>
-      <input type="text" id="inputBusqueda" placeholder="Buscar...">
-      <ul id="listaResultados"></ul>
     </div>
   </div>
 
   <!-- Modal de salida STI -->
-<div id="modalSalidaSTI" class="modal">
-  <div class="modal-content-large">
-    <span class="close" onclick="cerrarModalSalidaSTI()">&times;</span>
-   <iframe
-  src="./salida_sti.html"
-  frameborder="0"
-  style="width:100%; height:90vh; border:none;"
-></iframe>
-
+  <div class="modal fade" id="modalSalidaSTI" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title"><i class="fas fa-box-open me-2"></i>Registro de Salida STI</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-0">
+          <iframe src="./salida_sti.html" frameborder="0" style="width: 100%; height: 80vh; border: none;"></iframe>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
 
-
-
-
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
