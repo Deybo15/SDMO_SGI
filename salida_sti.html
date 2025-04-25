@@ -14,13 +14,17 @@
 
     let articulosSeleccionados = [];
 
+    // Esperamos a que cargue la página
     document.addEventListener('DOMContentLoaded', async () => {
       await cargarInventario();
       document.getElementById('btnGuardar').addEventListener('click', guardarSalida);
     });
 
+    // 1) Carga y muestra el inventario
     async function cargarInventario() {
-      const { data, error } = await supabase.from('inventario_actual').select('*');
+      const { data, error } = await supabase
+        .from('inventario_actual')
+        .select('*');
       if (error) {
         console.error('Error cargando inventario', error);
         return;
@@ -30,80 +34,174 @@
       data.forEach(item => {
         const div = document.createElement('div');
         div.className = 'item';
+        //  —> Aquí corregimos ondblclick para pasar solo los campos necesarios
         div.innerHTML = `
-          <img src="${item.imagen_url}" alt="Imagen" style="width:60px;cursor:pointer" ondblclick='seleccionarArticulo(${JSON.stringify(item)})'/>
+          <img
+            src="${item.imagen_url}"
+            alt="${item.nombre_articulo}"
+            style="width:60px; cursor:pointer;"
+            ondblclick="seleccionarArticulo('${item.codigo_articulo}', '${item.nombre_articulo}')"
+          />
           <p>${item.nombre_articulo}</p>
-          <small>Stock: ${item.cantidad_disponible}</small>
+          <small>Stock: ${item.cantidad_disponible ?? 0}</small>
         `;
         contenedor.appendChild(div);
       });
     }
 
-    window.seleccionarArticulo = async (item) => {
-      const cantidad = prompt(`Ingrese cantidad para: ${item.nombre_articulo}`);
+    // 2) Función global (window) que recibe código y nombre
+    window.seleccionarArticulo = (codigo, nombre) => {
+      const cantidad = prompt(`Ingrese cantidad para: ${nombre}`);
       if (!cantidad || isNaN(cantidad)) return;
-      articulosSeleccionados.push({ articulo: item.codigo_articulo, nombre: item.nombre_articulo, cantidad: parseFloat(cantidad) });
+      articulosSeleccionados.push({
+        articulo: codigo,
+        nombre: nombre,
+        cantidad: parseFloat(cantidad)
+      });
       mostrarArticulosSeleccionados();
-    }
+    };
 
+    // 3) Refresca la tabla de artículos seleccionados
     function mostrarArticulosSeleccionados() {
       const tabla = document.getElementById('detalle');
       tabla.innerHTML = '<tr><th>Artículo</th><th>Cantidad</th></tr>';
       articulosSeleccionados.forEach(a => {
-        tabla.innerHTML += `<tr><td>${a.nombre}</td><td>${a.cantidad}</td></tr>`;
+        tabla.innerHTML += `
+          <tr>
+            <td>${a.nombre}</td>
+            <td>${a.cantidad}</td>
+          </tr>
+        `;
       });
     }
 
+    // 4) Guarda la salida y los detalles en Supabase
     async function guardarSalida() {
-      const autoriza = document.getElementById('autoriza').value;
-      const retira = document.getElementById('retira').value;
-      const vehiculo = document.getElementById('vehiculo').value;
-      const operador = document.getElementById('operador').value;
+      const autoriza = document.getElementById('autoriza').value.trim();
+      const retira = document.getElementById('retira').value.trim();
+      const vehiculo = document.getElementById('vehiculo').value.trim();
+      const operador = document.getElementById('operador').value.trim();
       const solicitud = parseInt(document.getElementById('solicitud').value);
 
       if (!autoriza || !retira || !solicitud || articulosSeleccionados.length === 0) {
-        alert('Complete todos los datos');
+        alert('Complete todos los datos y seleccione al menos un artículo.');
         return;
       }
 
-      const { data: salida, error } = await supabase.from('salida_articulo_08').insert([{ 
-        autoriza, retira, placa_vehiculo: vehiculo, operador_vehiculo: operador, numero_solicitud: solicitud, tipo_cliente: 'interno', fecha_salida: new Date().toISOString().split('T')[0]
-      ]).select();
+      // Inserta encabezado de salida
+      const { data: salida, error } = await supabase
+        .from('salida_articulo_08')
+        .insert([{
+          autoriza,
+          retira,
+          placa_vehiculo: vehiculo,
+          operador_vehiculo: operador,
+          numero_solicitud: solicitud,
+          tipo_cliente: 'interno',
+          fecha_salida: new Date().toISOString().split('T')[0]
+        }])
+        .select();
 
-      if (error || !salida[0]) return alert('Error al guardar salida');
+      if (error || !salida.length) {
+        console.error('Error guardando salida', error);
+        return alert('Error al guardar la salida.');
+      }
 
       const id_salida = salida[0].id_salida;
 
+      // Inserta cada detalle
       const detalles = articulosSeleccionados.map(a => ({
         id_salida,
         articulo: a.articulo,
         cantidad: a.cantidad
       }));
+      const { error: errDet } = await supabase
+        .from('dato_salida_13')
+        .insert(detalles);
 
-      const { error: errorDetalles } = await supabase.from('dato_salida_13').insert(detalles);
+      if (errDet) {
+        console.error('Error guardando detalles', errDet);
+        return alert('Error al guardar los ítems.');
+      }
 
-      if (errorDetalles) return alert('Error al guardar detalles');
-
-      alert('Salida registrada con éxito');
+      alert('Salida registrada con éxito.');
       location.reload();
     }
   </script>
+
   <style>
-    body { font-family: sans-serif; margin: 20px; background: #f4f6f8; }
-    label, input, select { display: block; margin: 8px 0; }
-    .item { display: inline-block; width: 180px; margin: 10px; text-align: center; background: #fff; padding: 8px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    table { width: 100%; margin-top: 20px; border-collapse: collapse; }
-    th, td { border: 1px solid #ccc; padding: 8px; }
-    th { background: #3498db; color: white; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f4f6f8;
+    }
+    label, input {
+      display: block;
+      margin: 8px 0;
+      width: 300px;
+    }
+    .item {
+      display: inline-block;
+      width: 180px;
+      margin: 8px;
+      padding: 8px;
+      text-align: center;
+      background: #fff;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+      background: #fff;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
+    th {
+      background-color: #3498db;
+      color: #fff;
+      text-align: left;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 16px;
+      background: #3498db;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #2980b9;
+    }
   </style>
 </head>
+
 <body>
   <h2>Registrar Salida para Cliente Interno</h2>
-  <label>Autoriza: <input type="text" id="autoriza"></label>
-  <label>Retira: <input type="text" id="retira"></label>
-  <label>Vehículo: <input type="text" id="vehiculo"></label>
-  <label>Operador: <input type="text" id="operador"></label>
-  <label>N° de Solicitud: <input type="number" id="solicitud"></label>
+
+  <label>Autoriza:
+    <input type="text" id="autoriza" placeholder="Quien autoriza...">
+  </label>
+
+  <label>Retira:
+    <input type="text" id="retira" placeholder="Quien retira...">
+  </label>
+
+  <label>Vehículo:
+    <input type="text" id="vehiculo" placeholder="Placa vehicular">
+  </label>
+
+  <label>Operador:
+    <input type="text" id="operador" placeholder="Nombre operador">
+  </label>
+
+  <label>N° de Solicitud:
+    <input type="number" id="solicitud" placeholder="Número de solicitud">
+  </label>
 
   <h3>Inventario Disponible</h3>
   <div id="inventario" style="display:flex; flex-wrap:wrap;"></div>
@@ -112,10 +210,6 @@
   <table id="detalle">
     <tr><th>Artículo</th><th>Cantidad</th></tr>
   </table>
-
-  <button id="btnGuardar">Guardar Salida</button>
-</body>
-</html>
 
   <button id="btnGuardar">Guardar Salida</button>
 </body>
