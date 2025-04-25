@@ -1,202 +1,215 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Subir imagen de artículo</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Asociar imagen a artículo</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 800px;
+    body { 
+      font-family: system-ui, sans-serif; 
+      max-width: 600px; 
       margin: 2rem auto;
       padding: 0 1rem;
     }
-
-    .upload-section {
-      border: 2px dashed #ccc;
-      padding: 2rem;
-      border-radius: 8px;
-      text-align: center;
-      margin: 2rem 0;
+    .form-group { margin-bottom: 1.5rem; }
+    label { 
+      display: block; 
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: #333;
     }
-
-    .preview-image {
-      max-width: 300px;
-      max-height: 200px;
-      margin: 1rem 0;
-      display: none;
+    input, button { 
+      width: 100%; 
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
     }
-
-    input, button {
-      padding: 0.5rem;
-      margin: 0.5rem 0;
-      width: 100%;
-      max-width: 400px;
-    }
-
     button {
-      background-color: #4CAF50;
+      background: #007bff;
       color: white;
       border: none;
-      padding: 1rem;
       cursor: pointer;
-      transition: background-color 0.3s;
+      transition: background 0.2s;
     }
-
+    button:hover { background: #0056b3; }
     button:disabled {
-      background-color: #cccccc;
+      background: #6c757d;
       cursor: not-allowed;
     }
-
-    .progress-bar {
-      width: 100%;
-      height: 20px;
-      background-color: #f3f3f3;
+    .preview-container {
+      position: relative;
       margin: 1rem 0;
+      background: #f8f9fa;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    #preview {
+      width: 100%;
+      height: 200px;
+      object-fit: contain;
       display: none;
     }
-
-    .progress {
-      height: 100%;
-      background-color: #4CAF50;
-      width: 0%;
-      transition: width 0.3s ease;
+    .drag-over {
+      border: 2px dashed #007bff;
+      background: #e7f1ff;
     }
-
-    .error-message {
-      color: #ff4444;
+    .message {
+      padding: 0.75rem;
+      border-radius: 4px;
       margin: 1rem 0;
     }
-
-    .success-message {
-      color: #00C851;
-      margin: 1rem 0;
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
+    .info { background: #fff3cd; color: #856404; }
+    .spinner {
+      animation: spin 1s linear infinite;
+      margin-right: 0.5rem;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
   <h1>Asociar imagen a artículo</h1>
 
-  <div class="upload-section">
-    <img id="preview" class="preview-image" alt="Vista previa de la imagen">
-
-    <input type="file" id="inputFile" accept="image/png, image/jpeg, image/webp" />
-    <input type="text" id="codigoArticulo" placeholder="Código del artículo (ej: 3116290692367567)" pattern="\d+" required>
-    <input type="text" id="nombreArticulo" placeholder="Buscar por nombre del artículo">
-    <button id="btnBuscar">🔍 Buscar código</button>
-
-    <div class="progress-bar">
-      <div class="progress"></div>
+  <form id="formUpload" class="form-group">
+    <div class="form-group">
+      <label for="codigo">Código del artículo</label>
+      <input 
+        type="text" 
+        id="codigo" 
+        placeholder="Ejemplo: 15121502092075671" 
+        pattern="\d{17}"
+        required
+      />
+      <small class="hint">Debe contener exactamente 17 dígitos</small>
     </div>
 
-    <div id="message"></div>
-    <button id="btnUpload" disabled>Subir y Asociar</button>
-  </div>
+    <div class="form-group">
+      <label for="imagen">Seleccionar imagen</label>
+      <div class="preview-container" id="dropZone">
+        <input 
+          type="file" 
+          id="imagen" 
+          accept="image/jpeg,image/png,image/webp" 
+          required
+        />
+        <img id="preview" alt="Vista previa de la imagen seleccionada" />
+        <div id="dropText" class="drop-text">Arrastra la imagen aquí o haz clic para seleccionar</div>
+      </div>
+    </div>
+
+    <button type="submit" id="btnSubir" disabled>
+      <span class="spinner">⏳</span>
+      Subir imagen y asociar
+    </button>
+  </form>
+
+  <div id="mensaje" role="alert"></div>
 
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(
+      'https://qpccqoeronbcdyejfjod.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'
+    );
 
-    const fileInput = document.getElementById('inputFile');
-    const codigoInput = document.getElementById('codigoArticulo');
-    const nombreInput = document.getElementById('nombreArticulo');
-    const btnBuscar = document.getElementById('btnBuscar');
-    const btnUpload = document.getElementById('btnUpload');
+    const form = document.getElementById('formUpload');
+    const mensaje = document.getElementById('mensaje');
     const preview = document.getElementById('preview');
-    const progressBar = document.querySelector('.progress-bar');
-    const progress = document.querySelector('.progress');
-    const messageDiv = document.getElementById('message');
+    const dropZone = document.getElementById('dropZone');
+    const btnSubir = document.getElementById('btnSubir');
+    const spinner = document.querySelector('.spinner');
 
-    codigoInput.addEventListener('input', validateForm);
-    fileInput.addEventListener('change', handleFileSelect);
-
-    btnBuscar.addEventListener('click', async () => {
-      const nombre = nombreInput.value.trim();
-      if (!nombre) {
-        showMessage('❌ Ingrese un nombre de artículo para buscar.', 'error');
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('articulo_01')
-        .select('codigo_articulo')
-        .ilike('nombre_articulo', `%${nombre}%`)
-        .limit(1)
-        .single();
-
-      if (error || !data) {
-        showMessage('❌ No se encontró ningún artículo con ese nombre.', 'error');
-        return;
-      }
-
-      codigoInput.value = data.codigo_articulo;
-      validateForm();
-      showMessage(`✅ Código encontrado: ${data.codigo_articulo}`, 'success');
+    // Validación inicial
+    form.addEventListener('input', () => {
+      btnSubir.disabled = !form.checkValidity();
     });
 
-    async function handleFileSelect(e) {
-      const file = e.target.files[0];
+    // Drag and Drop
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('drag-over');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) handleFile(file);
+    });
+
+    // Manejo de archivo
+    document.getElementById('imagen').addEventListener('change', (e) => {
+      handleFile(e.target.files[0]);
+    });
+
+    function handleFile(file) {
       if (!file) return;
 
-      const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-      if (!validTypes.includes(file.type)) {
-        showMessage('❌ Solo se permiten imágenes JPEG, PNG o WebP (max 5MB)', 'error');
-        resetFileInput();
+      const tiposValidos = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!tiposValidos.includes(file.type)) {
+        mostrarMensaje('❌ Formato no válido. Use JPG, PNG o WebP.', 'error');
         return;
       }
 
       if (file.size > 5 * 1024 * 1024) {
-        showMessage('❌ El tamaño máximo permitido es 5MB', 'error');
-        resetFileInput();
+        mostrarMensaje('❌ El tamaño máximo permitido es 5MB.', 'error');
         return;
       }
 
+      mostrarPreview(file);
+    }
+
+    function mostrarPreview(file) {
+      preview.style.display = 'block';
       const reader = new FileReader();
-      reader.onload = (e) => {
-        preview.src = e.target.result;
-        preview.style.display = 'block';
-      };
+      reader.onload = (e) => preview.src = e.target.result;
       reader.readAsDataURL(file);
-
-      validateForm();
     }
 
-    function validateForm() {
-      btnUpload.disabled = !(fileInput.files[0] && codigoInput.validity.valid);
-    }
+    // Envío del formulario
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const codigo = document.getElementById('codigo').value.trim();
+      const archivo = document.getElementById('imagen').files[0];
+      
+      if (!codigo || !archivo) return;
 
-    btnUpload.addEventListener('click', async () => {
+      btnSubir.disabled = true;
+      spinner.style.display = 'inline-block';
+      
       try {
-        btnUpload.disabled = true;
-        progressBar.style.display = 'block';
-        showMessage('Subiendo imagen...', 'info');
+        // Validar código antes de subir
+        if (!/^\d{17}$/.test(codigo)) {
+          throw new Error('El código debe tener 17 dígitos numéricos');
+        }
 
-        const file = fileInput.files[0];
-        const codigo = codigoInput.value.trim();
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${codigo}_${Date.now()}.${fileExt}`;
-
+        // Subir imagen
+        const ext = archivo.name.split('.').pop();
+        const nombreArchivo = `${codigo}_${Date.now()}.${ext}`;
+        
         const { error: uploadError } = await supabase.storage
           .from('imagenes')
-          .upload(fileName, file);
+          .upload(nombreArchivo, archivo);
 
         if (uploadError) throw uploadError;
 
+        // Obtener URL
         const { data: { publicUrl } } = supabase.storage
           .from('imagenes')
-          .getPublicUrl(fileName);
+          .getPublicUrl(nombreArchivo);
 
-        const { data: articulo, error: fetchError } = await supabase
-          .from('articulo_01')
-          .select('codigo_articulo')
-          .eq('codigo_articulo', codigo)
-          .single();
-
-        if (fetchError) throw new Error('Artículo no encontrado');
-
+        // Actualizar artículo
         const { error: updateError } = await supabase
           .from('articulo_01')
           .update({ imagen_url: publicUrl })
@@ -204,33 +217,25 @@
 
         if (updateError) throw updateError;
 
-        showMessage(`✅ Imagen asociada correctamente. <a href="${publicUrl}" target="_blank">Ver imagen</a>`, 'success');
-        resetForm();
-
+        mostrarMensaje(`✅ Imagen asociada correctamente. <a href="${publicUrl}" target="_blank">Ver imagen</a>`, 'success');
+        form.reset();
+        preview.style.display = 'none';
       } catch (error) {
-        console.error('Error:', error);
-        showMessage(`❌ Error: ${error.message}`, 'error');
+        mostrarMensaje(`❌ Error: ${error.message}`, 'error');
       } finally {
-        btnUpload.disabled = false;
-        progressBar.style.display = 'none';
+        btnSubir.disabled = false;
+        spinner.style.display = 'none';
       }
     });
 
-    function showMessage(text, type = 'info') {
-      messageDiv.className = `${type}-message`;
-      messageDiv.innerHTML = text;
-    }
-
-    function resetFileInput() {
-      fileInput.value = '';
-      preview.style.display = 'none';
-      validateForm();
-    }
-
-    function resetForm() {
-      resetFileInput();
-      codigoInput.value = '';
-      nombreInput.value = '';
+    function mostrarMensaje(texto, tipo) {
+      mensaje.className = `message ${tipo}`;
+      mensaje.innerHTML = texto;
+      mensaje.focus();
+      
+      if (tipo === 'success') {
+        setTimeout(() => mensaje.textContent = '', 5000);
+      }
     }
   </script>
 </body>
