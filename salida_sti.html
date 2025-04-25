@@ -3,351 +3,243 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Registrar Salida de Artículo</title>
+  <title>Registro de Salida de Artículos</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-    // ———————— CONFIGURACIÓN SUPABASE ————————
-    const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    document.addEventListener('DOMContentLoaded', () => {
-      const form = document.getElementById('salida-form');
-      const addRowBtn = document.getElementById('add-row');
-      const tbody = document.querySelector('#detalle-tabla tbody');
-      const today = new Date().toISOString().split('T')[0];
-      let comentarios = ''; // Variable para almacenar los comentarios
-      
-      // Mostrar fecha actual
-      document.getElementById('fecha-actual').textContent = `Fecha: ${formatDate(today)}`;
-
-      // Función para formatear fecha
-      function formatDate(dateString) {
-        const options = { year: 'numeric', month: 'long', day: 'numeric' };
-        return new Date(dateString).toLocaleDateString('es-ES', options);
-      }
-
-      // Función para mostrar el modal de comentarios
-      function showComentariosModal() {
-        const modal = new bootstrap.Modal(document.getElementById('comentariosModal'));
-        document.getElementById('comentarios-text').value = comentarios;
-        modal.show();
-      }
-
-      // Guardar comentarios cuando se cierra el modal
-      document.getElementById('save-comentarios').addEventListener('click', () => {
-        comentarios = document.getElementById('comentarios-text').value;
-        const modal = bootstrap.Modal.getInstance(document.getElementById('comentariosModal'));
-        modal.hide();
-        
-        // Mostrar indicador de que hay comentarios guardados
-        const comentariosBadge = document.getElementById('comentarios-badge');
-        if (comentarios.trim()) {
-          comentariosBadge.classList.remove('d-none');
-          comentariosBadge.innerHTML = `<i class="fas fa-check-circle me-1"></i>Comentarios agregados`;
-        } else {
-          comentariosBadge.classList.add('d-none');
-        }
-      });
-
-      // Función para validar formulario antes de enviar
-      function validateForm() {
-        const filas = Array.from(document.querySelectorAll('#detalle-tabla tbody tr'));
-        if (filas.length === 0) {
-          showAlert('Debe agregar al menos un artículo', 'danger');
-          return false;
-        }
-        
-        let isValid = true;
-        filas.forEach(tr => {
-          const articulo = tr.querySelector('input[name="articulo"]').value.trim();
-          const cantidad = tr.querySelector('input[name="cantidad"]').value;
-          
-          if (!articulo || !cantidad) {
-            isValid = false;
-            tr.classList.add('table-danger');
-          } else {
-            tr.classList.remove('table-danger');
-          }
-        });
-        
-        if (!isValid) {
-          showAlert('Complete todos los campos de los artículos', 'danger');
-        }
-        
-        return isValid;
-      }
-
-      // Mostrar alerta personalizada
-      function showAlert(message, type) {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-        alertDiv.role = 'alert';
-        alertDiv.innerHTML = `
-          ${message}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-        
-        const container = document.querySelector('.alert-container');
-        container.innerHTML = '';
-        container.appendChild(alertDiv);
-      }
-
-      // Función para agregar una fila al detalle
-      function agregarFila() {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>
-            <input type="text" name="articulo" class="form-control" placeholder="Nombre del artículo" required />
-          </td>
-          <td>
-            <input type="number" name="cantidad" class="form-control" placeholder="0.00" min="0" step="0.01" required />
-          </td>
-          <td class="text-center">
-            <button type="button" class="btn btn-danger btn-sm btn-remove">
-              <i class="fas fa-trash-alt"></i>
-            </button>
-          </td>
-        `;
-        // Quitar fila
-        tr.querySelector('.btn-remove').addEventListener('click', () => {
-          tr.classList.add('animate__animated', 'animate__fadeOut');
-          setTimeout(() => tr.remove(), 500);
-        });
-        tbody.appendChild(tr);
-        
-        // Enfocar el campo de artículo
-        setTimeout(() => tr.querySelector('input[name="articulo"]').focus(), 100);
-      }
-
-      // Inicializar con una fila
-      agregarFila();
-      addRowBtn.addEventListener('click', agregarFila);
-
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        if (!validateForm()) return;
-        
-        const autoriza = document.getElementById('autoriza').value.trim();
-        const retira = document.getElementById('retira').value.trim();
-        const numeroSolicitud = parseInt(document.getElementById('numero_solicitud').value, 10);
-
-        // Mostrar spinner de carga
-        const submitBtn = document.querySelector('button[type="submit"]');
-        const originalBtnText = submitBtn.innerHTML;
-        submitBtn.innerHTML = `
-          <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-          Procesando...
-        `;
-        submitBtn.disabled = true;
-
-        try {
-          // Obtener siguiente id_salida
-          const { data: last, error: errMax } = await supabase
-            .from('salida_articulo_08')
-            .select('id_salida')
-            .order('id_salida', { ascending: false })
-            .limit(1);
-          if (errMax) throw errMax;
-          const maxId = last.length ? last[0].id_salida : 0;
-          const newId = maxId + 1;
-
-          // Fecha actual
-          const fechaHoy = new Date().toISOString().split('T')[0];
-
-          // Insertar encabezado (ahora usando 'comentarios' en lugar de 'observaciones')
-          const { error: errEnc } = await supabase
-            .from('salida_articulo_08')
-            .insert([{ 
-              id_salida: newId, 
-              fecha_salida: fechaHoy, 
-              autoriza, 
-              retira, 
-              numero_solicitud: numeroSolicitud,
-              comentarios: comentarios  // ← Aquí se guarda en la columna comentarios
-            }]);
-          if (errEnc) throw errEnc;
-
-          // Recopilar datos detalle
-          const filas = Array.from(document.querySelectorAll('#detalle-tabla tbody tr'));
-          const detalles = filas.map(tr => {
-            const articulo = tr.querySelector('input[name="articulo"]').value.trim();
-            const cantidad = parseFloat(tr.querySelector('input[name="cantidad"]').value);
-            return { id_salida: newId, articulo, cantidad };
-          });
-
-          // Insertar detalle
-          const { error: errDet } = await supabase
-            .from('dato_salida_13')
-            .insert(detalles);
-          if (errDet) throw errDet;
-
-          showAlert(`Registro guardado correctamente. ID Salida: ${newId}`, 'success');
-          
-          // Redirigir después de 2 segundos
-          setTimeout(() => {
-            window.location.href = 'lista_salidas.html'; // Cambiar por la URL correcta
-          }, 2000);
-        } catch (err) {
-          console.error(err);
-          showAlert('Error al guardar: ' + err.message, 'danger');
-        } finally {
-          submitBtn.innerHTML = originalBtnText;
-          submitBtn.disabled = false;
-        }
-      });
-
-      document.getElementById('btn-cancel').addEventListener('click', () => {
-        if (confirm('¿Está seguro que desea cancelar? Los datos no guardados se perderán.')) {
-          window.history.back();
-        }
-      });
-    });
-  </script>
-
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
   <style>
     :root {
-      --primary-color: #3498db;
-      --secondary-color: #2c3e50;
-      --success-color: #28a745;
-      --danger-color: #dc3545;
+      --primary-color: #2c3e50;
+      --secondary-color: #3498db;
+      --accent-color: #e74c3c;
+      --light-bg: #f8f9fa;
+      --dark-text: #343a40;
     }
     
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f8f9fa;
-      color: #343a40;
+      background-color: var(--light-bg);
+      color: var(--dark-text);
     }
     
-    .card {
-      border-radius: 10px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    .main-card {
+      border-radius: 12px;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
       border: none;
+      overflow: hidden;
+      margin-bottom: 2rem;
     }
     
     .card-header {
-      background-color: var(--secondary-color);
+      background-color: var(--primary-color);
       color: white;
-      border-radius: 10px 10px 0 0 !important;
-      padding: 1.2rem;
+      padding: 1.5rem;
+      border-bottom: 4px solid var(--secondary-color);
     }
     
     .form-control:focus {
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+      border-color: var(--secondary-color);
+      box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.2);
     }
     
     .btn-primary {
       background-color: var(--primary-color);
       border-color: var(--primary-color);
+      transition: all 0.3s ease;
     }
     
     .btn-primary:hover {
-      background-color: #2980b9;
-      border-color: #2980b9;
+      background-color: #1a252f;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-outline-primary {
+      color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    
+    .btn-outline-primary:hover {
+      background-color: var(--primary-color);
+      color: white;
     }
     
     .table th {
       background-color: #e9ecef;
       border-top: none;
+      font-weight: 600;
+    }
+    
+    .table-responsive {
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .badge-indicator {
+      font-size: 0.8rem;
+      margin-left: 0.5rem;
+      padding: 0.35rem 0.6rem;
+    }
+    
+    .section-title {
+      position: relative;
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .section-title:after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 50px;
+      height: 3px;
+      background-color: var(--secondary-color);
+    }
+    
+    .floating-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .form-section {
+      background-color: white;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    .required-field::after {
+      content: " *";
+      color: var(--accent-color);
     }
     
     .animate__animated {
       animation-duration: 0.5s;
     }
     
-    #detalle-tabla input {
-      border: 1px solid #ced4da;
-    }
-    
-    .fecha-actual {
-      font-size: 0.9rem;
-      color: #6c757d;
-      margin-bottom: 1rem;
-    }
-    
-    .required-field::after {
-      content: " *";
-      color: var(--danger-color);
-    }
-    
-    #comentarios-badge {
-      font-size: 0.8rem;
-      margin-left: 0.5rem;
-    }
-    
-    .comentarios-btn {
-      margin-bottom: 1rem;
+    @media (max-width: 768px) {
+      .card-header {
+        padding: 1rem;
+      }
+      
+      .section-title {
+        font-size: 1.25rem;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container py-4">
     <div class="row justify-content-center">
-      <div class="col-lg-8">
-        <div class="card">
+      <div class="col-lg-10">
+        <div class="main-card">
           <div class="card-header text-center">
-            <h2 class="mb-0"><i class="fas fa-box-open me-2"></i>Registrar Salida de Artículos</h2>
+            <h2 class="mb-0"><i class="fas fa-box-open me-2"></i>REGISTRO DE SALIDA DE ARTÍCULOS</h2>
           </div>
           <div class="card-body">
             <div class="alert-container mb-3"></div>
-            <div class="fecha-actual" id="fecha-actual"></div>
             
-            <form id="salida-form">
-              <div class="row mb-4">
-                <div class="col-md-6 mb-3">
-                  <label for="autoriza" class="form-label required-field">Persona que autoriza</label>
-                  <input type="text" id="autoriza" name="autoriza" class="form-control" required />
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <div class="fecha-actual text-muted">
+                <i class="fas fa-calendar-alt me-2"></i>
+                <span id="fecha-actual"></span>
+              </div>
+              <div class="badge bg-light text-dark">
+                <i class="fas fa-file-alt me-2"></i>
+                <span id="folio-text">Nuevo registro</span>
+              </div>
+            </div>
+            
+            <form id="salida-form" class="needs-validation" novalidate>
+              <!-- Sección de Información Básica -->
+              <div class="form-section">
+                <h5 class="section-title"><i class="fas fa-user-tie me-2"></i>Información de la Salida</h5>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="autoriza" class="form-label required-field">Responsable que autoriza</label>
+                    <div class="input-group">
+                      <span class="input-group-text"><i class="fas fa-user-check"></i></span>
+                      <input type="text" id="autoriza" name="autoriza" class="form-control" required />
+                      <div class="invalid-feedback">
+                        Por favor ingrese el nombre del responsable
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="retira" class="form-label required-field">Persona que retira</label>
+                    <div class="input-group">
+                      <span class="input-group-text"><i class="fas fa-user"></i></span>
+                      <input type="text" id="retira" name="retira" class="form-control" required />
+                      <div class="invalid-feedback">
+                        Por favor ingrese el nombre de quien retira
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="numero_solicitud" class="form-label required-field">Número de solicitud</label>
+                    <div class="input-group">
+                      <span class="input-group-text"><i class="fas fa-hashtag"></i></span>
+                      <input type="number" id="numero_solicitud" name="numero_solicitud" class="form-control" required />
+                      <div class="invalid-feedback">
+                        Por favor ingrese el número de solicitud
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="departamento" class="form-label">Departamento/Área</label>
+                    <div class="input-group">
+                      <span class="input-group-text"><i class="fas fa-building"></i></span>
+                      <input type="text" id="departamento" name="departamento" class="form-control" />
+                    </div>
+                  </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                  <label for="retira" class="form-label required-field">Persona que retira</label>
-                  <input type="text" id="retira" name="retira" class="form-control" required />
-                </div>
-                <div class="col-md-6 mb-3">
-                  <label for="numero_solicitud" class="form-label required-field">Número de solicitud</label>
-                  <input type="number" id="numero_solicitud" name="numero_solicitud" class="form-control" required />
+                
+                <div class="d-flex align-items-center mb-3">
+                  <button type="button" class="btn btn-outline-primary" onclick="showComentariosModal()">
+                    <i class="fas fa-comment-dots me-2"></i> Agregar Comentarios
+                  </button>
+                  <span id="comentarios-badge" class="badge bg-success badge-indicator d-none animate__animated animate__fadeIn">
+                    <i class="fas fa-check-circle me-1"></i>Comentarios agregados
+                  </span>
                 </div>
               </div>
               
-              <!-- Botón para agregar comentarios -->
-              <div class="d-flex align-items-center mb-3 comentarios-btn">
-                <button type="button" class="btn btn-outline-secondary" onclick="showComentariosModal()">
-                  <i class="fas fa-comment me-1"></i> Agregar Comentarios
+              <!-- Sección de Artículos -->
+              <div class="form-section">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h5 class="section-title mb-0"><i class="fas fa-boxes me-2"></i>Artículos a Retirar</h5>
+                  <button type="button" id="add-row" class="btn btn-sm btn-primary">
+                    <i class="fas fa-plus-circle me-1"></i> Agregar Artículo
+                  </button>
+                </div>
+                
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle" id="detalle-tabla">
+                    <thead class="table-light">
+                      <tr>
+                        <th width="50%">Artículo</th>
+                        <th width="20%">Cantidad</th>
+                        <th width="20%">Unidad</th>
+                        <th width="10%">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+              
+              <!-- Botones de Acción -->
+              <div class="d-flex justify-content-between mt-4">
+                <button type="button" id="btn-cancel" class="btn btn-outline-secondary">
+                  <i class="fas fa-arrow-left me-2"></i> Regresar
                 </button>
-                <span id="comentarios-badge" class="badge bg-success d-none">
-                  <i class="fas fa-check-circle me-1"></i>Comentarios agregados
-                </span>
-              </div>
-              
-              <h5 class="mb-3"><i class="fas fa-list-ul me-2"></i>Detalle de Artículos</h5>
-              
-              <div class="table-responsive mb-3">
-                <table class="table table-hover" id="detalle-tabla">
-                  <thead class="table-light">
-                    <tr>
-                      <th width="60%">Artículo</th>
-                      <th width="30%">Cantidad</th>
-                      <th width="10%">Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody></tbody>
-                </table>
-              </div>
-              
-              <button type="button" id="add-row" class="btn btn-outline-primary btn-sm mb-4">
-                <i class="fas fa-plus-circle me-1"></i> Agregar Artículo
-              </button>
-              
-              <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                <button type="button" id="btn-cancel" class="btn btn-outline-secondary me-md-2">
-                  <i class="fas fa-times-circle me-1"></i> Cancelar
-                </button>
-                <button type="submit" class="btn btn-primary">
-                  <i class="fas fa-save me-1"></i> Guardar Salida
+                <button type="submit" class="btn btn-primary px-4">
+                  <i class="fas fa-save me-2"></i> Guardar Salida
                 </button>
               </div>
             </form>
@@ -359,28 +251,254 @@
 
   <!-- Modal para Comentarios -->
   <div class="modal fade" id="comentariosModal" tabindex="-1" aria-labelledby="comentariosModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
       <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="comentariosModalLabel"><i class="fas fa-comment me-2"></i>Agregar Comentarios</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="comentariosModalLabel"><i class="fas fa-comment-dots me-2"></i>Comentarios Adicionales</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <div class="mb-3">
-            <label for="comentarios-text" class="form-label">Comentarios adicionales</label>
-            <textarea class="form-control" id="comentarios-text" rows="5" placeholder="Escribe aquí tus comentarios..."></textarea>
+            <label for="comentarios-text" class="form-label">Detalles adicionales sobre esta salida</label>
+            <textarea class="form-control" id="comentarios-text" rows="6" 
+                      placeholder="Ejemplo: Artículos para evento de capacitación el día 15/05, proyecto: Renovación de equipos..."></textarea>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="button" class="btn btn-primary" id="save-comentarios">Guardar Comentarios</button>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            <i class="fas fa-times me-2"></i> Cancelar
+          </button>
+          <button type="button" class="btn btn-primary" id="save-comentarios">
+            <i class="fas fa-save me-2"></i> Guardar Comentarios
+          </button>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Botón flotante para ayuda -->
+  <button type="button" class="btn btn-primary rounded-circle floating-btn" data-bs-toggle="tooltip" data-bs-placement="left" title="Ayuda">
+    <i class="fas fa-question"></i>
+  </button>
+
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    // Configuración Supabase
+    const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Inicializar tooltips
+      const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+      });
+
+      // Variables globales
+      const form = document.getElementById('salida-form');
+      const addRowBtn = document.getElementById('add-row');
+      const tbody = document.querySelector('#detalle-tabla tbody');
+      const today = new Date().toISOString().split('T')[0];
+      let comentarios = '';
+      let nextId = 1;
+      
+      // Mostrar fecha actual formateada
+      document.getElementById('fecha-actual').textContent = formatDate(today);
+      
+      // Función para formatear fecha
+      function formatDate(dateString) {
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        return new Date(dateString).toLocaleDateString('es-ES', options);
+      }
+      
+      // Función para mostrar el modal de comentarios
+      window.showComentariosModal = function() {
+        const modal = new bootstrap.Modal(document.getElementById('comentariosModal'));
+        document.getElementById('comentarios-text').value = comentarios;
+        modal.show();
+      };
+      
+      // Guardar comentarios
+      document.getElementById('save-comentarios').addEventListener('click', () => {
+        comentarios = document.getElementById('comentarios-text').value;
+        const modal = bootstrap.Modal.getInstance(document.getElementById('comentariosModal'));
+        modal.hide();
+        
+        // Mostrar indicador de comentarios
+        const comentariosBadge = document.getElementById('comentarios-badge');
+        if (comentarios.trim()) {
+          comentariosBadge.classList.remove('d-none');
+          comentariosBadge.classList.add('animate__fadeIn');
+        } else {
+          comentariosBadge.classList.add('d-none');
+        }
+      });
+      
+      // Función para agregar fila de artículo
+      function agregarFila() {
+        const tr = document.createElement('tr');
+        tr.className = 'animate__animated animate__fadeIn';
+        tr.innerHTML = `
+          <td>
+            <input type="text" name="articulo" class="form-control" placeholder="Descripción del artículo" required />
+          </td>
+          <td>
+            <input type="number" name="cantidad" class="form-control text-end" placeholder="0.00" min="0" step="0.01" required />
+          </td>
+          <td>
+            <select name="unidad" class="form-select">
+              <option value="Pieza">Pieza</option>
+              <option value="Caja">Caja</option>
+              <option value="Litro">Litro</option>
+              <option value="Kg">Kilogramo</option>
+              <option value="Paquete">Paquete</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </td>
+          <td class="text-center">
+            <button type="button" class="btn btn-sm btn-danger btn-remove">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </td>
+        `;
+        
+        // Eliminar fila con animación
+        tr.querySelector('.btn-remove').addEventListener('click', () => {
+          tr.classList.add('animate__fadeOut');
+          setTimeout(() => tr.remove(), 300);
+        });
+        
+        tbody.appendChild(tr);
+        setTimeout(() => tr.querySelector('input[name="articulo"]').focus(), 100);
+      }
+      
+      // Validación del formulario
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!form.checkValidity()) {
+          form.classList.add('was-validated');
+          return;
+        }
+        
+        // Validar al menos un artículo
+        const filas = Array.from(document.querySelectorAll('#detalle-tabla tbody tr'));
+        if (filas.length === 0) {
+          showAlert('Debe agregar al menos un artículo', 'danger');
+          return;
+        }
+        
+        // Mostrar loading
+        const submitBtn = document.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.innerHTML = `
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          Guardando...
+        `;
+        submitBtn.disabled = true;
+        
+        try {
+          // Obtener datos del formulario
+          const autoriza = document.getElementById('autoriza').value.trim();
+          const retira = document.getElementById('retira').value.trim();
+          const numeroSolicitud = document.getElementById('numero_solicitud').value;
+          const departamento = document.getElementById('departamento').value.trim();
+          
+          // Obtener siguiente ID
+          const { data: last, error: errMax } = await supabase
+            .from('salida_articulo_08')
+            .select('id_salida')
+            .order('id_salida', { ascending: false })
+            .limit(1);
+          
+          if (errMax) throw errMax;
+          const maxId = last.length ? last[0].id_salida : 0;
+          const newId = maxId + 1;
+          
+          // Actualizar folio en pantalla
+          document.getElementById('folio-text').textContent = `Folio: SA-${newId.toString().padStart(4, '0')}`;
+          
+          // Insertar encabezado
+          const { error: errEnc } = await supabase
+            .from('salida_articulo_08')
+            .insert([{ 
+              id_salida: newId, 
+              fecha_salida: today, 
+              autoriza, 
+              retira, 
+              numero_solicitud,
+              departamento,
+              comentarios 
+            }]);
+          
+          if (errEnc) throw errEnc;
+          
+          // Recopilar datos detalle
+          const detalles = filas.map(tr => {
+            return {
+              id_salida: newId,
+              articulo: tr.querySelector('input[name="articulo"]').value.trim(),
+              cantidad: parseFloat(tr.querySelector('input[name="cantidad"]').value),
+              unidad: tr.querySelector('select[name="unidad"]').value
+            };
+          });
+          
+          // Insertar detalle
+          const { error: errDet } = await supabase
+            .from('dato_salida_13')
+            .insert(detalles);
+          
+          if (errDet) throw errDet;
+          
+          // Mostrar éxito
+          showAlert(`Salida registrada exitosamente con folio SA-${newId.toString().padStart(4, '0')}`, 'success');
+          
+          // Redirigir después de 3 segundos
+          setTimeout(() => {
+            window.location.href = 'lista_salidas.html'; // Ajustar URL según necesidad
+          }, 3000);
+          
+        } catch (err) {
+          console.error(err);
+          showAlert('Error al guardar: ' + err.message, 'danger');
+        } finally {
+          submitBtn.innerHTML = originalBtnText;
+          submitBtn.disabled = false;
+        }
+      });
+      
+      // Mostrar alerta
+      function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show animate__animated animate__fadeIn`;
+        alertDiv.role = 'alert';
+        alertDiv.innerHTML = `
+          <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-2"></i>
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        const container = document.querySelector('.alert-container');
+        container.innerHTML = '';
+        container.appendChild(alertDiv);
+      }
+      
+      // Cancelar formulario
+      document.getElementById('btn-cancel').addEventListener('click', () => {
+        if (confirm('¿Está seguro que desea cancelar? Todos los datos no guardados se perderán.')) {
+          window.history.back();
+        }
+      });
+      
+      // Inicializar con una fila
+      agregarFila();
+      addRowBtn.addEventListener('click', agregarFila);
+    });
+  </script>
 </body>
 </html>
