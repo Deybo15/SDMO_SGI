@@ -122,7 +122,7 @@
 
       const { data, error } = await supabase
         .from('articulo_01')
-        .select('Orcodigo_articulo')
+        .select('codigo_articulo')
         .ilike('nombre_articulo', `%${nombre}%`)
         .limit(1)
         .single();
@@ -132,9 +132,9 @@
         return;
       }
 
-      codigoInput.value = data.Orcodigo_articulo;
+      codigoInput.value = data.codigo_articulo;
       validateForm();
-      showMessage(`✅ Código encontrado: ${data.Orcodigo_articulo}`, 'success');
+      showMessage(`✅ Código encontrado: ${data.codigo_articulo}`, 'success');
     });
 
     async function handleFileSelect(e) {
@@ -192,7 +192,7 @@
         const { data: articulo, error: fetchError } = await supabase
           .from('articulo_01')
           .select('id')
-          .eq('Orcodigo_articulo', codigo)
+          .eq('codigo_articulo', codigo)
           .single();
 
         if (fetchError) throw new Error('Artículo no encontrado');
@@ -204,7 +204,7 @@
 
         if (updateError) throw updateError;
 
-        showMessage('✅ Imagen asociada correctamente', 'success');
+        showMessage(`✅ Imagen asociada correctamente. [Ver imagen](${publicUrl})`, 'success');
         resetForm();
 
       } catch (error) {
@@ -218,7 +218,7 @@
 
     function showMessage(text, type = 'info') {
       messageDiv.className = `${type}-message`;
-      messageDiv.textContent = text;
+      messageDiv.innerHTML = text;
     }
 
     function resetFileInput() {
@@ -233,7 +233,5 @@
       nombreInput.value = '';
     }
   </script>
-</body>
-</html>
 </body>
 </html>
