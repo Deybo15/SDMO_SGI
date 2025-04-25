@@ -11,6 +11,8 @@
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    let inventarioCompleto = [];
+
     window.addEventListener('DOMContentLoaded', async () => {
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error || !user) {
@@ -32,15 +34,21 @@
           cantidad_disponible,
           ultima_actualizacion
         `)
-        .order('nombre_articulo', { ascending: true });
+        .order('nombre_articulo', { ascending: true })
+        .limit(10000);
 
       if (error) {
         alert('Error cargando inventario: ' + error.message);
         return;
       }
 
+      inventarioCompleto = data;
+      renderizarTabla(inventarioCompleto.slice(0, 15));
+    }
+
+    function renderizarTabla(lista) {
       const tbody = document.querySelector('#tabla-inventario tbody');
-      tbody.innerHTML = data.map(row => `
+      tbody.innerHTML = lista.map(row => `
         <tr>
           <td>${row.codigo_articulo?.toString() || ''}</td>
           <td>${row.nombre_articulo || ''}</td>
@@ -54,30 +62,36 @@
     function setupSearch() {
       const byCode = document.getElementById('filtro-codigo');
       const byName = document.getElementById('filtro-articulo');
-      const tbody = document.querySelector('#tabla-inventario tbody');
 
       function normalizarTexto(txt) {
         return txt
           .toLowerCase()
-          .normalize("NFD") // Quita acentos
+          .normalize("NFD")
           .replace(/[\u0300-\u036f]/g, "")
-          .replace(/\s+/g, " ") // Normaliza espacios múltiples
+          .replace(/\s+/g, " ")
           .trim();
       }
 
       function filtrar() {
         const codeQ = normalizarTexto(byCode.value);
         const nameQ = normalizarTexto(byName.value);
-        for (const tr of tbody.rows) {
-          const code = normalizarTexto(tr.cells[0].textContent);
-          const name = normalizarTexto(tr.cells[1].textContent);
-          const visible = code.includes(codeQ) && name.includes(nameQ);
-          tr.style.display = visible ? '' : 'none';
-        }
+
+        const filtrados = inventarioCompleto.filter(row => {
+          const code = normalizarTexto(row.codigo_articulo?.toString() || '');
+          const name = normalizarTexto(row.nombre_articulo || '');
+          return code.includes(codeQ) && name.includes(nameQ);
+        });
+
+        renderizarTabla(filtrados.slice(0, 15));
+        document.getElementById('mostrar-todos').style.display = filtrados.length > 15 ? 'inline-block' : 'none';
       }
 
       byCode.addEventListener('input', filtrar);
       byName.addEventListener('input', filtrar);
+
+      document.getElementById('mostrar-todos').addEventListener('click', () => {
+        renderizarTabla(inventarioCompleto);
+      });
     }
 
     async function logout() {
@@ -103,6 +117,12 @@
     table { width:100%; border-collapse:collapse; }
     th,td { padding:12px; border-bottom:1px solid #eee; text-align:left; }
     thead { background:#3498db; color:#fff; }
+    #mostrar-todos {
+      display: none;
+      margin-top: 10px;
+      background: #2ecc71;
+      color: white;
+    }
   </style>
 </head>
 
@@ -143,6 +163,8 @@
         <!-- filas inyectadas por JS -->
       </tbody>
     </table>
+
+    <button id="mostrar-todos" class="btn btn-primary">Mostrar todos los registros</button>
   </div>
 </body>
 </html>
