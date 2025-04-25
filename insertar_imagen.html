@@ -81,7 +81,7 @@
     <img id="preview" class="preview-image" alt="Vista previa de la imagen">
 
     <input type="file" id="inputFile" accept="image/png, image/jpeg, image/webp" />
-    <input type="text" id="codigoArticulo" placeholder="Código del artículo (ej: A-001)" pattern="[A-Za-z0-9-]+" required>
+    <input type="text" id="codigoArticulo" placeholder="Código del artículo (ej: 3116290692367567)" pattern="\d+" required>
     <input type="text" id="nombreArticulo" placeholder="Buscar por nombre del artículo">
     <button id="btnBuscar">🔍 Buscar código</button>
 
@@ -122,7 +122,7 @@
 
       const { data, error } = await supabase
         .from('articulo_01')
-        .select('codigo_articulo')
+        .select('Orcodigo_articulo')
         .ilike('nombre_articulo', `%${nombre}%`)
         .limit(1)
         .single();
@@ -132,9 +132,9 @@
         return;
       }
 
-      codigoInput.value = data.codigo_articulo;
+      codigoInput.value = data.Orcodigo_articulo;
       validateForm();
-      showMessage(`✅ Código encontrado: ${data.codigo_articulo}`, 'success');
+      showMessage(`✅ Código encontrado: ${data.Orcodigo_articulo}`, 'success');
     });
 
     async function handleFileSelect(e) {
@@ -192,7 +192,7 @@
         const { data: articulo, error: fetchError } = await supabase
           .from('articulo_01')
           .select('id')
-          .eq('codigo_articulo', codigo)
+          .eq('Orcodigo_articulo', codigo)
           .single();
 
         if (fetchError) throw new Error('Artículo no encontrado');
@@ -233,5 +233,7 @@
       nombreInput.value = '';
     }
   </script>
+</body>
+</html>
 </body>
 </html>
