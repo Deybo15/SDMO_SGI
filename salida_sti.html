@@ -21,25 +21,32 @@
 
     async function cargarInventario() {
       const { data, error } = await supabase.from('inventario_actual').select('*');
-      if (error) return alert('Error cargando inventario');
+      if (error) {
+        console.error('Error cargando inventario', error);
+        alert('Error cargando inventario');
+        return;
+      }
       const contenedor = document.getElementById('inventario');
       contenedor.innerHTML = '';
       data.forEach(item => {
         const div = document.createElement('div');
         div.className = 'item';
         div.innerHTML = `
-          <img src="${item.imagen_url}" alt="Imagen" style="width:60px;cursor:pointer" ondblclick='seleccionarArticulo(${JSON.stringify(item)})'/>
+          <img src="${item.imagen_url}" alt="Imagen Artículo" style="width:60px; cursor:pointer;" ondblclick='seleccionarArticulo("${item.codigo_articulo}", "${item.nombre_articulo}")'>
           <p>${item.nombre_articulo}</p>
-          <small>Stock: ${item.cantidad_disponible}</small>
+          <small>Stock: ${item.cantidad_disponible ?? 0}</small>
         `;
         contenedor.appendChild(div);
       });
     }
 
-    window.seleccionarArticulo = async (item) => {
-      const cantidad = prompt(`Ingrese cantidad para: ${item.nombre_articulo}`);
-      if (!cantidad || isNaN(cantidad)) return;
-      articulosSeleccionados.push({ articulo: item.codigo_articulo, nombre: item.nombre_articulo, cantidad: parseFloat(cantidad) });
+    window.seleccionarArticulo = (codigoArticulo, nombreArticulo) => {
+      const cantidad = prompt(`Ingrese cantidad para: ${nombreArticulo}`);
+      if (!cantidad || isNaN(cantidad)) {
+        alert('Debe ingresar una cantidad válida.');
+        return;
+      }
+      articulosSeleccionados.push({ articulo: codigoArticulo, nombre: nombreArticulo, cantidad: parseFloat(cantidad) });
       mostrarArticulosSeleccionados();
     }
 
@@ -52,45 +59,100 @@
     }
 
     async function guardarSalida() {
-      const autoriza = document.getElementById('autoriza').value;
-      const retira = document.getElementById('retira').value;
-      const vehiculo = document.getElementById('vehiculo').value;
-      const operador = document.getElementById('operador').value;
+      const autoriza = document.getElementById('autoriza').value.trim();
+      const retira = document.getElementById('retira').value.trim();
+      const vehiculo = document.getElementById('vehiculo').value.trim();
+      const operador = document.getElementById('operador').value.trim();
       const solicitud = parseInt(document.getElementById('solicitud').value);
 
       if (!autoriza || !retira || !solicitud || articulosSeleccionados.length === 0) {
-        alert('Complete todos los datos');
+        alert('Debe completar todos los datos y seleccionar artículos.');
         return;
       }
 
       const { data: salida, error } = await supabase.from('salida_articulo_08').insert([{ 
-        autoriza, retira, placa_vehiculo: vehiculo, operador_vehiculo: operador, numero_solicitud: solicitud, tipo_cliente: 'interno', fecha_salida: new Date().toISOString().split('T')[0]
+        autoriza,
+        retira,
+        placa_vehiculo: vehiculo,
+        operador_vehiculo: operador,
+        numero_solicitud: solicitud,
+        tipo_cliente: 'interno',
+        fecha_salida: new Date().toISOString().split('T')[0]
       ]).select();
 
-      if (error || !salida[0]) return alert('Error al guardar salida');
+      if (error || !salida || !salida.length) {
+        console.error('Error al guardar salida', error);
+        alert('Error al guardar salida');
+        return;
+      }
 
       const id_salida = salida[0].id_salida;
 
       const detalles = articulosSeleccionados.map(a => ({
-        id_salida,
+        id_salida: id_salida,
         articulo: a.articulo,
         cantidad: a.cantidad
       }));
 
       const { error: errorDetalles } = await supabase.from('dato_salida_13').insert(detalles);
 
-      if (errorDetalles) return alert('Error al guardar detalles');
+      if (errorDetalles) {
+        console.error('Error al guardar detalles', errorDetalles);
+        alert('Error al guardar los detalles');
+        return;
+      }
 
-      alert('Salida registrada con éxito');
+      alert('Salida registrada exitosamente.');
       location.reload();
     }
   </script>
   <style>
-    body { font-family: sans-serif; margin: 20px; background: #f4f6f8; }
-    label, input, select { display: block; margin: 8px 0; }
-    .item { display: inline-block; width: 180px; margin: 10px; text-align: center; background: #fff; padding: 8px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    table { width: 100%; margin-top: 20px; border-collapse: collapse; }
-    th, td { border: 1px solid #ccc; padding: 8px; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f4f6f8;
+    }
+    label, input, select {
+      display: block;
+      margin: 8px 0;
+    }
+    .item {
+      display: inline-block;
+      width: 180px;
+      margin: 10px;
+      text-align: center;
+      background: #fff;
+      padding: 8px;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+      background: #fff;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
+    th {
+      background-color: #3498db;
+      color: white;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
   </style>
 </head>
 <body>
