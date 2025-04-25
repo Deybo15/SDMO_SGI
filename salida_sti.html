@@ -2,215 +2,357 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Salida de Artículos - Cliente Interno</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Formulario-Solicitudes-CI</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
+      }
+    }
+  </script>
   <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    import { createClient } from '@supabase/supabase-js';
 
-    const supabase = createClient(
-      'https://qpccqoeronbcdyejfjod.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'
-    );
+    // Configuración Supabase
+    const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…'; // tu clave recortada
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    let articulosSeleccionados = [];
+    // Datos para selects
+    let areasData = [], instalacionesData = [], supervisoresData = [];
+    let profesionalesData = [], clientesData = [];
 
-    // Esperamos a que cargue la página
-    document.addEventListener('DOMContentLoaded', async () => {
-      await cargarInventario();
-      document.getElementById('btnGuardar').addEventListener('click', guardarSalida);
-    });
+    // Sanitizar texto
+    const escapeHtml = s => s?.toString()
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;") || '';
 
-    // 1) Carga y muestra el inventario
-    async function cargarInventario() {
+    // Orden alfabético
+    const ordenar = (arr, key) =>
+      (arr||[]).sort((a,b)=> (a[key]||'').toString().localeCompare((b[key]||'').toString()));
+
+    // Próximo número de solicitud
+    async function obtenerProximoNumero() {
       const { data, error } = await supabase
-        .from('inventario_actual')
-        .select('*');
+        .from('solicitud_17')
+        .select('numero_solicitud')
+        .order('numero_solicitud', { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return data.length ? data[0].numero_solicitud + 1 : 1;
+    }
+
+    // Carga selects
+    async function cargarDesplegables() {
+      const [areas, insts, sups, profs, clis] = await Promise.all([
+        supabase.from("area_mantenimiento_20").select("id_area_mantenimiento,descripcion_area"),
+        supabase.from("instalaciones_municipales_16").select("id_instalacion_municipal,instalacion_municipal"),
+        supabase.from("colaboradores_06").select("identificacion,alias")
+          .eq("supervisor", true).eq("condicion_laboral", false),
+        supabase.from("colaboradores_06").select("identificacion,alias").eq("autorizado", true),
+        supabase.from("cliente_interno_15").select("id_cliente,nombre")
+      ]);
+      areasData = ordenar(areas.data,'descripcion_area');
+      instalacionesData = ordenar(insts.data,'instalacion_municipal');
+      supervisoresData = ordenar(sups.data,'alias');
+      profesionalesData = ordenar(profs.data,'alias');
+      clientesData = ordenar(clis.data,'nombre');
+
+      const build = (arr,v,t)=> {
+        let o = `<option value="" disabled selected>-- seleccione --</option>`;
+        arr.forEach(i=> o+=`<option value="${escapeHtml(i[v])}">${escapeHtml(i[t])}</option>`);
+        return o;
+      };
+      document.getElementById("area_mantenimiento").innerHTML = build(areasData,'id_area_mantenimiento','descripcion_area');
+      document.getElementById("instalacion_municipal").innerHTML = build(instalacionesData,'id_instalacion_municipal','instalacion_municipal');
+      document.getElementById("supervisor_asignado").innerHTML = build(supervisoresData,'identificacion','alias');
+      document.getElementById("profesional_responsable").innerHTML = build(profesionalesData,'identificacion','alias');
+      document.getElementById("cliente_interno").innerHTML = build(clientesData,'id_cliente','nombre');
+    }
+
+    // Modal de búsqueda genérico
+    function abrirModalBusqueda(tipo) {
+      const modal = document.getElementById('modalBusqueda');
+      const title = document.getElementById('tituloModal');
+      const input = document.getElementById('inputBusqueda');
+      let datos, campoV, campoT;
+      switch(tipo) {
+        case 'area': datos=areasData; campoV='id_area_mantenimiento'; campoT='descripcion_area'; title.textContent='Buscar Área'; break;
+        case 'instalacion': datos=instalacionesData; campoV='id_instalacion_municipal'; campoT='instalacion_municipal'; title.textContent='Buscar Instalación'; break;
+        case 'supervisor': datos=supervisoresData; campoV='identificacion'; campoT='alias'; title.textContent='Buscar Supervisor'; break;
+        case 'profesional': datos=profesionalesData; campoV='identificacion'; campoT='alias'; title.textContent='Buscar Profesional'; break;
+        case 'cliente': datos=clientesData; campoV='id_cliente'; campoT='nombre'; title.textContent='Buscar Cliente'; break;
+      }
+      modal.dataset.tipo=tipo;
+      modal.dataset.v=campoV;
+      modal.dataset.t=campoT;
+      input.value='';
+      mostrarResultados(datos);
+      modal.style.display='block';
+      input.focus();
+    }
+
+    function mostrarResultados(lista) {
+      const ul = document.getElementById('listaResultados');
+      ul.innerHTML='';
+      if (!lista.length) {
+        ul.innerHTML='<li class="no-results">Sin resultados</li>';
+        return;
+      }
+      lista.forEach(it=>{
+        const li = document.createElement('li');
+        li.textContent = it[document.getElementById('modalBusqueda').dataset.t];
+        li.onclick = ()=> seleccionarItem(it);
+        ul.appendChild(li);
+      });
+    }
+
+    function seleccionarItem(item) {
+      const m = document.getElementById('modalBusqueda');
+      const selMap = {
+        area: 'area_mantenimiento',
+        instalacion:'instalacion_municipal',
+        supervisor:'supervisor_asignado',
+        profesional:'profesional_responsable',
+        cliente:'cliente_interno'
+      };
+      const t = m.dataset.tipo;
+      const s = document.getElementById(selMap[t]);
+      for (let o of s.options) {
+        if (o.value === item[m.dataset.v].toString()) {
+          o.selected = true;
+          break;
+        }
+      }
+      cerrarModalBusqueda();
+    }
+
+    function cerrarModalBusqueda() {
+      document.getElementById('modalBusqueda').style.display='none';
+    }
+
+    // Guardar solicitud STI
+    async function guardarSolicitud() {
+      const desc = document.getElementById("descripcion_solicitud").value.trim();
+      const campos = ["area_mantenimiento","instalacion_municipal","supervisor_asignado","profesional_responsable","cliente_interno"];
+      if (!desc) return alert("Descripción requerida");
+      for (let id of campos) {
+        if (!document.getElementById(id).value) {
+          return alert(`Seleccione ${id.replace('_',' ')}`);
+        }
+      }
+      const num = await obtenerProximoNumero();
+      const { error } = await supabase.from("solicitud_17").insert([{
+        numero_solicitud: num,
+        tipo_solicitud: "STI",
+        fecha_solicitud: new Date().toISOString().split('T')[0],
+        descripcion_solicitud: escapeHtml(desc),
+        area_mantenimiento: document.getElementById("area_mantenimiento").value,
+        instalacion_municipal: document.getElementById("instalacion_municipal").value,
+        supervisor_asignado: document.getElementById("supervisor_asignado").value,
+        profesional_responsable: document.getElementById("profesional_responsable").value,
+        cliente_interno: document.getElementById("cliente_interno").value
+      }]);
+      if (error) return alert("Error al guardar");
+      showNotification(`Solicitud #${num} guardada`);
+      resetForm();
+      cargarTabla();
+    }
+
+    // Carga tabla y aplica filtro + tipo_solicitud
+    async function cargarTabla(filtro='') {
+      const { data, error } = await supabase
+        .from("solicitud_17")
+        .select("*")
+        .eq("tipo_solicitud","STI")
+        .order("numero_solicitud",{ascending:false})
+        .limit(100);
+      const tb = document.getElementById("tablaSolicitudes");
+      tb.innerHTML='';
       if (error) {
-        console.error('Error cargando inventario', error);
+        tb.innerHTML='<tr><td colspan="4">Error</td></tr>';
         return;
       }
-      const contenedor = document.getElementById('inventario');
-      contenedor.innerHTML = '';
-      data.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'item';
-        //  —> Aquí corregimos ondblclick para pasar solo los campos necesarios
-        div.innerHTML = `
-          <img
-            src="${item.imagen_url}"
-            alt="${item.nombre_articulo}"
-            style="width:60px; cursor:pointer;"
-            ondblclick="seleccionarArticulo('${item.codigo_articulo}', '${item.nombre_articulo}')"
-          />
-          <p>${item.nombre_articulo}</p>
-          <small>Stock: ${item.cantidad_disponible ?? 0}</small>
-        `;
-        contenedor.appendChild(div);
-      });
-    }
-
-    // 2) Función global (window) que recibe código y nombre
-    window.seleccionarArticulo = (codigo, nombre) => {
-      const cantidad = prompt(`Ingrese cantidad para: ${nombre}`);
-      if (!cantidad || isNaN(cantidad)) return;
-      articulosSeleccionados.push({
-        articulo: codigo,
-        nombre: nombre,
-        cantidad: parseFloat(cantidad)
-      });
-      mostrarArticulosSeleccionados();
-    };
-
-    // 3) Refresca la tabla de artículos seleccionados
-    function mostrarArticulosSeleccionados() {
-      const tabla = document.getElementById('detalle');
-      tabla.innerHTML = '<tr><th>Artículo</th><th>Cantidad</th></tr>';
-      articulosSeleccionados.forEach(a => {
-        tabla.innerHTML += `
-          <tr>
-            <td>${a.nombre}</td>
-            <td>${a.cantidad}</td>
-          </tr>
-        `;
-      });
-    }
-
-    // 4) Guarda la salida y los detalles en Supabase
-    async function guardarSalida() {
-      const autoriza = document.getElementById('autoriza').value.trim();
-      const retira = document.getElementById('retira').value.trim();
-      const vehiculo = document.getElementById('vehiculo').value.trim();
-      const operador = document.getElementById('operador').value.trim();
-      const solicitud = parseInt(document.getElementById('solicitud').value);
-
-      if (!autoriza || !retira || !solicitud || articulosSeleccionados.length === 0) {
-        alert('Complete todos los datos y seleccione al menos un artículo.');
+      const fl = filtro.toLowerCase();
+      const res = data.filter(r=>
+        r.numero_solicitud.toString().includes(fl)
+        || r.descripcion_solicitud.toLowerCase().includes(fl)
+      ).slice(0,5);
+      if (!res.length) {
+        tb.innerHTML='<tr><td colspan="4">Sin coincidencias</td></tr>';
         return;
       }
-
-      // Inserta encabezado de salida
-      const { data: salida, error } = await supabase
-        .from('salida_articulo_08')
-        .insert([{
-          autoriza,
-          retira,
-          placa_vehiculo: vehiculo,
-          operador_vehiculo: operador,
-          numero_solicitud: solicitud,
-          tipo_cliente: 'interno',
-          fecha_salida: new Date().toISOString().split('T')[0]
-        }])
-        .select();
-
-      if (error || !salida.length) {
-        console.error('Error guardando salida', error);
-        return alert('Error al guardar la salida.');
+      for (let s of res) {
+        const tr = document.createElement('tr');
+        tr.innerHTML=`
+          <td>${s.numero_solicitud}</td>
+          <td>${escapeHtml(s.descripcion_solicitud)}</td>
+          <td>${new Date(s.fecha_solicitud).toLocaleDateString()}</td>
+          <td>${s.area_mantenimiento||'-'}</td>
+        `;
+        tb.appendChild(tr);
       }
-
-      const id_salida = salida[0].id_salida;
-
-      // Inserta cada detalle
-      const detalles = articulosSeleccionados.map(a => ({
-        id_salida,
-        articulo: a.articulo,
-        cantidad: a.cantidad
-      }));
-      const { error: errDet } = await supabase
-        .from('dato_salida_13')
-        .insert(detalles);
-
-      if (errDet) {
-        console.error('Error guardando detalles', errDet);
-        return alert('Error al guardar los ítems.');
-      }
-
-      alert('Salida registrada con éxito.');
-      location.reload();
     }
+
+    // Notificaciones
+    function showNotification(msg,type='info') {
+      const n=document.createElement('div');
+      n.className=`notification ${type}`;
+      n.textContent=msg;
+      document.body.appendChild(n);
+      setTimeout(()=>{ n.classList.add('fade-out'); setTimeout(()=>n.remove(),500); },3000);
+    }
+
+    // Abrir modal salida STI
+    function mostrarModalSalidaSTI() {
+      const iframe = document.getElementById('frameSalidaSTI');
+      iframe.src = 'salida_sti.html';   // carga al vuelo
+      document.getElementById('modalSalidaSTI').style.display='block';
+    }
+    window.mostrarModalSalidaSTI = mostrarModalSalidaSTI;
+    function cerrarModalSalidaSTI(){
+      document.getElementById('modalSalidaSTI').style.display='none';
+    }
+    window.cerrarModalSalidaSTI = cerrarModalSalidaSTI;
+
+    // Init
+    window.addEventListener("DOMContentLoaded", async()=>{
+      await cargarDesplegables();
+      await cargarTabla();
+      document.getElementById('busqueda').addEventListener('input',e=> cargarTabla(e.target.value));
+      // clicks for modals
+      document.getElementById('modalBusqueda').addEventListener('click',e=> {
+        if(e.target.id==='modalBusqueda') cerrarModalBusqueda();
+      });
+      window.addEventListener('click',e=>{
+        if(e.target.id==='modalSalidaSTI') cerrarModalSalidaSTI();
+      });
+    });
   </script>
 
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      background: #f4f6f8;
-    }
-    label, input {
-      display: block;
-      margin: 8px 0;
-      width: 300px;
-    }
-    .item {
-      display: inline-block;
-      width: 180px;
-      margin: 8px;
-      padding: 8px;
-      text-align: center;
-      background: #fff;
-      border-radius: 6px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    table {
-      width: 100%;
-      margin-top: 20px;
-      border-collapse: collapse;
-      background: #fff;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-    }
-    th {
-      background-color: #3498db;
-      color: #fff;
-      text-align: left;
-    }
-    button {
-      margin-top: 20px;
-      padding: 10px 16px;
-      background: #3498db;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #2980b9;
-    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Segoe UI,sans-serif;background:#f4f6f8;padding:20px;color:#333;}
+    .container{max-width:1100px;margin:auto;background:#fff;padding:20px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.1);}
+    h1,h2{color:#2c3e50;margin-bottom:10px;}
+    .form-group{margin-bottom:15px;position:relative;}
+    label{font-weight:600;color:#2c3e50;}
+    input,select,textarea,button{width:100%;padding:10px;border:1px solid #ccc;border-radius:4px;font-size:1rem;margin-top:5px;}
+    button{background:#3498db;color:#fff;border:none;cursor:pointer;}
+    button:hover{background:#2980b9;}
+    .select-container{position:relative;}
+    .btn-buscar{position:absolute;right:0;top:50%;transform:translateY(-50%);width:40px;background:#f39c12;}
+    .btn-buscar:hover{background:#e67e22;}
+    table{width:100%;border-collapse:collapse;margin-top:20px;}
+    th,td{padding:8px;border:1px solid #ddd;}
+    th{background:#3498db;color:#fff;}
+    .notification{position:fixed;top:20px;right:20px;padding:10px 20px;border-radius:4px;color:#fff;z-index:2000;}
+    .notification.info{background:#3498db;}
+    .notification.success{background:#2ecc71;}
+    .notification.error{background:#e74c3c;}
+    .fade-out{animation:fadeOut .5s forwards;}
+    @keyframes fadeOut{to{opacity:0}}
+    .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1500;}
+    .modal-content{background:#fff;width:90%;max-width:500px;margin:5% auto;padding:20px;border-radius:6px;position:relative;}
+    .modal-content-large{background:#fff;width:95%;max-width:1100px;margin:3% auto;padding:20px;border-radius:6px;position:relative;}
+    .modal-content .close,
+    .modal-content-large .close {position:absolute;top:10px;right:10px;font-size:1.5rem;cursor:pointer;color:#333;}
+    #modalBusqueda ul{list-style:none;max-height:300px;overflow:auto;padding:0;margin:0;}
+    #modalBusqueda li{padding:8px;cursor:pointer;border-bottom:1px solid #eee;}
+    #modalBusqueda li:hover{background:#f5f5f5;}
+    .no-results{padding:20px;text-align:center;color:#777;}
+    .add-btn {text-align:right;margin:10px 0;}
+    .add-btn button{width:auto;padding:10px 20px;}
   </style>
 </head>
 
 <body>
-  <h2>Registrar Salida para Cliente Interno</h2>
+  <div class="container">
+    <h1>Formulario de Solicitudes (Cliente Interno)</h1>
 
-  <label>Autoriza:
-    <input type="text" id="autoriza" placeholder="Quien autoriza...">
-  </label>
+    <div class="form-group">
+      <label for="descripcion_solicitud">Descripción de la solicitud</label>
+      <textarea id="descripcion_solicitud" rows="3"></textarea>
+    </div>
 
-  <label>Retira:
-    <input type="text" id="retira" placeholder="Quien retira...">
-  </label>
+    <div class="form-group select-container">
+      <label>Área de Mantenimiento</label>
+      <select id="area_mantenimiento"></select>
+      <button class="btn-buscar" onclick="abrirModalBusqueda('area')">🔍</button>
+    </div>
 
-  <label>Vehículo:
-    <input type="text" id="vehiculo" placeholder="Placa vehicular">
-  </label>
+    <div class="form-group select-container">
+      <label>Instalación Municipal</label>
+      <select id="instalacion_municipal"></select>
+      <button class="btn-buscar" onclick="abrirModalBusqueda('instalacion')">🔍</button>
+    </div>
 
-  <label>Operador:
-    <input type="text" id="operador" placeholder="Nombre operador">
-  </label>
+    <div class="form-group select-container">
+      <label>Supervisor Asignado</label>
+      <select id="supervisor_asignado"></select>
+      <button class="btn-buscar" onclick="abrirModalBusqueda('supervisor')">🔍</button>
+    </div>
 
-  <label>N° de Solicitud:
-    <input type="number" id="solicitud" placeholder="Número de solicitud">
-  </label>
+    <div class="form-group select-container">
+      <label>Profesional Responsable</label>
+      <select id="profesional_responsable"></select>
+      <button class="btn-buscar" onclick="abrirModalBusqueda('profesional')">🔍</button>
+    </div>
 
-  <h3>Inventario Disponible</h3>
-  <div id="inventario" style="display:flex; flex-wrap:wrap;"></div>
+    <div class="form-group select-container">
+      <label>Cliente Interno</label>
+      <select id="cliente_interno"></select>
+      <button class="btn-buscar" onclick="abrirModalBusqueda('cliente')">🔍</button>
+    </div>
 
-  <h3>Artículos Seleccionados</h3>
-  <table id="detalle">
-    <tr><th>Artículo</th><th>Cantidad</th></tr>
-  </table>
+    <div class="form-group">
+      <button onclick="guardarSolicitud()">Guardar Solicitud STI</button>
+      <button onclick="window.location='inicio.html'" style="background:#95a5a6;margin-top:10px;">⬅ Volver al Inicio</button>
+    </div>
 
-  <button id="btnGuardar">Guardar Salida</button>
+    <div class="form-group">
+      <label for="busqueda">Buscar por # Solicitud o Descripción</label>
+      <input type="text" id="busqueda" placeholder="Ej: 8461 o vestimenta">
+    </div>
+
+    <div class="add-btn">
+      <button onclick="mostrarModalSalidaSTI()">➕ Registrar Nueva Salida STI</button>
+    </div>
+
+    <h2>Últimas 5 Solicitudes Registradas</h2>
+    <table>
+      <thead>
+        <tr>
+          <th># Solicitud</th><th>Descripción</th><th>Fecha</th><th>Área</th>
+        </tr>
+      </thead>
+      <tbody id="tablaSolicitudes">
+        <tr><td colspan="4">Cargando datos...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Modal genérico de búsqueda -->
+  <div id="modalBusqueda" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="cerrarModalBusqueda()">&times;</span>
+      <h3 id="tituloModal"></h3>
+      <input type="text" id="inputBusqueda" placeholder="Escribe para filtrar...">
+      <ul id="listaResultados"></ul>
+    </div>
+  </div>
+
+  <!-- Modal salida STI -->
+  <div id="modalSalidaSTI" class="modal">
+    <div class="modal-content-large">
+      <span class="close" onclick="cerrarModalSalidaSTI()">&times;</span>
+      <iframe id="frameSalidaSTI" src="" frameborder="0"
+        style="width:100%;height:90vh;border:none;"></iframe>
+    </div>
+  </div>
 </body>
 </html>
