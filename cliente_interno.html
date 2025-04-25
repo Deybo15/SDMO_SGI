@@ -319,6 +319,7 @@ async function cargarDesplegables() {
         const { data, error } = await supabase
           .from("solicitud_17")
           .select("*")
+          .eq("tipo_solicitud", "STI") // 👈 Filtro aplicado aquí
           .order("numero_solicitud", { ascending: false })
           .limit(5); // Solo mostramos los últimos 5 registros
 
