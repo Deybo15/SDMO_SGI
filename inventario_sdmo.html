@@ -7,12 +7,10 @@
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    // ⚠️ Reemplaza por tus credenciales si cambian
     const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Verificar usuario
     window.addEventListener('DOMContentLoaded', async () => {
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error || !user) {
@@ -24,7 +22,6 @@
       setupSearch();
     });
 
-    // Traer datos
     async function cargarInventario() {
       const { data, error } = await supabase
         .from('inventario_actual')
@@ -45,16 +42,15 @@
       const tbody = document.querySelector('#tabla-inventario tbody');
       tbody.innerHTML = data.map(row => `
         <tr>
-          <td>${row.codigo_articulo}</td>
-          <td>${row.nombre_articulo}</td>
-          <td>${row.unidad}</td>
-          <td>${row.cantidad_disponible}</td>
-          <td>${new Date(row.ultima_actualizacion).toLocaleString()}</td>
+          <td>${row.codigo_articulo?.toString() || ''}</td>
+          <td>${row.nombre_articulo || ''}</td>
+          <td>${row.unidad || ''}</td>
+          <td>${row.cantidad_disponible ?? ''}</td>
+          <td>${row.ultima_actualizacion ? new Date(row.ultima_actualizacion).toLocaleString() : ''}</td>
         </tr>
       `).join('');
     }
 
-    // Filtros de búsqueda
     function setupSearch() {
       const byCode = document.getElementById('filtro-codigo');
       const byName = document.getElementById('filtro-articulo');
@@ -64,7 +60,7 @@
         const codeQ = byCode.value.toLowerCase();
         const nameQ = byName.value.toLowerCase();
         for (const tr of tbody.rows) {
-          const code = tr.cells[0].textContent.toLowerCase();
+          const code = tr.cells[0].textContent.toString().toLowerCase();
           const name = tr.cells[1].textContent.toLowerCase();
           const visible = code.includes(codeQ) && name.includes(nameQ);
           tr.style.display = visible ? '' : 'none';
@@ -75,7 +71,6 @@
       byName.addEventListener('input', filtrar);
     }
 
-    // Logout
     async function logout() {
       await supabase.auth.signOut();
       window.location.href = 'index.html';
@@ -140,8 +135,5 @@
       </tbody>
     </table>
   </div>
-</body>
-</html>
-
 </body>
 </html>
