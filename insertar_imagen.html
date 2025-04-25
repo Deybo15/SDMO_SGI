@@ -84,9 +84,7 @@
     <input 
       type="text" 
       id="codigo" 
-      placeholder="Código del artículo (ej. 15121502092075671)" 
-      pattern="\d{15,20}"
-      title="Código numérico de 15 a 20 dígitos"
+      placeholder="Código del artículo" 
       required
     />
     
@@ -142,20 +140,18 @@
         return;
       }
 
-      // Validación de archivo
       if (!validateFile(file)) {
         resetPreview();
         return;
       }
 
-      // Mostrar vista previa
       showPreview(file);
       validateForm();
     }
 
     function validateFile(file) {
       const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-      const maxSize = 5 * 1024 * 1024; // 5MB
+      const maxSize = 5 * 1024 * 1024;
 
       if (!validTypes.includes(file.type)) {
         showMessage('❌ Formato no válido. Use JPG, PNG o WebP.', 'error');
@@ -178,13 +174,8 @@
         const { codigo, file, error } = getUploadData();
         if (error) return;
 
-        // Subir imagen
         const nombreArchivo = await uploadImage(codigo, file);
-        
-        // Obtener URL pública
         const publicUrl = getPublicUrl(nombreArchivo);
-        
-        // Actualizar artículo
         await updateArticle(codigo, publicUrl);
 
         showMessage(
@@ -196,7 +187,6 @@
         
         resetForm();
       } catch (error) {
-        console.error('Error:', error);
         showMessage(`❌ Error: ${error.message}`, 'error');
       } finally {
         toggleLoading(false);
@@ -271,7 +261,7 @@
 
     function validateForm() {
       elements.btnSubir.disabled = !(
-        elements.codigo.validity.valid && 
+        elements.codigo.value.trim() !== '' && 
         elements.imagen.files.length > 0
       );
     }
