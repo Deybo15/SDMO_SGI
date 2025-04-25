@@ -396,8 +396,21 @@ async function cargarTabla(filtro = '') {
   });
 });
 
- 
-  
+ // Función para mostrar el modal
+function mostrarModalSalidaSTI() {
+  document.getElementById("modalSalidaSTI").style.display = "block";
+}
+
+// Función para cerrar el modal
+function cerrarModalSalidaSTI() {
+  document.getElementById("modalSalidaSTI").style.display = "none";
+}
+
+// Cerrar modal al hacer clic fuera del modal
+window.addEventListener('click', (e) => {
+  const modal = document.getElementById('modalSalidaSTI');
+  if (e.target === modal) cerrarModalSalidaSTI();
+});
   
   
   </script>
@@ -421,6 +434,42 @@ async function cargarTabla(filtro = '') {
       margin: 0 auto;
       padding: 20px;
     }
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1001;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.6);
+}
+
+.modal-content-large {
+  background-color: #fefefe;
+  margin: 3% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 95%;
+  max-width: 1200px;
+  border-radius: 8px;
+  position: relative;
+}
+
+.modal-content-large .close {
+  color: #aaa;
+  font-size: 28px;
+  font-weight: bold;
+  position: absolute;
+  right: 20px;
+  top: 10px;
+  cursor: pointer;
+}
+
+.modal-content-large .close:hover {
+  color: #333;
+}
     
     h1 {
       color: #2c3e50;
@@ -736,7 +785,13 @@ async function cargarTabla(filtro = '') {
   <input type="text" id="busqueda" placeholder="Ej: 8461 o vestimenta">
 </div>
 
-<h2>Últimas 5 Solicitudes Registradas</h2>
+<div style="text-align: right; margin-bottom: 10px;">
+  <button onclick="mostrarModalSalidaSTI()" style="padding: 10px 20px; background-color: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer;">
+    ➕ Registrar Nueva Salida STI
+  </button>
+</div>
+    
+    <h2>Últimas 5 Solicitudes Registradas</h2>
 <table>
   <thead>
     <tr>
@@ -765,5 +820,17 @@ async function cargarTabla(filtro = '') {
       <ul id="listaResultados"></ul>
     </div>
   </div>
+
+  <!-- Modal de salida STI -->
+<div id="modalSalidaSTI" class="modal">
+  <div class="modal-content-large">
+    <span class="close" onclick="cerrarModalSalidaSTI()">&times;</span>
+    <iframe src="salida_sti.html" frameborder="0" style="width: 100%; height: 90vh;"></iframe>
+  </div>
+</div>
+
+
+
+
 </body>
 </html>
