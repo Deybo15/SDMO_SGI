@@ -191,7 +191,7 @@
 
         const { data: articulo, error: fetchError } = await supabase
           .from('articulo_01')
-          .select('id')
+          .select('codigo_articulo')
           .eq('codigo_articulo', codigo)
           .single();
 
@@ -200,11 +200,11 @@
         const { error: updateError } = await supabase
           .from('articulo_01')
           .update({ imagen_url: publicUrl })
-          .eq('id', articulo.id);
+          .eq('codigo_articulo', codigo);
 
         if (updateError) throw updateError;
 
-        showMessage(`✅ Imagen asociada correctamente. [Ver imagen](${publicUrl})`, 'success');
+        showMessage(`✅ Imagen asociada correctamente. <a href="${publicUrl}" target="_blank">Ver imagen</a>`, 'success');
         resetForm();
 
       } catch (error) {
