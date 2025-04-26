@@ -15,54 +15,19 @@
       --light-bg: #f8f9fa;
       --dark-text: #343a40;
     }
-    body {
-      background-color: var(--light-bg);
-      color: var(--dark-text);
-    }
-    .main-header {
-      background-color: var(--primary-color);
-      color: #fff;
-    }
-    .main-header .container {
-      padding: 1rem 0;
-    }
-    .filter-input .form-control {
-      min-width: 200px;
-    }
-    .filter-input .input-group-text {
-      background: transparent;
-      border-right: 0;
-    }
-    .filter-input .form-control {
-      border-left: 0;
-    }
-    .card-inv {
-      border: none;
-      border-radius: .5rem;
-      box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
-    }
-    .card-inv .card-body {
-      padding: 1.5rem;
-    }
-    .table thead {
-      background-color: var(--primary-color);
-    }
-    .table thead th {
-      color: #fff;
-      vertical-align: middle;
-      border: 0;
-    }
-    .table td, .table th {
-      border-color: #dee2e6;
-    }
-    .pagination-controls .btn {
-      min-width: 6rem;
-    }
+    body{background:var(--light-bg);color:var(--dark-text)}
+    .main-header{background:var(--primary-color);color:#fff}
+    .main-header .container{padding:1rem 0}
+    .card-inv{border:none;border-radius:.5rem;box-shadow:0 .125rem .25rem rgba(0,0,0,.075)}
+    .filter-input .input-group-text{background:transparent;border-right:0}
+    .filter-input .form-control{border-left:0;min-width:200px}
+    .table thead{background:var(--primary-color)}
+    .table thead th{color:#fff;border:0;vertical-align:middle}
+    .pagination-controls .btn{min-width:6rem}
   </style>
 </head>
 <body>
-
-  <!-- Bar header -->
+  <!-- Encabezado -->
   <header class="main-header mb-4">
     <div class="container text-center">
       <h1 class="h3 mb-1"><i class="fas fa-boxes me-2"></i>Inventario Actual</h1>
@@ -73,8 +38,7 @@
   <div class="container">
     <div class="card card-inv">
       <div class="card-body">
-
-        <!-- filtros + export -->
+        <!-- Filtros + Export -->
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
           <div class="d-flex flex-wrap align-items-center gap-3">
             <div class="input-group filter-input shadow-sm">
@@ -96,24 +60,25 @@
           </div>
         </div>
 
-        <!-- tabla -->
+        <!-- === TABLA INVENTARIO (no borrar ni mover) =========================== -->
         <div class="table-responsive mb-3">
           <table class="table table-hover mb-0" id="tabla-inventario">
             <thead>
               <tr>
-                <th scope="col"><i class="fas fa-image"></i></th>
-                <th scope="col">Código</th>
-                <th scope="col">Artículo</th>
-                <th scope="col">Unidad</th>
-                <th scope="col">Cantidad</th>
-                <th scope="col">Última Actualización</th>
+                <th><i class="fas fa-image"></i></th>
+                <th>Código</th>
+                <th>Artículo</th>
+                <th>Unidad</th>
+                <th>Cantidad</th>
+                <th>Última Actualización</th>
               </tr>
             </thead>
-            <tbody></tbody>
+            <tbody><!-- el script insertará filas aquí --></tbody>
           </table>
         </div>
+        <!-- ==================================================================== -->
 
-        <!-- paginación -->
+        <!-- Paginación -->
         <div class="pagination-controls d-flex justify-content-center">
           <button class="btn btn-outline-primary me-2" onclick="prevPage()">
             <i class="fas fa-chevron-left"></i> Anterior
@@ -122,21 +87,23 @@
             Siguiente <i class="fas fa-chevron-right"></i>
           </button>
         </div>
-
       </div>
     </div>
   </div>
 
-  <!-- scripts -->
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
+    /* 1️⃣ Sustituye por tus credenciales reales */
     const supabase = createClient(
-      'https://qpccqoeronbcdyejfjod.supabase.co',
+    'https://qpccqoeronbcdyejfjod.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzYSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'
+
     );
 
     let currentPage = 1;
@@ -145,17 +112,24 @@
     let allData = [];
 
     async function cargarDatos() {
-      const c = document.getElementById('filtro-codigo').value;
-      const a = document.getElementById('filtro-articulo').value;
-      let q = supabase.from('inventario_actual').select('*', { count:'exact' });
-      if (c) q = q.ilike('codigo_articulo', `%${c}%`);
-      if (a) q = q.ilike('nombre_articulo', `%${a}%`);
-      const { data, count, error } = await q
-        .order('nombre_articulo', { ascending:true })
-        .range((currentPage-1)*itemsPerPage, currentPage*itemsPerPage-1);
-      if (error) return console.error(error);
-      allData = data || [];
-      totalItems = count || 0;
+      try {
+        const c = document.getElementById('filtro-codigo').value.trim();
+        const a = document.getElementById('filtro-articulo').value.trim();
+        let q = supabase.from('inventario_actual').select('*', { count:'exact' });
+        if (c) q = q.ilike('codigo_articulo', `%${c}%`);
+        if (a) q = q.ilike('nombre_articulo', `%${a}%`);
+        const { data, count, error } = await q
+          .order('nombre_articulo', { ascending:true })
+          .range((currentPage-1)*itemsPerPage, currentPage*itemsPerPage-1);
+
+        if (error) throw error;
+        allData = data || [];
+        totalItems = count || 0;
+      } catch (err) {
+        console.error('Supabase error:', err);
+        allData = [];
+        totalItems = 0;
+      }
       renderTabla(allData);
     }
 
@@ -192,19 +166,12 @@
             }</td>
           </tr>`;
       });
-      // inicializa tooltips
       document.querySelectorAll('[data-bs-toggle="tooltip"]')
         .forEach(el=>new bootstrap.Tooltip(el));
     }
 
-    window.prevPage = () => {
-      if (currentPage>1) { currentPage--; cargarDatos(); }
-    };
-    window.nextPage = () => {
-      if ((currentPage*itemsPerPage)<totalItems) {
-        currentPage++; cargarDatos();
-      }
-    };
+    window.prevPage = () => { if (currentPage>1){currentPage--;cargarDatos();}};
+    window.nextPage = () => { if((currentPage*itemsPerPage)<totalItems){currentPage++;cargarDatos();}};
 
     window.exportToExcel = () => {
       const wb = XLSX.utils.book_new();
@@ -236,18 +203,18 @@
           ? new Date(i.ultima_actualizacion).toLocaleDateString()
           : 'N/D'
       ]);
-      doc.autoTable({ head, body, startY:25, margin:{left:15}, styles:{fontSize:8},
-                      headStyles:{fillColor:[44,62,80]} });
+      doc.autoTable({ head, body, startY:25, margin:{left:15},
+                      styles:{fontSize:8}, headStyles:{fillColor:[44,62,80]} });
       doc.save(`Inventario_${new Date().toISOString().slice(0,10)}.pdf`);
     };
 
-    // listeners
+    // Listeners de filtros
     document.getElementById('filtro-codigo')
-      .addEventListener('input',()=>{ currentPage=1; cargarDatos(); });
+      .addEventListener('input',()=>{currentPage=1;cargarDatos();});
     document.getElementById('filtro-articulo')
-      .addEventListener('input',()=>{ currentPage=1; cargarDatos(); });
+      .addEventListener('input',()=>{currentPage=1;cargarDatos();});
 
-    // carga inicial
+    // Carga inicial
     cargarDatos();
   </script>
 </body>
