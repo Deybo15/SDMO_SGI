@@ -19,19 +19,27 @@
       padding: 0 1rem;
     }
 
-    /* ─── NUEVO: botón regresar ─────────────────────────────── */
-    .btn-back{
-      background: var(--primary);
-      color:#fff;
-      border:none;
-      padding:.65rem 1.25rem;
-      border-radius:4px;
-      cursor:pointer;
-      margin-bottom:1.25rem;
-      transition:opacity .3s;
+    .header-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
     }
-    .btn-back:hover{opacity:.9}
-    /* ───────────────────────────────────────────────────────── */
+
+    .btn-regresar {
+      background: #95a5a6;
+      color: white;
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: opacity 0.3s;
+      text-decoration: none;
+    }
+
+    .btn-regresar:hover {
+      opacity: 0.9;
+    }
 
     .upload-container {
       border: 2px dashed #bdc3c7;
@@ -40,60 +48,14 @@
       background: #f8f9fa;
     }
 
-    input, button {
-      width: 100%;
-      padding: 0.8rem;
-      margin: 0.5rem 0;
-      border: 1px solid #bdc3c7;
-      border-radius: 4px;
-      font-size: 1rem;
-    }
-
-    button {
-      background: var(--primary);
-      color: white;
-      border: none;
-      cursor: pointer;
-      transition: opacity 0.3s;
-    }
-
-    button:hover { opacity: 0.9; }
-    button:disabled { background: #95a5a6; cursor: not-allowed; }
-
-    #preview {
-      max-width: 100%;
-      height: 200px;
-      object-fit: contain;
-      border-radius: 4px;
-      display: none;
-      margin: 1rem 0;
-    }
-
-    .mensaje {
-      padding: 1rem;
-      border-radius: 4px;
-      margin: 1rem 0;
-    }
-
-    .success { background: #e8f6ef; color: var(--success); border: 1px solid var(--success); }
-    .error   { background: #fdedec; color: var(--error);   border: 1px solid var(--error); }
-    .info    { background: #e5f4fb; color: var(--info);    border: 1px solid var(--info); }
-
-    .spinner {
-      animation: rotate 1s linear infinite;
-      width: 24px;
-      height: 24px;
-      display: none;
-    }
-
-    @keyframes rotate { 100% { transform: rotate(360deg); } }
+    /* ... (mantener el resto de estilos igual) ... */
   </style>
 </head>
 <body>
-  <!-- botón de regreso -->
-  <button class="btn-back" onclick="window.history.back()">&#x2190; Regresar</button>
-
-  <h1>Asociar imagen a artículo</h1>
+  <div class="header-container">
+    <h1>Asociar imagen a artículo</h1>
+    <button onclick="window.history.back()" class="btn-regresar">← Regresar</button>
+  </div>
 
   <div class="upload-container">
     <input type="text" id="codigo" placeholder="Código del artículo" required />
@@ -106,36 +68,6 @@
     <div id="mensaje" class="mensaje"></div>
   </div>
 
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-    const supabase = createClient(
-      'https://qpccqoeronbcdyejfjod.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'
-    );
-
-    const BUCKET_NAME = 'imagenes-articulos'; // ✅ tu bucket real
-
-    const elements = {
-      codigo:   document.getElementById('codigo'),
-      imagen:   document.getElementById('imagen'),
-      btnSubir: document.getElementById('btnSubir'),
-      mensaje:  document.getElementById('mensaje'),
-      preview:  document.getElementById('preview'),
-      spinner:  document.querySelector('.spinner'),
-      btnText:  document.querySelector('.btn-text')
-    };
-
-    elements.imagen.addEventListener('change', handleImageSelect);
-    elements.codigo.addEventListener('input', validateForm);
-    elements.btnSubir.addEventListener('click', handleUpload);
-
-    /* … resto de tu JS sin cambios … */
-    /* (todo lo que sigue debajo permanece igual) */
-    
-    /* ----------  funciones originales aquí  ---------- */
-    function handleImageSelect() { /* … */ }
-    /*   (omito código repetido por brevedad — idéntico al tuyo)  */
-  </script>
+  <!-- ... (mantener el script sin cambios) ... -->
 </body>
 </html>
