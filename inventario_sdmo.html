@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Inventario Actual - SDMO</title>
+
+  <!-- Import map para Supabase + ESM -->
   <script type="importmap">
     {
       "imports": {
@@ -11,21 +13,25 @@
       }
     }
   </script>
+
+  <!-- Librerías externas -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Estilos básicos -->
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; padding: 0; }
-    header { background: #2c3e50; color: white; padding: 1rem; text-align: center; }
-    .container { max-width: 1200px; margin: auto; background: white; padding: 1rem; }
-    .filters { display: flex; gap: 1rem; margin-bottom: 1rem; }
-    .filters input { padding: 0.5rem; flex: 1; }
-    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-    th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: left; vertical-align: middle; }
-    th { background: #3498db; color: white; cursor: pointer; }
-    td img { max-width: 50px; height: auto; display: block; border-radius: 4px; }
-    .pagination-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; }
-    .btn { padding: 0.5rem 1rem; margin: 0.2rem; background: #3498db; color: white; border: none; cursor: pointer; border-radius: 5px; }
-    .btn:hover { background: #2980b9; }
+    body{font-family:Arial, sans-serif;background:#f4f6f8;margin:0;padding:0}
+    header{background:#2c3e50;color:#fff;padding:1rem;text-align:center}
+    .container{max-width:1200px;margin:auto;background:#fff;padding:1rem}
+    .filters{display:flex;gap:1rem;margin-bottom:1rem}
+    .filters input{flex:1;padding:.5rem}
+    table{width:100%;border-collapse:collapse;margin-top:1rem}
+    th,td{border:1px solid #ccc;padding:.5rem;text-align:left;vertical-align:middle}
+    th{background:#3498db;color:#fff;cursor:pointer}
+    td img{max-width:50px;height:auto;border-radius:4px;display:block}
+    .pagination-controls{display:flex;justify-content:space-between;align-items:center;margin-top:1rem}
+    .btn{padding:.5rem 1rem;margin:.2rem;background:#3498db;color:#fff;border:none;border-radius:5px;cursor:pointer}
+    .btn:hover{background:#2980b9}
   </style>
 </head>
 <body>
@@ -33,15 +39,22 @@
     <h1>Inventario Actual</h1>
     <p>Sección Desarrollo y Mantenimiento de Obras</p>
   </header>
+
   <div class="container">
+    <!-- Filtros -->
     <div class="filters">
       <input id="filtro-codigo" type="text" placeholder="Buscar por código">
       <input id="filtro-articulo" type="text" placeholder="Buscar por artículo">
     </div>
+
+    <!-- Botones de acción -->
     <div>
+      <button class="btn" onclick="window.history.back()">Regresar</button>
       <button class="btn" onclick="exportToExcel()">Exportar a Excel</button>
       <button class="btn" onclick="exportToPDF()">Exportar a PDF</button>
     </div>
+
+    <!-- Tabla Inventario -->
     <table id="tabla-inventario">
       <thead>
         <tr>
@@ -55,6 +68,8 @@
       </thead>
       <tbody></tbody>
     </table>
+
+    <!-- Paginación -->
     <div class="pagination-controls">
       <button class="btn" onclick="prevPage()">Anterior</button>
       <span id="page-info"></span>
@@ -75,70 +90,76 @@
     let totalItems = 0;
 
     async function cargarDatos() {
-      const codigo = document.getElementById('filtro-codigo').value;
+      const codigo   = document.getElementById('filtro-codigo').value;
       const articulo = document.getElementById('filtro-articulo').value;
-      let query = supabase.from('inventario_actual').select('*', { count: 'exact' });
-      if (codigo) query = query.ilike('codigo_articulo', `%${codigo}%`);
+
+      let query = supabase.from('inventario_actual')
+                          .select('*', { count:'exact' });
+
+      if (codigo)   query = query.ilike('codigo_articulo' , `%${codigo}%`);
       if (articulo) query = query.ilike('nombre_articulo', `%${articulo}%`);
-      const { data, count, error } = await query.order('nombre_articulo').range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
-      if (error) {
-        console.error('Error desde Supabase:', error);
-        return;
-      }
-      if (!data) {
-        console.error('No se recibió data desde Supabase. Respuesta:', data);
-        return;
-      }
+
+      const { data, count, error } = await query
+        .order('nombre_articulo')
+        .range((currentPage-1)*itemsPerPage, currentPage*itemsPerPage-1);
+
+      if (error) return console.error('Supabase:', error);
       totalItems = count;
-      renderizarTabla(data);
-      document.getElementById('page-info').textContent = `Página ${currentPage} de ${Math.ceil(totalItems / itemsPerPage)}`;
+      renderizarTabla(data || []);
+      document.getElementById('page-info').textContent =
+        `Página ${currentPage} de ${Math.ceil(totalItems/itemsPerPage)}`;
     }
 
-    function renderizarTabla(data) {
+    function renderizarTabla(rows) {
       const tbody = document.querySelector('#tabla-inventario tbody');
       tbody.innerHTML = '';
-      data.forEach(row => {
-        const tr = document.createElement('tr');
-        let cantidad = parseFloat(row.cantidad_disponible);
-        const cantidadFormateada = (!isNaN(cantidad) && isFinite(cantidad))
-          ? cantidad.toLocaleString('es-CR', { minimumFractionDigits: 2 })
+      rows.forEach(row => {
+        const cant = parseFloat(row.cantidad_disponible);
+        const cantFmt = (!isNaN(cant)&&isFinite(cant))
+          ? cant.toLocaleString('es-CR',{minimumFractionDigits:2})
           : 'N/D';
-
-        const imagen = row.imagen_url ? `<a href="${row.imagen_url}" target="_blank" rel="noopener"><img src="${row.imagen_url}" alt="imagen artículo" onerror="this.src='https://via.placeholder.com/50?text=Sin+img';" /></a>` : '<img src="https://via.placeholder.com/50?text=Sin+img" alt="sin imagen">';
-
-        tr.innerHTML = `
-          <td>${imagen}</td>
-          <td>${row.codigo_articulo}</td>
-          <td>${row.nombre_articulo}</td>
-          <td>${row.unidad}</td>
-          <td>${cantidadFormateada}</td>
-          <td>${new Date(row.ultima_actualizacion).toLocaleString()}</td>
-        `;
-        tbody.appendChild(tr);
+        const img = row.imagen_url
+          ? `<a href="${row.imagen_url}" target="_blank" rel="noopener">
+               <img src="${row.imagen_url}" alt="img"
+                    onerror="this.src='https://via.placeholder.com/50?text=Sin+img';">
+             </a>`
+          : '<img src="https://via.placeholder.com/50?text=Sin+img" alt="sin img">';
+        tbody.insertAdjacentHTML('beforeend',`
+          <tr>
+            <td>${img}</td>
+            <td>${row.codigo_articulo}</td>
+            <td>${row.nombre_articulo}</td>
+            <td>${row.unidad}</td>
+            <td>${cantFmt}</td>
+            <td>${new Date(row.ultima_actualizacion).toLocaleString()}</td>
+          </tr>`);
       });
     }
 
-    document.getElementById('filtro-codigo').addEventListener('input', () => { currentPage = 1; cargarDatos(); });
-    document.getElementById('filtro-articulo').addEventListener('input', () => { currentPage = 1; cargarDatos(); });
+    // Filtros
+    document.getElementById('filtro-codigo' ).addEventListener('input',()=>{currentPage=1;cargarDatos();});
+    document.getElementById('filtro-articulo').addEventListener('input',()=>{currentPage=1;cargarDatos();});
 
-    window.prevPage = () => { if (currentPage > 1) { currentPage--; cargarDatos(); } }
-    window.nextPage = () => { if ((currentPage * itemsPerPage) < totalItems) { currentPage++; cargarDatos(); } }
+    // Paginación
+    window.prevPage = () => { if (currentPage>1){currentPage--;cargarDatos();}};
+    window.nextPage = () => { if ((currentPage*itemsPerPage)<totalItems){currentPage++;cargarDatos();}};
 
+    // Exportar
     window.exportToExcel = () => {
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.table_to_sheet(document.getElementById('tabla-inventario'));
       XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
       XLSX.writeFile(wb, 'Inventario_SDMO.xlsx');
-    }
-
+    };
     window.exportToPDF = () => {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
       doc.text('Inventario Actual - SDMO', 10, 10);
-      doc.autoTable({ html: '#tabla-inventario', startY: 20 });
+      doc.autoTable({ html:'#tabla-inventario', startY:20 });
       doc.save('Inventario_SDMO.pdf');
-    }
+    };
 
+    // Inicial
     cargarDatos();
   </script>
 </body>
