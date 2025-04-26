@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema SDMO - Página Principal</title>
+  <title>Acceso al Sistema - SDMO</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script type="module">
@@ -15,93 +15,82 @@
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Cuando el DOM esté listo
-    window.addEventListener('DOMContentLoaded', async () => {
-      try {
-        showLoading(true);
-        
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
-        if (authError) throw authError;
-        if (!user) {
-          window.location.href = "index.html";
-          return;
-        }
+    document.addEventListener('DOMContentLoaded', () => {
+      const loginForm = document.getElementById("loginForm");
+      const emailInput = document.getElementById("email");
+      const passwordInput = document.getElementById("password");
+      const submitBtn = document.getElementById("submitBtn");
+      const errorToast = document.getElementById("errorToast");
 
-        document.getElementById("usuario").textContent = user.email;
-        setupEventListeners();
-        
-      } catch (error) {
-        console.error("Error de autenticación:", error);
-        showNotification("Error al verificar la sesión", "error");
-        setTimeout(() => window.location.href = "index.html", 2000);
-      } finally {
-        showLoading(false);
+      // Evento submit del formulario
+      loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        await handleLogin();
+      });
+
+      // Evento keypress para Enter
+      passwordInput.addEventListener("keypress", async (e) => {
+        if (e.key === "Enter") {
+          await handleLogin();
+        }
+      });
+
+      // Función para manejar el login
+      async function handleLogin() {
+        try {
+          const email = emailInput.value.trim();
+          const password = passwordInput.value;
+
+          // Validación básica
+          if (!email || !password) {
+            showError("Por favor complete todos los campos");
+            return;
+          }
+
+          showLoading(true);
+          hideError();
+
+          // Autenticación con Supabase
+          const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+          if (error) throw error;
+
+          // Redirección a página principal
+          window.location.href = "inicio.html";
+
+        } catch (error) {
+          console.error("Error de autenticación:", error);
+          showError("Credenciales inválidas o error de conexión");
+        } finally {
+          showLoading(false);
+        }
+      }
+
+      // Mostrar mensaje de error
+      function showError(message) {
+        const toastBody = document.getElementById("toastBody");
+        toastBody.textContent = message;
+        const toast = new bootstrap.Toast(errorToast);
+        toast.show();
+      }
+
+      // Ocultar mensaje de error
+      function hideError() {
+        const toast = bootstrap.Toast.getInstance(errorToast);
+        if (toast) toast.hide();
+      }
+
+      // Mostrar/ocultar loading
+      function showLoading(show) {
+        if (show) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Iniciando sesión';
+        } else {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i> Iniciar Sesión';
+        }
       }
     });
-
-    // Configurar event listeners
-    function setupEventListeners() {
-      document.getElementById("btnLogout").addEventListener("click", logout);
-      
-      // Configurar tooltips
-      const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-      tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-      });
-    }
-
-    // Cerrar sesión
-    async function logout() {
-      try {
-        showLoading(true);
-        const { error } = await supabase.auth.signOut();
-        if (error) throw error;
-        window.location.href = "index.html";
-      } catch (error) {
-        console.error("Error al cerrar sesión:", error);
-        showNotification("Error al cerrar sesión", "error");
-      } finally {
-        showLoading(false);
-      }
-    }
-
-    // Mostrar notificación
-    function showNotification(message, type = "info") {
-      const notification = document.createElement("div");
-      notification.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'primary'} border-0`;
-      notification.setAttribute('role', 'alert');
-      notification.setAttribute('aria-live', 'assertive');
-      notification.setAttribute('aria-atomic', 'true');
-      notification.innerHTML = `
-        <div class="d-flex">
-          <div class="toast-body">
-            <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-2"></i>
-            ${message}
-          </div>
-          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-      `;
-      
-      const toastContainer = document.getElementById('toastContainer');
-      toastContainer.appendChild(notification);
-      const toast = new bootstrap.Toast(notification);
-      toast.show();
-      
-      // Eliminar el toast después de ocultarse
-      notification.addEventListener('hidden.bs.toast', () => {
-        notification.remove();
-      });
-    }
-
-    // Mostrar/ocultar loading
-    function showLoading(show) {
-      const loader = document.getElementById("loader");
-      if (show) {
-        loader.style.display = "flex";
-      } else {
-        loader.style.display = "none";
-      }
-    }
   </script>
   <style>
     :root {
@@ -115,214 +104,184 @@
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: var(--light-bg);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
       color: var(--dark-text);
+      background-image: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
     }
     
-    .main-header {
-      background-color: var(--primary-color);
-      color: white;
-      padding: 1.5rem 0;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      border-bottom: 3px solid var(--secondary-color);
-    }
-    
-    .header-title {
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
-    
-    .header-subtitle {
-      opacity: 0.9;
-      font-size: 1rem;
-    }
-    
-    .main-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 2rem 1rem;
-    }
-    
-    .user-card {
-      background: white;
-      border-radius: 10px;
-      padding: 1.5rem;
-      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
-      margin-bottom: 2rem;
-      text-align: center;
-      border-left: 4px solid var(--secondary-color);
-    }
-    
-    .user-email {
-      color: var(--secondary-color);
-      font-weight: 500;
-    }
-    
-    .menu-options {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1.5rem;
-      margin-top: 2rem;
-    }
-    
-    .menu-card {
-      background: white;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-      transition: all 0.3s ease;
-      border: none;
-      text-align: center;
-      height: 100%;
-    }
-    
-    .menu-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-    }
-    
-    .menu-card .card-body {
+    .login-container {
+      width: 100%;
+      max-width: 450px;
       padding: 2rem;
     }
     
-    .menu-card .card-icon {
-      font-size: 2.5rem;
-      color: var(--secondary-color);
-      margin-bottom: 1.5rem;
+    .login-card {
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      border: none;
+      overflow: hidden;
+      background: white;
     }
     
-    .menu-card .card-title {
-      font-size: 1.25rem;
-      color: var(--primary-color);
-      margin-bottom: 1rem;
+    .card-header {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 1.5rem;
+      text-align: center;
+      border-bottom: 3px solid var(--secondary-color);
     }
     
-    .menu-card .btn {
-      width: 100%;
-      margin-top: 1rem;
-    }
-    
-    .logout-btn {
-      margin-top: 2rem;
-      max-width: 300px;
-    }
-    
-    #loader {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(255, 255, 255, 0.9);
-      z-index: 9999;
-      display: none;
-      justify-content: center;
+    .card-title {
+      font-weight: 600;
+      margin: 0;
+      display: flex;
       align-items: center;
+      justify-content: center;
     }
     
-    .spinner {
-      width: 3rem;
-      height: 3rem;
-      border: 0.25rem solid rgba(52, 152, 219, 0.2);
-      border-top-color: var(--secondary-color);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
+    .card-title i {
+      margin-right: 0.75rem;
     }
     
-    .toast-container {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 1100;
+    .card-body {
+      padding: 2rem;
     }
     
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    .form-label {
+      font-weight: 500;
+      color: var(--primary-color);
+      margin-bottom: 0.5rem;
     }
     
-    @media (max-width: 768px) {
-      .main-container {
-        padding: 1.5rem 1rem;
+    .form-control {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #ced4da;
+      transition: all 0.3s;
+    }
+    
+    .form-control:focus {
+      border-color: var(--secondary-color);
+      box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+    }
+    
+    .btn-login {
+      background-color: var(--primary-color);
+      border: none;
+      padding: 0.75rem;
+      font-weight: 500;
+      width: 100%;
+      transition: all 0.3s;
+    }
+    
+    .btn-login:hover {
+      background-color: #1a252f;
+      transform: translateY(-2px);
+    }
+    
+    .btn-login:active {
+      transform: translateY(0);
+    }
+    
+    .footer-links {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+      color: #6c757d;
+    }
+    
+    .footer-links a {
+      color: var(--secondary-color);
+      text-decoration: none;
+      transition: all 0.3s;
+    }
+    
+    .footer-links a:hover {
+      text-decoration: underline;
+      color: #1a5276;
+    }
+    
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      margin-right: 10px;
+    }
+    
+    @media (max-width: 576px) {
+      .login-container {
+        padding: 1rem;
       }
       
-      .menu-options {
-        grid-template-columns: 1fr;
-      }
-      
-      .menu-card .card-body {
+      .card-body {
         padding: 1.5rem;
+      }
+      
+      .card-header {
+        padding: 1rem;
       }
     }
   </style>
 </head>
 <body>
-  <!-- Contenedor de notificaciones -->
-  <div id="toastContainer" class="toast-container"></div>
-  
-  <!-- Loader -->
-  <div id="loader">
-    <div class="spinner"></div>
+  <!-- Toast para errores -->
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="errorToast" class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body" id="toastBody"></div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
   </div>
-  
-  <!-- Encabezado -->
-  <header class="main-header">
-    <div class="container text-center">
-      <h1 class="header-title"><i class="fas fa-tools me-2"></i>Sistema de Gestión SDMO</h1>
-      <p class="header-subtitle">Desarrollo y Mantenimiento de Obras</p>
-    </div>
-  </header>
-  
-  <!-- Contenido principal -->
-  <main class="main-container">
-    <!-- Información del usuario -->
-    <div class="user-card">
-      <p>Bienvenido, usted ha iniciado sesión como:</p>
-      <h3 class="user-email" id="usuario"></h3>
-    </div>
-    
-    <!-- Menú de opciones -->
-    <div class="menu-options">
-      <!-- Tarjeta de Artículos -->
-      <div class="card menu-card">
-        <div class="card-body">
-          <div class="card-icon">
-            <i class="fas fa-boxes"></i>
+
+  <div class="login-container">
+    <div class="login-card">
+      <div class="card-header">
+        <h2 class="card-title">
+          <i class="fas fa-user-shield"></i> Acceso al Sistema
+        </h2>
+      </div>
+      <div class="card-body">
+        <form id="loginForm">
+          <div class="mb-4">
+            <label for="email" class="form-label">Correo electrónico</label>
+            <input 
+              type="email" 
+              class="form-control" 
+              id="email" 
+              placeholder="usuario@dominio.com" 
+              required
+              autocomplete="username"
+            >
           </div>
-          <h3 class="card-title">Gestión de Artículos</h3>
-          <p class="text-muted">Registro y control de inventario de materiales y herramientas</p>
-          <a href="articulos.html" class="btn btn-primary">
-            <i class="fas fa-arrow-right me-2"></i> Acceder
-          </a>
+          
+          <div class="mb-4">
+            <label for="password" class="form-label">Contraseña</label>
+            <input 
+              type="password" 
+              class="form-control" 
+              id="password" 
+              placeholder="••••••••" 
+              required
+              autocomplete="current-password"
+            >
+          </div>
+          
+          <button type="submit" class="btn btn-primary btn-login" id="submitBtn">
+            <i class="fas fa-sign-in-alt me-2"></i> Iniciar Sesión
+          </button>
+        </form>
+        
+        <div class="footer-links mt-4">
+         <p class="mt-2">© 2025 Sistema de Gestión</p>
         </div>
       </div>
-      
-      <!-- Tarjeta de Cliente Interno -->
-      <div class="card menu-card">
-        <div class="card-body">
-          <div class="card-icon">
-            <i class="fas fa-users"></i>
-          </div>
-          <h3 class="card-title">Cliente Interno</h3>
-          <p class="text-muted">Gestión de solicitudes y requerimientos internos</p>
-          <a href="cliente_interno.html" class="btn btn-primary">
-            <i class="fas fa-arrow-right me-2"></i> Acceder
-          </a>
-        </div>
-      </div>
-      
-      <!-- Puedes agregar más tarjetas según necesites -->
     </div>
-    
-    <!-- Botón de cierre de sesión -->
-    <div class="text-center">
-      <button id="btnLogout" class="btn btn-danger logout-btn" data-bs-toggle="tooltip" title="Cerrar la sesión actual">
-        <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
-      </button>
-    </div>
-  </main>
+  </div>
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
 </body>
 </html>
