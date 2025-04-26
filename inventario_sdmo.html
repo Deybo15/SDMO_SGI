@@ -7,6 +7,7 @@
   <!-- Bootstrap & Font Awesome -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
   <style>
     :root {
       --primary-color: #2c3e50;
@@ -71,12 +72,8 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
     }
     .pagination-controls {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 1rem;
-      padding: 1rem;
-      background-color: white;
+      display: flex; justify-content: center; align-items: center;
+      gap: 1rem; padding: 1rem; background-color: white;
       border-radius: 0 0 10px 10px;
     }
     .page-info { font-weight: 500; color: var(--primary-color); }
@@ -149,11 +146,13 @@
     </div>
   </div>
 
-  <!-- XLSX & jsPDF -->
+  <!-- 1) Cargar primero Bootstrap para que bootstrap.Tooltip exista -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- 2) XLSX & jsPDF (export) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-  <!-- Lógica de datos -->
+  <!-- 3) Lógica de Supabase, filtros, paginación y tooltips -->
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
@@ -168,155 +167,143 @@
     let allInventoryData = [];
 
     async function cargarDatos() {
-      const codigo = document.getElementById('filtro-codigo').value;
-      const articulo = document.getElementById('filtro-articulo').value;
+      try {
+        const codigo = document.getElementById('filtro-codigo').value;
+        const articulo = document.getElementById('filtro-articulo').value;
+        let query = supabase
+          .from('inventario_actual')
+          .select('*', { count: 'exact' });
+        if (codigo)    query = query.ilike('codigo_articulo', `%${codigo}%`);
+        if (articulo) query = query.ilike('nombre_articulo', `%${articulo}%`);
 
-      let query = supabase
-        .from('inventario_actual')
-        .select('*', { count: 'exact' });
+        const { data, count, error } = await query
+          .order('nombre_articulo', { ascending: true })
+          .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
 
-      if (codigo)    query = query.ilike('codigo_articulo', `%${codigo}%`);
-      if (articulo) query = query.ilike('nombre_articulo', `%${articulo}%`);
-
-      const { data, count, error } = await query
-        .order('nombre_articulo', { ascending: true })
-        .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
-
-      if (error) {
-        console.error('Error al cargar datos:', error);
-        return;
+        if (error) throw error;
+        allInventoryData = data || [];
+        totalItems = count || 0;
+        renderizarTabla(allInventoryData);
+        actualizarPaginacion();
+      } catch (err) {
+        console.error('Supabase error:', err);
       }
-      allInventoryData = data || [];
-      totalItems = count || 0;
-      renderizarTabla(allInventoryData);
-      actualizarPaginacion();
     }
 
     function renderizarTabla(data) {
       const tbody = document.querySelector('#tabla-inventario tbody');
       tbody.innerHTML = '';
-      if (data.length === 0) {
+      if (!data.length) {
         tbody.innerHTML = `
-          <tr>
-            <td colspan="6" class="text-center py-4 text-muted">
-              No se encontraron artículos que coincidan con los filtros
-            </td>
-          </tr>`;
+          <tr><td colspan="6" class="text-center py-4 text-muted">
+            No se encontraron artículos
+          </td></tr>`;
         return;
       }
       data.forEach(row => {
         const tr = document.createElement('tr');
-        let cantidad = parseFloat(row.cantidad_disponible);
-        const cantidadFormateada = (!isNaN(cantidad) && isFinite(cantidad)
-          ? cantidad.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-          : 'N/D');
-        const imagenUrl = row.imagen_url || 'https://via.placeholder.com/60?text=Sin+img';
-        const imagen = `
-          <a href="${imagenUrl}" target="_blank" rel="noopener noreferrer"
-             data-bs-toggle="tooltip" title="Ver imagen completa">
-            <img src="${imagenUrl}" class="img-thumbnail" alt="${row.nombre_articulo}"
-                 onerror="this.src='https://via.placeholder.com/60?text=Sin+img'">
-          </a>`;
-        const fechaActualizacion = row.ultima_actualizacion
+        const qty = parseFloat(row.cantidad_disponible);
+        const cantidadFormateada = (!isNaN(qty) && isFinite(qty))
+          ? qty.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          : 'N/D';
+        const imgUrl = row.imagen_url || 'https://via.placeholder.com/60?text=Sin+img';
+        const fecha = row.ultima_actualizacion
           ? new Date(row.ultima_actualizacion).toLocaleDateString('es-CR', {
-              year: 'numeric', month: 'short', day: 'numeric',
-              hour: '2-digit', minute: '2-digit'
+              year:'numeric',month:'short',day:'numeric',
+              hour:'2-digit',minute:'2-digit'
             })
           : 'N/D';
+
         tr.innerHTML = `
-          <td>${imagen}</td>
-          <td class="fw-bold">${row.codigo_articulo || 'N/D'}</td>
-          <td>${row.nombre_articulo || 'N/D'}</td>
-          <td>${row.unidad || 'N/D'}</td>
+          <td>
+            <a href="${imgUrl}" target="_blank" data-bs-toggle="tooltip" title="Ver imagen">
+              <img src="${imgUrl}" class="img-thumbnail" alt="img"
+                   onerror="this.src='https://via.placeholder.com/60?text=Sin+img'">
+            </a>
+          </td>
+          <td class="fw-bold">${row.codigo_articulo||'N/D'}</td>
+          <td>${row.nombre_articulo||'N/D'}</td>
+          <td>${row.unidad||'N/D'}</td>
           <td class="quantity-cell">${cantidadFormateada}</td>
-          <td>${fechaActualizacion}</td>`;
+          <td>${fecha}</td>`;
         tbody.appendChild(tr);
       });
-      // Inicializar tooltips
-      const tooltipList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-      tooltipList.map(el => new bootstrap.Tooltip(el));
+      // Inicializa los tooltips ya que bootstrap.bundle.js ya está cargado
+      document.querySelectorAll('[data-bs-toggle="tooltip"]')
+        .forEach(el => new bootstrap.Tooltip(el));
     }
 
     function actualizarPaginacion() {
-      const totalPages = Math.ceil(totalItems / itemsPerPage);
-      document.getElementById('page-info').textContent = `Página ${currentPage} de ${totalPages}`;
-      document.querySelector('[onclick="prevPage()"]').disabled = currentPage <= 1;
-      document.querySelector('[onclick="nextPage()"]').disabled = currentPage >= totalPages;
+      const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+      document.getElementById('page-info').textContent =
+        `Página ${currentPage} de ${totalPages}`;
+      document.querySelector('[onclick="prevPage()"]')
+        .disabled = currentPage <= 1;
+      document.querySelector('[onclick="nextPage()"]')
+        .disabled = currentPage >= totalPages;
     }
 
-    // Listeners de filtros
-    document.getElementById('filtro-codigo').addEventListener('input', () => {
-      currentPage = 1;
-      cargarDatos();
-    });
-    document.getElementById('filtro-articulo').addEventListener('input', () => {
-      currentPage = 1;
-      cargarDatos();
-    });
+    // Filtros
+    document.getElementById('filtro-codigo')
+      .addEventListener('input', () => { currentPage = 1; cargarDatos(); });
+    document.getElementById('filtro-articulo')
+      .addEventListener('input', () => { currentPage = 1; cargarDatos(); });
 
-    // Navegación de páginas
+    // Paginación
     window.prevPage = () => {
-      if (currentPage > 1) {
-        currentPage--;
-        cargarDatos();
-      }
+      if (currentPage > 1) { currentPage--; cargarDatos(); }
     };
     window.nextPage = () => {
       if ((currentPage * itemsPerPage) < totalItems) {
-        currentPage++;
-        cargarDatos();
+        currentPage++; cargarDatos();
       }
     };
 
-    // Exportar a Excel
+    // Exportaciones
     window.exportToExcel = () => {
       const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(allInventoryData.map(item => ({
-        'Código': item.codigo_articulo,
-        'Artículo': item.nombre_articulo,
-        'Unidad': item.unidad,
-        'Cantidad': item.cantidad_disponible,
-        'Última Actualización': item.ultima_actualizacion
-          ? new Date(item.ultima_actualizacion).toLocaleString() : 'N/D'
-      })));
+      const ws = XLSX.utils.json_to_sheet(
+        allInventoryData.map(i => ({
+          'Código': i.codigo_articulo,
+          'Artículo': i.nombre_articulo,
+          'Unidad': i.unidad,
+          'Cantidad': i.cantidad_disponible,
+          'Última Actualización': i.ultima_actualizacion
+            ? new Date(i.ultima_actualizacion).toLocaleString()
+            : 'N/D'
+        }))
+      );
       XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
       XLSX.writeFile(wb, `Inventario_SDMO_${new Date().toISOString().slice(0,10)}.xlsx`);
     };
-
-    // Exportar a PDF
     window.exportToPDF = () => {
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm' });
+      const doc = new jsPDF({ orientation:'landscape',unit:'mm' });
       doc.setFontSize(16);
       doc.text('Inventario Actual - SDMO', 15, 15);
       doc.setFontSize(10);
       doc.text(`Generado el: ${new Date().toLocaleDateString()}`, 15, 20);
-      const headers = [["Código","Artículo","Unidad","Cantidad","Última Actualización"]];
-      const body = allInventoryData.map(item => [
-        item.codigo_articulo||'N/D',
-        item.nombre_articulo||'N/D',
-        item.unidad||'N/D',
-        item.cantidad_disponible||'N/D',
-        item.ultima_actualizacion
-          ? new Date(item.ultima_actualizacion).toLocaleDateString()
+      const head = [['Código','Artículo','Unidad','Cantidad','Última Actualización']];
+      const body = allInventoryData.map(i => [
+        i.codigo_articulo||'N/D',
+        i.nombre_articulo||'N/D',
+        i.unidad||'N/D',
+        i.cantidad_disponible||'N/D',
+        i.ultima_actualizacion
+          ? new Date(i.ultima_actualizacion).toLocaleDateString()
           : 'N/D'
       ]);
       doc.autoTable({
-        head: headers,
-        body,
-        startY: 25,
-        margin: { left: 15 },
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [44,62,80] }
+        head, body,
+        startY:25, margin:{left:15},
+        styles:{fontSize:8},
+        headStyles:{fillColor:[44,62,80]}
       });
       doc.save(`Inventario_SDMO_${new Date().toISOString().slice(0,10)}.pdf`);
     };
 
-    // ¡Muy importante! Carga inicial de datos (emulando el archivo 1)
+    // Carga inicial
     cargarDatos();
   </script>
-
-  <!-- Bootstrap JS (para tooltips) -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
