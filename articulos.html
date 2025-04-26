@@ -3,24 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gestión de Artículos – SDMO</title>
-
-  <!-- Bootstrap & Font-Awesome -->
+  <title>Gestión de Artículos - SDMO</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-  <!-- Supabase (import map) -->
-  <script type="importmap">
-    { "imports": { "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm" } }
-  </script>
-
-  <!-- Lógica de autenticación (sin cambios de navegación) -->
+  <!-- ==== tu script de Supabase se mantiene sin cambios ==== -->
   <script type="module">
-    import { createClient } from '@supabase/supabase-js/+esm';
-
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
     const supabase = createClient(
       'https://qpccqoeronbcdyejfjod.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzYSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'
     );
 
     window.addEventListener('DOMContentLoaded', async () => {
@@ -29,47 +21,61 @@
       document.getElementById('usuario').textContent = user.email;
     });
 
-    window.regresarInicio = () => location.href = 'inicio.html';
+    window.regresarInicio    = () => location.href = 'inicio.html';
+    window.verInventario     = () => location.href = 'inventario_sdmo.html';
+    window.irAInsertarImagen = () => location.href = 'insertar_imagen.html';
   </script>
 
-  <!-- Estilos -->
   <style>
+    /* =================== estilos originales =================== */
     :root{
-      --primary:#2c3e50; --secondary:#3498db;
-      --light:#f8f9fa;  --dark:#343a40;
+      --primary-color:#2c3e50; --secondary-color:#3498db;
+      --light-bg:#f8f9fa;      --dark-text:#343a40;
     }
-    body{font-family:Segoe UI,Tahoma,Arial,sans-serif;background:var(--light);color:var(--dark)}
+    body{font-family:'Segoe UI',Tahoma,Verdana,sans-serif;background:var(--light-bg);color:var(--dark-text)}
     .main-container{max-width:1200px;margin:auto;padding:20px}
-    .card{border:none;border-radius:10px;box-shadow:0 4px 8px rgba(0,0,0,.08)}
-    .card-header{background:var(--primary);color:#fff;border-bottom:3px solid var(--secondary)}
-    .user-info{font-size:.9rem;color:#e1e1e1}
-    /* menú */
-    .menu-options{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-top:2rem}
-    .menu-card{width:280px;border:none;border-radius:10px;overflow:hidden;
-               box-shadow:0 4px 8px rgba(0,0,0,.1);background:#fff;transition:transform .3s}
-    .menu-card:hover{transform:translateY(-5px);box-shadow:0 8px 15px rgba(0,0,0,.12)}
-    .menu-card .card-body{display:flex;flex-direction:column;height:100%;padding:1.5rem;text-align:center}
-    .card-icon{font-size:2.5rem;color:var(--primary);margin-bottom:1rem}
-    .menu-card .card-title{font-size:1.25rem;margin-bottom:.75rem;color:var(--primary)}
-    .menu-card .card-text{color:#6c757d;margin-bottom:1.5rem}
-    .menu-card .btn{margin-top:auto}
-    /* botones */
-    .btn-primary{background:var(--primary);border:var(--primary)}
-    .btn-primary:hover{background:#1a252f}
+    .card{border:none;border-radius:10px;box-shadow:0 4px 6px rgba(0,0,0,.1);margin-bottom:20px}
+    .card-header{background:var(--primary-color);color:#fff;border-bottom:3px solid var(--secondary-color);padding:1.25rem 1.5rem}
+    .card-title{margin:0;font-size:1.5rem}
+    .user-info{font-size:.9rem;color:rgba(255,255,255,.8)}
+    .btn{padding:.75rem 1.5rem;border-radius:6px;font-weight:500;transition:.3s;display:inline-flex;align-items:center;justify-content:center}
+    .btn-primary{background:var(--primary-color);border-color:var(--primary-color)}
+    .btn-primary:hover{background:#1a252f;transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,.1)}
     .btn-secondary{background:#6c757d;border:#6c757d}
     .btn-secondary:hover{background:#5a6268}
-    /* responsive */
+    .menu-options{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-top:2rem}
+    .menu-card{width:280px;border:none;border-radius:10px;overflow:hidden;box-shadow:0 4px 8px rgba(0,0,0,.1);transition:.3s;background:#fff;text-align:center}
+    .menu-card:hover{transform:translateY(-5px);box-shadow:0 8px 15px rgba(0,0,0,.1)}
+    .menu-card .card-body{padding:1.5rem;}
+
+    /* ========== NUEVO: alinear botones al fondo y emparejar alturas ========== */
+    .menu-card .card-body{
+      display:flex;              /* contenedor vertical */
+      flex-direction:column;
+      height:100%;
+    }
+    .menu-card .btn{
+      margin-top:auto;           /* empuja el botón al fondo de la tarjeta */
+      width:100%;
+    }
+    /* ======================================================================= */
+
+    .menu-card .card-icon{font-size:2.5rem;margin-bottom:1rem;color:var(--primary-color)}
+    .menu-card .card-title{font-size:1.25rem;margin-bottom:.75rem;color:var(--primary-color)}
+    .menu-card .card-text{color:#6c757d;margin-bottom:1.5rem}
     @media(max-width:768px){
+      .main-container{padding:15px}
       .menu-options{flex-direction:column;align-items:center}
       .menu-card{width:100%;max-width:350px}
     }
   </style>
 </head>
+
 <body>
   <div class="main-container">
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <h1 class="h4 mb-0"><i class="fas fa-boxes me-2"></i>Gestión de Artículos</h1>
+        <h1 class="card-title"><i class="fas fa-boxes me-2"></i>Gestión de Artículos</h1>
         <div class="d-flex align-items-center">
           <span id="usuario" class="user-info me-3"></span>
           <button class="btn btn-secondary btn-sm" onclick="regresarInicio()">
@@ -80,38 +86,38 @@
 
       <div class="card-body">
         <div class="text-center mb-4">
-          <h2 class="mb-2">Menú de Gestión de Artículos</h2>
-          <p class="text-muted mb-0">Seleccione una opción para gestionar los artículos del inventario</p>
+          <h2 class="mb-3">Menú de Gestión de Artículos</h2>
+          <p class="text-muted">Seleccione una opción para gestionar los artículos del inventario</p>
         </div>
 
         <div class="menu-options">
-          <!-- Ver Inventario -->
-          <div class="menu-card">
+          <!-- Inventario -->
+          <div class="menu-card" onclick="verInventario()" style="cursor:pointer;">
             <div class="card-body">
               <div class="card-icon"><i class="fas fa-clipboard-list"></i></div>
               <h3 class="card-title">Ver Inventario</h3>
               <p class="card-text">Consulte y gestione el inventario completo de artículos disponibles</p>
-              <a href="inventario_sdmo.html" class="btn btn-primary w-100">
-                <i class="fas fa-arrow-right me-2"></i>Acceder
-              </a>
+              <button class="btn btn-primary">
+                <i class="fas fa-arrow-right me-2"></i> Acceder
+              </button>
             </div>
           </div>
 
           <!-- Insertar Imagen -->
-          <div class="menu-card">
+          <div class="menu-card" onclick="irAInsertarImagen()" style="cursor:pointer;">
             <div class="card-body">
               <div class="card-icon"><i class="fas fa-image"></i></div>
               <h3 class="card-title">Insertar Imagen</h3>
               <p class="card-text">Agregue imágenes de referencia para los artículos del inventario</p>
-              <a href="insertar_imagen.html" class="btn btn-primary w-100">
-                <i class="fas fa-arrow-right me-2"></i>Acceder
-              </a>
+              <button class="btn btn-primary">
+                <i class="fas fa-arrow-right me-2"></i> Acceder
+              </button>
             </div>
           </div>
-        </div><!-- /menu-options -->
-      </div><!-- /card-body -->
-    </div><!-- /card -->
-  </div><!-- /main-container -->
+        </div><!-- /.menu-options -->
+      </div><!-- /.card-body -->
+    </div><!-- /.card -->
+  </div><!-- /.main-container -->
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
