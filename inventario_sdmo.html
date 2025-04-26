@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Inventario Actual - SDMO</title>
 
-  <!-- Import map para Supabase + ESM -->
+  <!-- Import map para Supabase en modo ESM -->
   <script type="importmap">
     {
       "imports": {
@@ -18,7 +18,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-  <!-- Estilos básicos -->
+  <!-- Estilos -->
   <style>
     body{font-family:Arial, sans-serif;background:#f4f6f8;margin:0;padding:0}
     header{background:#2c3e50;color:#fff;padding:1rem;text-align:center}
@@ -27,11 +27,14 @@
     .filters input{flex:1;padding:.5rem}
     table{width:100%;border-collapse:collapse;margin-top:1rem}
     th,td{border:1px solid #ccc;padding:.5rem;text-align:left;vertical-align:middle}
-    th{background:#3498db;color:#fff;cursor:pointer}
+    th{background:#3498db;color:#fff}
     td img{max-width:50px;height:auto;border-radius:4px;display:block}
     .pagination-controls{display:flex;justify-content:space-between;align-items:center;margin-top:1rem}
     .btn{padding:.5rem 1rem;margin:.2rem;background:#3498db;color:#fff;border:none;border-radius:5px;cursor:pointer}
     .btn:hover{background:#2980b9}
+    /* botón gris para regresar */
+    .btn-back{background:#6c757d}
+    .btn-back:hover{background:#5a6268}
   </style>
 </head>
 <body>
@@ -41,20 +44,20 @@
   </header>
 
   <div class="container">
-    <!-- Filtros -->
+    <!-- filtros -->
     <div class="filters">
       <input id="filtro-codigo" type="text" placeholder="Buscar por código">
       <input id="filtro-articulo" type="text" placeholder="Buscar por artículo">
     </div>
 
-    <!-- Botones de acción -->
+    <!-- botones de acciones -->
     <div>
-      <button class="btn" onclick="window.history.back()">Regresar</button>
+      <button class="btn btn-back" onclick="window.history.back()">&#x2190; Regresar</button>
       <button class="btn" onclick="exportToExcel()">Exportar a Excel</button>
       <button class="btn" onclick="exportToPDF()">Exportar a PDF</button>
     </div>
 
-    <!-- Tabla Inventario -->
+    <!-- tabla -->
     <table id="tabla-inventario">
       <thead>
         <tr>
@@ -69,7 +72,7 @@
       <tbody></tbody>
     </table>
 
-    <!-- Paginación -->
+    <!-- paginación -->
     <div class="pagination-controls">
       <button class="btn" onclick="prevPage()">Anterior</button>
       <span id="page-info"></span>
@@ -77,9 +80,11 @@
     </div>
   </div>
 
+  <!-- lógica -->
   <script type="module">
     import { createClient } from '@supabase/supabase-js';
 
+    /* ⚠️ Reemplaza con tus credenciales si cambian */
     const supabase = createClient(
       'https://qpccqoeronbcdyejfjod.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'
@@ -93,9 +98,7 @@
       const codigo   = document.getElementById('filtro-codigo').value;
       const articulo = document.getElementById('filtro-articulo').value;
 
-      let query = supabase.from('inventario_actual')
-                          .select('*', { count:'exact' });
-
+      let query = supabase.from('inventario_actual').select('*', { count:'exact' });
       if (codigo)   query = query.ilike('codigo_articulo' , `%${codigo}%`);
       if (articulo) query = query.ilike('nombre_articulo', `%${articulo}%`);
 
@@ -104,6 +107,7 @@
         .range((currentPage-1)*itemsPerPage, currentPage*itemsPerPage-1);
 
       if (error) return console.error('Supabase:', error);
+
       totalItems = count;
       renderizarTabla(data || []);
       document.getElementById('page-info').textContent =
@@ -113,38 +117,40 @@
     function renderizarTabla(rows) {
       const tbody = document.querySelector('#tabla-inventario tbody');
       tbody.innerHTML = '';
-      rows.forEach(row => {
-        const cant = parseFloat(row.cantidad_disponible);
-        const cantFmt = (!isNaN(cant)&&isFinite(cant))
-          ? cant.toLocaleString('es-CR',{minimumFractionDigits:2})
+      rows.forEach(r => {
+        const cantidad = parseFloat(r.cantidad_disponible);
+        const cantFmt  = (!isNaN(cantidad)&&isFinite(cantidad))
+          ? cantidad.toLocaleString('es-CR',{minimumFractionDigits:2})
           : 'N/D';
-        const img = row.imagen_url
-          ? `<a href="${row.imagen_url}" target="_blank" rel="noopener">
-               <img src="${row.imagen_url}" alt="img"
+        const img = r.imagen_url
+          ? `<a href="${r.imagen_url}" target="_blank" rel="noopener">
+               <img src="${r.imagen_url}" alt="img"
                     onerror="this.src='https://via.placeholder.com/50?text=Sin+img';">
              </a>`
           : '<img src="https://via.placeholder.com/50?text=Sin+img" alt="sin img">';
         tbody.insertAdjacentHTML('beforeend',`
           <tr>
             <td>${img}</td>
-            <td>${row.codigo_articulo}</td>
-            <td>${row.nombre_articulo}</td>
-            <td>${row.unidad}</td>
+            <td>${r.codigo_articulo}</td>
+            <td>${r.nombre_articulo}</td>
+            <td>${r.unidad}</td>
             <td>${cantFmt}</td>
-            <td>${new Date(row.ultima_actualizacion).toLocaleString()}</td>
+            <td>${new Date(r.ultima_actualizacion).toLocaleString()}</td>
           </tr>`);
       });
     }
 
-    // Filtros
-    document.getElementById('filtro-codigo' ).addEventListener('input',()=>{currentPage=1;cargarDatos();});
-    document.getElementById('filtro-articulo').addEventListener('input',()=>{currentPage=1;cargarDatos();});
+    // filtros
+    document.getElementById('filtro-codigo')
+      .addEventListener('input',()=>{currentPage=1;cargarDatos();});
+    document.getElementById('filtro-articulo')
+      .addEventListener('input',()=>{currentPage=1;cargarDatos();});
 
-    // Paginación
-    window.prevPage = () => { if (currentPage>1){currentPage--;cargarDatos();}};
-    window.nextPage = () => { if ((currentPage*itemsPerPage)<totalItems){currentPage++;cargarDatos();}};
+    // paginación
+    window.prevPage = () => { if(currentPage>1){currentPage--;cargarDatos();}};
+    window.nextPage = () => { if((currentPage*itemsPerPage)<totalItems){currentPage++;cargarDatos();}};
 
-    // Exportar
+    // exportar
     window.exportToExcel = () => {
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.table_to_sheet(document.getElementById('tabla-inventario'));
@@ -159,7 +165,7 @@
       doc.save('Inventario_SDMO.pdf');
     };
 
-    // Inicial
+    // inicial
     cargarDatos();
   </script>
 </body>
