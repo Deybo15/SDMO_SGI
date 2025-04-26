@@ -1,284 +1,145 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Inventario SDMO - Sistema de Gestión</title>
-  <!-- Bootstrap & Font Awesome -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-  <style>
-    :root {
-      --primary-color: #2c3e50;
-      --secondary-color: #3498db;
-      --accent-color: #e74c3c;
-      --light-bg: #f8f9fa;
-      --dark-text: #343a40;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventario Actual - SDMO</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
+      }
     }
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: var(--light-bg);
-      color: var(--dark-text);
-    }
-    .main-header {
-      background-color: var(--primary-color);
-      color: white;
-      padding: 1.5rem 0;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      border-bottom: 3px solid var(--secondary-color);
-    }
-    .header-title { font-weight: 600; margin-bottom: 0.5rem; }
-    .header-subtitle { opacity: 0.9; font-size: 1rem; }
-    .main-container { max-width: 1400px; margin: 2rem auto; padding: 0 1rem; }
-    .card { border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); border: none; margin-bottom: 2rem; }
-    .card-header {
-      background-color: white; border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-      padding: 1.25rem 1.5rem; display: flex; flex-wrap: wrap;
-      justify-content: space-between; align-items: center; gap: 1rem;
-    }
-    .filter-group { display: flex; gap: 1rem; flex-wrap: wrap; }
-    .filter-input { min-width: 200px; flex: 1; }
-    .export-buttons { display: flex; gap: 0.5rem; }
-    .btn-export { display: flex; align-items: center; gap: 0.5rem; }
-    .table-responsive { border-radius: 8px; overflow: hidden; }
-    .table th {
-      background-color: var(--primary-color); color: white;
-      font-weight: 500; vertical-align: middle; white-space: nowrap;
-    }
-    .table-hover tbody tr:hover { background-color: rgba(52, 152, 219, 0.05); }
-    .img-thumbnail {
-      max-width: 60px; height: auto; border-radius: 4px;
-      transition: transform 0.3s;
-    }
-    .img-thumbnail:hover {
-      transform: scale(1.5); z-index: 10; position: relative;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-    }
-    .pagination-controls {
-      display: flex; justify-content: center; align-items: center;
-      gap: 1rem; padding: 1rem; background-color: white;
-      border-radius: 0 0 10px 10px;
-    }
-    .page-info { font-weight: 500; color: var(--primary-color); }
-    .quantity-cell {
-      font-family: 'Courier New', monospace; font-weight: 500;
-      text-align: right;
-    }
-    @media (max-width: 768px) {
-      .card-header { flex-direction: column; align-items: flex-start; }
-      .filter-group { width: 100%; }
-      .export-buttons { width: 100%; justify-content: flex-end; }
-    }
-  </style>
-
-  <!-- XLSX & jsPDF -->
+  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; padding: 0; }
+    header { background: #2c3e50; color: white; padding: 1rem; text-align: center; }
+    .container { max-width: 1200px; margin: auto; background: white; padding: 1rem; }
+    .filters { display: flex; gap: 1rem; margin-bottom: 1rem; }
+    .filters input { padding: 0.5rem; flex: 1; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: left; vertical-align: middle; }
+    th { background: #3498db; color: white; cursor: pointer; }
+    td img { max-width: 50px; height: auto; display: block; border-radius: 4px; }
+    .pagination-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; }
+    .btn { padding: 0.5rem 1rem; margin: 0.2rem; background: #3498db; color: white; border: none; cursor: pointer; border-radius: 5px; }
+    .btn:hover { background: #2980b9; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Inventario Actual</h1>
+    <p>Sección Desarrollo y Mantenimiento de Obras</p>
+  </header>
+  <div class="container">
+    <div class="filters">
+      <input id="filtro-codigo" type="text" placeholder="Buscar por código">
+      <input id="filtro-articulo" type="text" placeholder="Buscar por artículo">
+    </div>
+    <div>
+      <button class="btn" onclick="exportToExcel()">Exportar a Excel</button>
+      <button class="btn" onclick="exportToPDF()">Exportar a PDF</button>
+    </div>
+    <table id="tabla-inventario">
+      <thead>
+        <tr>
+          <th>Imagen</th>
+          <th>Código</th>
+          <th>Artículo</th>
+          <th>Unidad</th>
+          <th>Cantidad</th>
+          <th>Última Actualización</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div class="pagination-controls">
+      <button class="btn" onclick="prevPage()">Anterior</button>
+      <span id="page-info"></span>
+      <button class="btn" onclick="nextPage()">Siguiente</button>
+    </div>
+  </div>
 
-  <!-- Lógica de datos (deferred para CSS/DOM ya cargados) -->
-  <script type="module" defer>
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+  <script type="module">
+    import { createClient } from '@supabase/supabase-js';
 
     const supabase = createClient(
       'https://qpccqoeronbcdyejfjod.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzYSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'
     );
 
     let currentPage = 1;
     const itemsPerPage = 15;
     let totalItems = 0;
-    let allInventoryData = [];
 
     async function cargarDatos() {
       const codigo = document.getElementById('filtro-codigo').value;
       const articulo = document.getElementById('filtro-articulo').value;
-      let query = supabase
-        .from('inventario_actual')
-        .select('*', { count: 'exact' });
-      if (codigo)    query = query.ilike('codigo_articulo', `%${codigo}%`);
+      let query = supabase.from('inventario_actual').select('*', { count: 'exact' });
+      if (codigo) query = query.ilike('codigo_articulo', `%${codigo}%`);
       if (articulo) query = query.ilike('nombre_articulo', `%${articulo}%`);
-      const { data, count, error } = await query
-        .order('nombre_articulo', { ascending: true })
-        .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
+      const { data, count, error } = await query.order('nombre_articulo').range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
       if (error) {
-        console.error('Error al cargar datos:', error);
+        console.error('Error desde Supabase:', error);
         return;
       }
-      allInventoryData = data || [];
-      totalItems = count || 0;
-      renderizarTabla(allInventoryData);
-      actualizarPaginacion();
+      if (!data) {
+        console.error('No se recibió data desde Supabase. Respuesta:', data);
+        return;
+      }
+      totalItems = count;
+      renderizarTabla(data);
+      document.getElementById('page-info').textContent = `Página ${currentPage} de ${Math.ceil(totalItems / itemsPerPage)}`;
     }
 
     function renderizarTabla(data) {
       const tbody = document.querySelector('#tabla-inventario tbody');
       tbody.innerHTML = '';
-      if (data.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="6" class="text-center py-4 text-muted">
-              No se encontraron artículos que coincidan con los filtros
-            </td>
-          </tr>`;
-        return;
-      }
       data.forEach(row => {
         const tr = document.createElement('tr');
         let cantidad = parseFloat(row.cantidad_disponible);
-        const cantidadFormateada = (!isNaN(cantidad) && isFinite(cantidad)
-          ? cantidad.toLocaleString('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-          : 'N/D');
-        const imagenUrl = row.imagen_url || 'https://via.placeholder.com/60?text=Sin+img';
-        const imagen = `
-          <a href="${imagenUrl}" target="_blank" rel="noopener noreferrer" 
-             data-bs-toggle="tooltip" title="Ver imagen completa">
-            <img src="${imagenUrl}" class="img-thumbnail" alt="${row.nombre_articulo}"
-                 onerror="this.src='https://via.placeholder.com/60?text=Sin+img'">
-          </a>`;
-        const fechaActualizacion = row.ultima_actualizacion 
-          ? new Date(row.ultima_actualizacion).toLocaleDateString('es-CR', {
-              year: 'numeric', month: 'short', day: 'numeric',
-              hour: '2-digit', minute: '2-digit'
-            })
+        const cantidadFormateada = (!isNaN(cantidad) && isFinite(cantidad))
+          ? cantidad.toLocaleString('es-CR', { minimumFractionDigits: 2 })
           : 'N/D';
+
+        const imagen = row.imagen_url ? `<a href="${row.imagen_url}" target="_blank" rel="noopener"><img src="${row.imagen_url}" alt="imagen artículo" onerror="this.src='https://via.placeholder.com/50?text=Sin+img';" /></a>` : '<img src="https://via.placeholder.com/50?text=Sin+img" alt="sin imagen">';
+
         tr.innerHTML = `
           <td>${imagen}</td>
-          <td class="fw-bold">${row.codigo_articulo || 'N/D'}</td>
-          <td>${row.nombre_articulo || 'N/D'}</td>
-          <td>${row.unidad || 'N/D'}</td>
-          <td class="quantity-cell">${cantidadFormateada}</td>
-          <td>${fechaActualizacion}</td>`;
+          <td>${row.codigo_articulo}</td>
+          <td>${row.nombre_articulo}</td>
+          <td>${row.unidad}</td>
+          <td>${cantidadFormateada}</td>
+          <td>${new Date(row.ultima_actualizacion).toLocaleString()}</td>
+        `;
         tbody.appendChild(tr);
       });
-      // Inicializar tooltips de Bootstrap
-      [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        .map(el => new bootstrap.Tooltip(el));
     }
 
-    function actualizarPaginacion() {
-      const totalPages = Math.ceil(totalItems / itemsPerPage);
-      document.getElementById('page-info').textContent = `Página ${currentPage} de ${totalPages}`;
-      document.querySelector('[onclick="prevPage()"]').disabled = currentPage <= 1;
-      document.querySelector('[onclick="nextPage()"]').disabled = currentPage >= totalPages;
-    }
+    document.getElementById('filtro-codigo').addEventListener('input', () => { currentPage = 1; cargarDatos(); });
+    document.getElementById('filtro-articulo').addEventListener('input', () => { currentPage = 1; cargarDatos(); });
 
-    // Listeners de filtros
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('filtro-codigo').addEventListener('input', () => {
-        currentPage = 1; cargarDatos();
-      });
-      document.getElementById('filtro-articulo').addEventListener('input', () => {
-        currentPage = 1; cargarDatos();
-      });
-      // Carga inicial de datos (referencia archivo 1)
-      cargarDatos();
-    });
-
-    window.prevPage = () => {
-      if (currentPage > 1) { currentPage--; cargarDatos(); }
-    };
-    window.nextPage = () => {
-      if ((currentPage * itemsPerPage) < totalItems) {
-        currentPage++; cargarDatos();
-      }
-    };
+    window.prevPage = () => { if (currentPage > 1) { currentPage--; cargarDatos(); } }
+    window.nextPage = () => { if ((currentPage * itemsPerPage) < totalItems) { currentPage++; cargarDatos(); } }
 
     window.exportToExcel = () => {
       const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(allInventoryData.map(item => ({
-        'Código': item.codigo_articulo,
-        'Artículo': item.nombre_articulo,
-        'Unidad': item.unidad,
-        'Cantidad': item.cantidad_disponible,
-        'Última Actualización': item.ultima_actualizacion
-          ? new Date(item.ultima_actualizacion).toLocaleString() : 'N/D'
-      })));
+      const ws = XLSX.utils.table_to_sheet(document.getElementById('tabla-inventario'));
       XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
-      XLSX.writeFile(wb, `Inventario_SDMO_${new Date().toISOString().slice(0,10)}.xlsx`);
-    };
+      XLSX.writeFile(wb, 'Inventario_SDMO.xlsx');
+    }
 
     window.exportToPDF = () => {
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm' });
-      doc.setFontSize(16);
-      doc.text('Inventario Actual - SDMO', 15, 15);
-      doc.setFontSize(10);
-      doc.text(`Generado el: ${new Date().toLocaleDateString()}`, 15, 20);
-      const headers = [["Código", "Artículo", "Unidad", "Cantidad", "Última Actualización"]];
-      const data = allInventoryData.map(item => [
-        item.codigo_articulo || 'N/D',
-        item.nombre_articulo || 'N/D',
-        item.unidad || 'N/D',
-        item.cantidad_disponible || 'N/D',
-        item.ultima_actualizacion
-          ? new Date(item.ultima_actualizacion).toLocaleDateString()
-          : 'N/D'
-      ]);
-      doc.autoTable({ head: headers, body: data, startY: 25, margin: { left: 15 },
-                      styles: { fontSize: 8 }, headStyles: { fillColor: [44,62,80] } });
-      doc.save(`Inventario_SDMO_${new Date().toISOString().slice(0,10)}.pdf`);
-    };
+      const doc = new jsPDF();
+      doc.text('Inventario Actual - SDMO', 10, 10);
+      doc.autoTable({ html: '#tabla-inventario', startY: 20 });
+      doc.save('Inventario_SDMO.pdf');
+    }
+
+    cargarDatos();
   </script>
-</head>
-<body>
-  <header class="main-header">
-    <div class="container text-center">
-      <h1 class="header-title"><i class="fas fa-boxes me-2"></i>Inventario Actual</h1>
-      <p class="header-subtitle">Sección Desarrollo y Mantenimiento de Obras</p>
-    </div>
-  </header>
-
-  <div class="main-container">
-    <div class="card">
-      <div class="card-header">
-        <div class="filter-group">
-          <div class="input-group filter-input">
-            <span class="input-group-text"><i class="fas fa-barcode"></i></span>
-            <input type="text" id="filtro-codigo" class="form-control" placeholder="Buscar por código">
-          </div>
-          <div class="input-group filter-input">
-            <span class="input-group-text"><i class="fas fa-box"></i></span>
-            <input type="text" id="filtro-articulo" class="form-control" placeholder="Buscar por artículo">
-          </div>
-        </div>
-        <div class="export-buttons">
-          <button class="btn btn-success btn-export" onclick="exportToExcel()">
-            <i class="fas fa-file-excel"></i> Excel
-          </button>
-          <button class="btn btn-danger btn-export" onclick="exportToPDF()">
-            <i class="fas fa-file-pdf"></i> PDF
-          </button>
-        </div>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-hover" id="tabla-inventario">
-          <thead>
-            <tr>
-              <th><i class="fas fa-image"></i></th>
-              <th>Código</th>
-              <th>Artículo</th>
-              <th>Unidad</th>
-              <th>Cantidad</th>
-              <th>Última Actualización</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="pagination-controls">
-        <button class="btn btn-outline-primary" onclick="prevPage()">
-          <i class="fas fa-chevron-left"></i> Anterior
-        </button>
-        <span class="page-info" id="page-info"></span>
-        <button class="btn btn-outline-primary" onclick="nextPage()">
-          Siguiente <i class="fas fa-chevron-right"></i>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Bootstrap JS (para tooltips) -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
