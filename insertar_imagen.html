@@ -10,29 +10,81 @@
       --success: #27ae60;
       --error: #c0392b;
       --info: #2980b9;
+      --text-light: #f8f9fa;
     }
 
     body {
       font-family: 'Segoe UI', system-ui, sans-serif;
-      max-width: 600px;
+      max-width: 800px;
       margin: 2rem auto;
       padding: 0 1rem;
+      background-color: var(--text-light);
+    }
+
+    .navigation-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      gap: 1rem;
+    }
+
+    .btn-back {
+      background: #95a5a6;
+      color: white;
+      padding: 0.8rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: opacity 0.3s;
+    }
+
+    .btn-back:hover {
+      opacity: 0.9;
     }
 
     .upload-container {
       border: 2px dashed #bdc3c7;
-      border-radius: 8px;
-      padding: 1.5rem;
-      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 2rem;
+      background: white;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      transition: border-color 0.3s ease;
+    }
+
+    .upload-container.dragover {
+      border-color: var(--primary);
+      background-color: #f8f9fa;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--primary);
     }
 
     input, button {
       width: 100%;
-      padding: 0.8rem;
+      padding: 1rem;
       margin: 0.5rem 0;
-      border: 1px solid #bdc3c7;
-      border-radius: 4px;
+      border: 2px solid #bdc3c7;
+      border-radius: 8px;
       font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
     }
 
     button {
@@ -40,7 +92,11 @@
       color: white;
       border: none;
       cursor: pointer;
-      transition: opacity 0.3s;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
     }
 
     button:hover { opacity: 0.9; }
@@ -48,22 +104,26 @@
 
     #preview {
       max-width: 100%;
-      height: 200px;
+      max-height: 400px;
       object-fit: contain;
-      border-radius: 4px;
+      border-radius: 8px;
       display: none;
       margin: 1rem 0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .mensaje {
       padding: 1rem;
-      border-radius: 4px;
+      border-radius: 8px;
       margin: 1rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
     }
 
-    .success { background: #e8f6ef; color: var(--success); border: 1px solid var(--success); }
-    .error { background: #fdedec; color: var(--error); border: 1px solid var(--error); }
-    .info { background: #e5f4fb; color: var(--info); border: 1px solid var(--info); }
+    .success { background: #e8f6ef; color: var(--success); border: 2px solid var(--success); }
+    .error { background: #fdedec; color: var(--error); border: 2px solid var(--error); }
+    .info { background: #e5f4fb; color: var(--info); border: 2px solid var(--info); }
 
     .spinner {
       animation: rotate 1s linear infinite;
@@ -72,22 +132,95 @@
       display: none;
     }
 
+    .preview-controls {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .preview-controls button {
+      width: auto;
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+    }
+
     @keyframes rotate {
       100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 640px) {
+      .upload-container {
+        padding: 1rem;
+      }
+      
+      input, button {
+        padding: 0.75rem;
+      }
+      
+      .navigation-header {
+        flex-wrap: wrap;
+      }
+      
+      .btn-back {
+        order: -1;
+        width: 100%;
+        justify-content: center;
+      }
+      
+      h1 {
+        width: 100%;
+        text-align: center;
+        margin: 0.5rem 0;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>Asociar imagen a artículo</h1>
+  <div class="navigation-header">
+    <button onclick="window.history.back()" class="btn-back">
+      ← Regresar
+    </button>
+    <h1>Asociar imagen a artículo</h1>
+    <div style="width: 88px;"></div> <!-- Espacio compensador -->
+  </div>
 
-  <div class="upload-container">
-    <input type="text" id="codigo" placeholder="Código del artículo" required />
-    <input type="file" id="imagen" accept="image/jpeg, image/png, image/webp" required />
+  <div class="upload-container" id="dropZone">
+    <div class="form-group">
+      <label for="codigo">Código del artículo</label>
+      <input 
+        type="text" 
+        id="codigo" 
+        placeholder="Ej: ART-001" 
+        required 
+        pattern="[A-Za-z0-9-]+"
+        title="Solo letras, números y guiones"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="imagen">Seleccionar imagen</label>
+      <input 
+        type="file" 
+        id="imagen" 
+        accept="image/jpeg, image/png, image/webp" 
+        required 
+        aria-describedby="fileHelp"
+      />
+      <small id="fileHelp">Formatos permitidos: JPEG, PNG, WebP (Máx. 5MB)</small>
+    </div>
+
     <img id="preview" alt="Vista previa de la imagen" />
+    
+    <div class="preview-controls" id="previewControls" style="display: none;">
+      <button onclick="document.getElementById('imagen').click()">Cambiar imagen</button>
+      <button onclick="resetPreview()" class="btn-danger">Eliminar</button>
+    </div>
+
     <button id="btnSubir" disabled>
       <span class="spinner">⏳</span>
       <span class="btn-text">Subir imagen y asociar</span>
     </button>
+    
     <div id="mensaje" class="mensaje"></div>
   </div>
 
@@ -99,7 +232,8 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'
     );
 
-    const BUCKET_NAME = 'imagenes-articulos'; // ✅ tu bucket real
+    const BUCKET_NAME = 'imagenes-articulos';
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
     const elements = {
       codigo: document.getElementById('codigo'),
@@ -108,134 +242,130 @@
       mensaje: document.getElementById('mensaje'),
       preview: document.getElementById('preview'),
       spinner: document.querySelector('.spinner'),
-      btnText: document.querySelector('.btn-text')
+      btnText: document.querySelector('.btn-text'),
+      dropZone: document.getElementById('dropZone'),
+      previewControls: document.getElementById('previewControls')
     };
 
-    elements.imagen.addEventListener('change', handleImageSelect);
-    elements.codigo.addEventListener('input', validateForm);
-    elements.btnSubir.addEventListener('click', handleUpload);
-
-    function handleImageSelect() {
-      const file = elements.imagen.files[0];
-      elements.mensaje.classList.remove('success', 'error');
+    function initEventListeners() {
+      elements.imagen.addEventListener('change', handleImageSelect);
+      elements.codigo.addEventListener('input', validateForm);
+      elements.btnSubir.addEventListener('click', handleUpload);
       
-      if (!file) {
-        resetPreview();
-        return;
-      }
+      elements.dropZone.addEventListener('dragover', handleDragOver);
+      elements.dropZone.addEventListener('dragleave', handleDragLeave);
+      elements.dropZone.addEventListener('drop', handleFileDrop);
+    }
 
-      if (!validateFile(file)) {
+    async function handleImageSelect() {
+      const file = elements.imagen.files[0];
+      resetMessages();
+      
+      if (!file) return resetPreview();
+      
+      try {
+        const validation = validateFile(file);
+        if (!validation.valid) throw new Error(validation.message);
+        
+        await showPreview(file);
+        validateForm();
+        elements.previewControls.style.display = 'flex';
+      } catch (error) {
+        showMessage(`❌ ${error.message}`, 'error');
         resetPreview();
-        return;
       }
-
-      showPreview(file);
-      validateForm();
     }
 
     function validateFile(file) {
       const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-      const maxSize = 5 * 1024 * 1024;
-
+      
       if (!validTypes.includes(file.type)) {
-        showMessage('❌ Formato no válido. Use JPG, PNG o WebP.', 'error');
-        return false;
+        return { valid: false, message: 'Formato no válido. Use JPG, PNG o WebP.' };
       }
-
-      if (file.size > maxSize) {
-        showMessage('❌ El tamaño máximo permitido es 5MB', 'error');
-        return false;
+      
+      if (file.size > MAX_FILE_SIZE) {
+        return { valid: false, message: 'El tamaño máximo permitido es 5MB' };
       }
-
-      return true;
+      
+      return { valid: true };
     }
 
     async function handleUpload() {
       try {
         toggleLoading(true);
         showMessage('⏳ Procesando...', 'info');
-
-        const { codigo, file, error } = getUploadData();
-        if (error) return;
-
+        
+        const { codigo, file } = await validateUploadData();
+        await validateArticleExists(codigo);
+        
         const nombreArchivo = await uploadImage(codigo, file);
         const publicUrl = await getPublicUrl(nombreArchivo);
-        await updateArticle(codigo, publicUrl);
-
-        showMessage(
-          `✅ Imagen asociada correctamente | 
-          <a href="${publicUrl}" target="_blank" rel="noopener">Ver imagen</a> | 
-          <button onclick="navigator.clipboard.writeText('${publicUrl}')">Copiar URL</button>`,
-          'success'
-        );
-
+        await updateArticleRecord(codigo, publicUrl);
+        
+        showSuccessMessage(publicUrl);
         resetForm();
       } catch (error) {
-        showMessage(`❌ Error: ${error.message}`, 'error');
+        showMessage(`❌ ${error.message}`, 'error');
       } finally {
         toggleLoading(false);
       }
     }
 
-    function getUploadData() {
+    async function validateUploadData() {
       const codigo = elements.codigo.value.trim();
       const file = elements.imagen.files[0];
-
+      
       if (!codigo || !file) {
-        showMessage('❌ Complete todos los campos', 'error');
-        return { error: true };
+        throw new Error('Complete todos los campos requeridos');
       }
+      
+      if (!/^[A-Za-z0-9-]+$/.test(codigo)) {
+        throw new Error('Formato de código inválido');
+      }
+      
+      return { codigo, file };
+    }
 
-      return { codigo, file, error: false };
+    async function validateArticleExists(codigo) {
+      const { data, error } = await supabase
+        .from('articulo_01')
+        .select('codigo_articulo')
+        .eq('codigo_articulo', codigo)
+        .single();
+      
+      if (error || !data) throw new Error('Artículo no encontrado');
     }
 
     async function uploadImage(codigo, file) {
       const fileExt = file.name.split('.').pop();
       const fileName = `${codigo}_${Date.now()}.${fileExt}`;
-
+      
       const { error } = await supabase.storage
         .from(BUCKET_NAME)
-        .upload(fileName, file);
-
+        .upload(fileName, file, { upsert: true });
+      
       if (error) throw new Error(`Error al subir: ${error.message}`);
       return fileName;
     }
 
-    async function getPublicUrl(fileName) {
-      const { data, error } = await supabase.storage
-        .from(BUCKET_NAME)
-        .getPublicUrl(fileName);
-      
-      if (error || !data) throw new Error('No se pudo obtener la URL pública');
-      return data.publicUrl;
-    }
-
-    async function updateArticle(codigo, url) {
+    async function updateArticleRecord(codigo, url) {
       const { error } = await supabase
         .from('articulo_01')
-        .update({ imagen_url: url })
+        .update({ imagen_url: url, actualizado_en: new Date().toISOString() })
         .eq('codigo_articulo', codigo);
-
+      
       if (error) throw new Error(`Error al actualizar: ${error.message}`);
     }
 
-    function showMessage(text, tipo) {
-      elements.mensaje.className = `mensaje ${tipo}`;
-      elements.mensaje.innerHTML = text;
-    }
-
-    function showPreview(file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        elements.preview.src = e.target.result;
-        elements.preview.style.display = 'block';
-      };
-      reader.readAsDataURL(file);
-    }
-
-    function resetPreview() {
-      elements.imagen.value = '';
-      elements.preview.style.display = 'none';
+    function showSuccessMessage(url) {
+      elements.mensaje.innerHTML = `
+        ✅ Imagen asociada exitosamente
+        <div class="preview-controls" style="margin-top: 0.5rem;">
+          <a href="${url}" target="_blank" class="btn-link">Ver imagen</a>
+          <button onclick="copyToClipboard('${url}')" class="btn-secondary">Copiar URL</button>
+        </div>
+      `;
+      elements.mensaje.className = 'mensaje success';
     }
 
     function resetForm() {
@@ -244,9 +374,21 @@
       validateForm();
     }
 
+    function resetPreview() {
+      elements.imagen.value = '';
+      elements.preview.style.display = 'none';
+      elements.previewControls.style.display = 'none';
+      elements.preview.src = '';
+    }
+
+    function resetMessages() {
+      elements.mensaje.className = 'mensaje';
+      elements.mensaje.innerHTML = '';
+    }
+
     function validateForm() {
       elements.btnSubir.disabled = !(
-        elements.codigo.value.trim() !== '' && 
+        elements.codigo.checkValidity() && 
         elements.imagen.files.length > 0
       );
     }
@@ -256,6 +398,34 @@
       elements.btnText.textContent = loading ? 'Procesando...' : 'Subir imagen y asociar';
       elements.btnSubir.disabled = loading;
     }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      elements.dropZone.classList.add('dragover');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      elements.dropZone.classList.remove('dragover');
+    }
+
+    function handleFileDrop(e) {
+      e.preventDefault();
+      elements.dropZone.classList.remove('dragover');
+      elements.imagen.files = e.dataTransfer.files;
+      handleImageSelect();
+    }
+
+    window.copyToClipboard = async (text) => {
+      try {
+        await navigator.clipboard.writeText(text);
+        showMessage('✅ URL copiada al portapapeles', 'success');
+      } catch (error) {
+        showMessage('❌ Error al copiar', 'error');
+      }
+    };
+
+    initEventListeners();
   </script>
 </body>
 </html>
