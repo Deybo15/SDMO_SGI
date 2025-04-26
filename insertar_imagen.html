@@ -91,6 +91,13 @@
     <div id="mensaje" class="mensaje"></div>
   </div>
 
+  <!-- Botón de regreso agregado aquí -->
+  <div style="margin-top: 1rem; text-align: center;">
+    <button onclick="window.history.back()" class="btn" style="background: #95a5a6;">
+      ← Regresar a la página anterior
+    </button>
+  </div>
+
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
@@ -99,7 +106,7 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'
     );
 
-    const BUCKET_NAME = 'imagenes-articulos'; // ✅ tu bucket real
+    const BUCKET_NAME = 'imagenes-articulos';
 
     const elements = {
       codigo: document.getElementById('codigo'),
