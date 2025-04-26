@@ -19,28 +19,6 @@
       padding: 0 1rem;
     }
 
-    .header-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.5rem;
-    }
-
-    .btn-regresar {
-      background: #95a5a6;
-      color: white;
-      padding: 0.6rem 1.2rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: opacity 0.3s;
-      text-decoration: none;
-    }
-
-    .btn-regresar:hover {
-      opacity: 0.9;
-    }
-
     .upload-container {
       border: 2px dashed #bdc3c7;
       border-radius: 8px;
@@ -48,14 +26,59 @@
       background: #f8f9fa;
     }
 
-    /* ... (mantener el resto de estilos igual) ... */
+    input, button {
+      width: 100%;
+      padding: 0.8rem;
+      margin: 0.5rem 0;
+      border: 1px solid #bdc3c7;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.3s;
+    }
+
+    button:hover { opacity: 0.9; }
+    button:disabled { background: #95a5a6; cursor: not-allowed; }
+
+    #preview {
+      max-width: 100%;
+      height: 200px;
+      object-fit: contain;
+      border-radius: 4px;
+      display: none;
+      margin: 1rem 0;
+    }
+
+    .mensaje {
+      padding: 1rem;
+      border-radius: 4px;
+      margin: 1rem 0;
+    }
+
+    .success { background: #e8f6ef; color: var(--success); border: 1px solid var(--success); }
+    .error { background: #fdedec; color: var(--error); border: 1px solid var(--error); }
+    .info { background: #e5f4fb; color: var(--info); border: 1px solid var(--info); }
+
+    .spinner {
+      animation: rotate 1s linear infinite;
+      width: 24px;
+      height: 24px;
+      display: none;
+    }
+
+    @keyframes rotate {
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
-  <div class="header-container">
-    <h1>Asociar imagen a artículo</h1>
-    <button onclick="window.history.back()" class="btn-regresar">← Regresar</button>
-  </div>
+  <h1>Asociar imagen a artículo</h1>
 
   <div class="upload-container">
     <input type="text" id="codigo" placeholder="Código del artículo" required />
@@ -68,6 +91,171 @@
     <div id="mensaje" class="mensaje"></div>
   </div>
 
-  <!-- ... (mantener el script sin cambios) ... -->
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const supabase = createClient(
+      'https://qpccqoeronbcdyejfjod.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'
+    );
+
+    const BUCKET_NAME = 'imagenes-articulos'; // ✅ tu bucket real
+
+    const elements = {
+      codigo: document.getElementById('codigo'),
+      imagen: document.getElementById('imagen'),
+      btnSubir: document.getElementById('btnSubir'),
+      mensaje: document.getElementById('mensaje'),
+      preview: document.getElementById('preview'),
+      spinner: document.querySelector('.spinner'),
+      btnText: document.querySelector('.btn-text')
+    };
+
+    elements.imagen.addEventListener('change', handleImageSelect);
+    elements.codigo.addEventListener('input', validateForm);
+    elements.btnSubir.addEventListener('click', handleUpload);
+
+    function handleImageSelect() {
+      const file = elements.imagen.files[0];
+      elements.mensaje.classList.remove('success', 'error');
+      
+      if (!file) {
+        resetPreview();
+        return;
+      }
+
+      if (!validateFile(file)) {
+        resetPreview();
+        return;
+      }
+
+      showPreview(file);
+      validateForm();
+    }
+
+    function validateFile(file) {
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      const maxSize = 5 * 1024 * 1024;
+
+      if (!validTypes.includes(file.type)) {
+        showMessage('❌ Formato no válido. Use JPG, PNG o WebP.', 'error');
+        return false;
+      }
+
+      if (file.size > maxSize) {
+        showMessage('❌ El tamaño máximo permitido es 5MB', 'error');
+        return false;
+      }
+
+      return true;
+    }
+
+    async function handleUpload() {
+      try {
+        toggleLoading(true);
+        showMessage('⏳ Procesando...', 'info');
+
+        const { codigo, file, error } = getUploadData();
+        if (error) return;
+
+        const nombreArchivo = await uploadImage(codigo, file);
+        const publicUrl = await getPublicUrl(nombreArchivo);
+        await updateArticle(codigo, publicUrl);
+
+        showMessage(
+          `✅ Imagen asociada correctamente | 
+          <a href="${publicUrl}" target="_blank" rel="noopener">Ver imagen</a> | 
+          <button onclick="navigator.clipboard.writeText('${publicUrl}')">Copiar URL</button>`,
+          'success'
+        );
+
+        resetForm();
+      } catch (error) {
+        showMessage(`❌ Error: ${error.message}`, 'error');
+      } finally {
+        toggleLoading(false);
+      }
+    }
+
+    function getUploadData() {
+      const codigo = elements.codigo.value.trim();
+      const file = elements.imagen.files[0];
+
+      if (!codigo || !file) {
+        showMessage('❌ Complete todos los campos', 'error');
+        return { error: true };
+      }
+
+      return { codigo, file, error: false };
+    }
+
+    async function uploadImage(codigo, file) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${codigo}_${Date.now()}.${fileExt}`;
+
+      const { error } = await supabase.storage
+        .from(BUCKET_NAME)
+        .upload(fileName, file);
+
+      if (error) throw new Error(`Error al subir: ${error.message}`);
+      return fileName;
+    }
+
+    async function getPublicUrl(fileName) {
+      const { data, error } = await supabase.storage
+        .from(BUCKET_NAME)
+        .getPublicUrl(fileName);
+      
+      if (error || !data) throw new Error('No se pudo obtener la URL pública');
+      return data.publicUrl;
+    }
+
+    async function updateArticle(codigo, url) {
+      const { error } = await supabase
+        .from('articulo_01')
+        .update({ imagen_url: url })
+        .eq('codigo_articulo', codigo);
+
+      if (error) throw new Error(`Error al actualizar: ${error.message}`);
+    }
+
+    function showMessage(text, tipo) {
+      elements.mensaje.className = `mensaje ${tipo}`;
+      elements.mensaje.innerHTML = text;
+    }
+
+    function showPreview(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        elements.preview.src = e.target.result;
+        elements.preview.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function resetPreview() {
+      elements.imagen.value = '';
+      elements.preview.style.display = 'none';
+    }
+
+    function resetForm() {
+      elements.codigo.value = '';
+      resetPreview();
+      validateForm();
+    }
+
+    function validateForm() {
+      elements.btnSubir.disabled = !(
+        elements.codigo.value.trim() !== '' && 
+        elements.imagen.files.length > 0
+      );
+    }
+
+    function toggleLoading(loading) {
+      elements.spinner.style.display = loading ? 'inline-block' : 'none';
+      elements.btnText.textContent = loading ? 'Procesando...' : 'Subir imagen y asociar';
+      elements.btnSubir.disabled = loading;
+    }
+  </script>
 </body>
 </html>
