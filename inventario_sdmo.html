@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Inventario SDMO - Sistema de Gestión</title>
+  <!-- Bootstrap & Font Awesome -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -71,6 +72,11 @@
     }
   </style>
 
+  <!-- XLSX & jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Lógica de datos (deferred para CSS/DOM ya cargados) -->
   <script type="module" defer>
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
@@ -87,7 +93,9 @@
     async function cargarDatos() {
       const codigo = document.getElementById('filtro-codigo').value;
       const articulo = document.getElementById('filtro-articulo').value;
-      let query = supabase.from('inventario_actual').select('*', { count: 'exact' });
+      let query = supabase
+        .from('inventario_actual')
+        .select('*', { count: 'exact' });
       if (codigo)    query = query.ilike('codigo_articulo', `%${codigo}%`);
       if (articulo) query = query.ilike('nombre_articulo', `%${articulo}%`);
       const { data, count, error } = await query
@@ -143,26 +151,28 @@
           <td>${fechaActualizacion}</td>`;
         tbody.appendChild(tr);
       });
-      // Inicializar tooltips
-      const tooltipTriggerList = [].slice.call(
-        document.querySelectorAll('[data-bs-toggle="tooltip"]')
-      );
-      tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
+      // Inicializar tooltips de Bootstrap
+      [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        .map(el => new bootstrap.Tooltip(el));
     }
 
     function actualizarPaginacion() {
       const totalPages = Math.ceil(totalItems / itemsPerPage);
-      document.getElementById('page-info').textContent =
-        `Página ${currentPage} de ${totalPages}`;
+      document.getElementById('page-info').textContent = `Página ${currentPage} de ${totalPages}`;
       document.querySelector('[onclick="prevPage()"]').disabled = currentPage <= 1;
       document.querySelector('[onclick="nextPage()"]').disabled = currentPage >= totalPages;
     }
 
-    document.getElementById('filtro-codigo').addEventListener('input', () => {
-      currentPage = 1; cargarDatos();
-    });
-    document.getElementById('filtro-articulo').addEventListener('input', () => {
-      currentPage = 1; cargarDatos();
+    // Listeners de filtros
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('filtro-codigo').addEventListener('input', () => {
+        currentPage = 1; cargarDatos();
+      });
+      document.getElementById('filtro-articulo').addEventListener('input', () => {
+        currentPage = 1; cargarDatos();
+      });
+      // Carga inicial de datos (referencia archivo 1)
+      cargarDatos();
     });
 
     window.prevPage = () => {
@@ -195,9 +205,7 @@
       doc.text('Inventario Actual - SDMO', 15, 15);
       doc.setFontSize(10);
       doc.text(`Generado el: ${new Date().toLocaleDateString()}`, 15, 20);
-      const headers = [
-        ["Código", "Artículo", "Unidad", "Cantidad", "Última Actualización"]
-      ];
+      const headers = [["Código", "Artículo", "Unidad", "Cantidad", "Última Actualización"]];
       const data = allInventoryData.map(item => [
         item.codigo_articulo || 'N/D',
         item.nombre_articulo || 'N/D',
@@ -207,14 +215,10 @@
           ? new Date(item.ultima_actualizacion).toLocaleDateString()
           : 'N/D'
       ]);
-      doc.autoTable({ head: headers, body: data, startY: 25, margin: { left: 15 }, styles: { fontSize: 8 }, headStyles: { fillColor: [44,62,80] } });
+      doc.autoTable({ head: headers, body: data, startY: 25, margin: { left: 15 },
+                      styles: { fontSize: 8 }, headStyles: { fillColor: [44,62,80] } });
       doc.save(`Inventario_SDMO_${new Date().toISOString().slice(0,10)}.pdf`);
     };
-
-    // Al usar defer, este listener siempre se registra antes de dispararse el evento
-    document.addEventListener('DOMContentLoaded', () => {
-      cargarDatos();
-    });
   </script>
 </head>
 <body>
@@ -274,7 +278,7 @@
     </div>
   </div>
 
-  <!-- Bootstrap JS (sin defer para tooltips) -->
+  <!-- Bootstrap JS (para tooltips) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
