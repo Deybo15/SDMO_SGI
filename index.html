@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - SDMO</title>
+  <title>Acceso al Sistema - SDMO</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
@@ -18,7 +20,7 @@
       const emailInput = document.getElementById("email");
       const passwordInput = document.getElementById("password");
       const submitBtn = document.getElementById("submitBtn");
-      const errorElement = document.getElementById("errorMsg");
+      const errorToast = document.getElementById("errorToast");
 
       // Evento submit del formulario
       loginForm.addEventListener("submit", async (e) => {
@@ -46,7 +48,7 @@
           }
 
           showLoading(true);
-          clearError();
+          hideError();
 
           // Autenticación con Supabase
           const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -66,214 +68,221 @@
 
       // Mostrar mensaje de error
       function showError(message) {
-        errorElement.textContent = message;
-        errorElement.style.display = "block";
+        const toastBody = document.getElementById("toastBody");
+        toastBody.textContent = message;
+        const toast = new bootstrap.Toast(errorToast);
+        toast.show();
       }
 
-      // Limpiar mensaje de error
-      function clearError() {
-        errorElement.textContent = "";
-        errorElement.style.display = "none";
+      // Ocultar mensaje de error
+      function hideError() {
+        const toast = bootstrap.Toast.getInstance(errorToast);
+        if (toast) toast.hide();
       }
 
       // Mostrar/ocultar loading
       function showLoading(show) {
         if (show) {
           submitBtn.disabled = true;
-          submitBtn.innerHTML = 'Iniciando sesión <span class="loader"></span>';
+          submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Iniciando sesión';
         } else {
           submitBtn.disabled = false;
-          submitBtn.textContent = 'Iniciar Sesión';
+          submitBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i> Iniciar Sesión';
         }
       }
     });
   </script>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    :root {
+      --primary-color: #2c3e50;
+      --secondary-color: #3498db;
+      --accent-color: #e74c3c;
+      --light-bg: #f8f9fa;
+      --dark-text: #343a40;
     }
     
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f4f6f8;
+      background-color: var(--light-bg);
       display: flex;
-      flex-direction: column;
-      align-items: center;
       justify-content: center;
+      align-items: center;
       min-height: 100vh;
-      padding: 20px;
-      color: #333;
-      line-height: 1.6;
+      color: var(--dark-text);
+      background-image: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
     }
     
     .login-container {
       width: 100%;
-      max-width: 420px;
-      text-align: center;
+      max-width: 450px;
+      padding: 2rem;
     }
     
-    h2 {
-      color: #2c3e50;
-      margin-bottom: 25px;
-      font-size: 24px;
-    }
-    
-    form {
-      background: white;
-      padding: 30px;
+    .login-card {
       border-radius: 12px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      text-align: left;
-    }
-    
-    label {
-      margin-bottom: 8px;
-      font-weight: 600;
-      color: #2c3e50;
-      font-size: 14px;
-    }
-    
-    input {
-      padding: 14px;
-      font-size: 16px;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-      transition: all 0.3s;
-    }
-    
-    input:focus {
-      outline: none;
-      border-color: #3498db;
-      box-shadow: 0 0 0 3px rgba(52,152,219,0.2);
-    }
-    
-    button {
-      padding: 14px;
-      font-size: 16px;
-      border-radius: 8px;
-      background-color: #3498db;
-      color: white;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
       border: none;
-      cursor: pointer;
+      overflow: hidden;
+      background: white;
+    }
+    
+    .card-header {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 1.5rem;
+      text-align: center;
+      border-bottom: 3px solid var(--secondary-color);
+    }
+    
+    .card-title {
       font-weight: 600;
-      transition: all 0.3s;
+      margin: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
     }
     
-    button:hover {
-      background-color: #2980b9;
+    .card-title i {
+      margin-right: 0.75rem;
+    }
+    
+    .card-body {
+      padding: 2rem;
+    }
+    
+    .form-label {
+      font-weight: 500;
+      color: var(--primary-color);
+      margin-bottom: 0.5rem;
+    }
+    
+    .form-control {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #ced4da;
+      transition: all 0.3s;
+    }
+    
+    .form-control:focus {
+      border-color: var(--secondary-color);
+      box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+    }
+    
+    .btn-login {
+      background-color: var(--primary-color);
+      border: none;
+      padding: 0.75rem;
+      font-weight: 500;
+      width: 100%;
+      transition: all 0.3s;
+    }
+    
+    .btn-login:hover {
+      background-color: #1a252f;
       transform: translateY(-2px);
     }
     
-    button:active {
+    .btn-login:active {
       transform: translateY(0);
     }
     
-    .error {
-      color: #e74c3c;
-      font-size: 14px;
+    .footer-links {
       text-align: center;
-      padding: 10px;
-      border-radius: 6px;
-      background-color: rgba(231, 76, 60, 0.1);
-      display: none;
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+      color: #6c757d;
     }
     
-    .loader {
-      display: inline-block;
-      width: 18px;
-      height: 18px;
-      border: 3px solid rgba(255,255,255,0.3);
-      border-radius: 50%;
-      border-top-color: white;
-      animation: spin 1s ease-in-out infinite;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    .footer {
-      margin-top: 30px;
-      font-size: 14px;
-      color: #7f8c8d;
-      text-align: center;
-    }
-    
-    .footer a {
-      color: #3498db;
+    .footer-links a {
+      color: var(--secondary-color);
       text-decoration: none;
+      transition: all 0.3s;
     }
     
-    .footer a:hover {
+    .footer-links a:hover {
       text-decoration: underline;
+      color: #1a5276;
     }
     
-    @media (max-width: 480px) {
-      form {
-        padding: 20px;
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      margin-right: 10px;
+    }
+    
+    @media (max-width: 576px) {
+      .login-container {
+        padding: 1rem;
       }
       
-      h2 {
-        font-size: 20px;
+      .card-body {
+        padding: 1.5rem;
       }
       
-      input, button {
-        padding: 12px;
+      .card-header {
+        padding: 1rem;
       }
     }
   </style>
 </head>
 <body>
-  <div class="login-container">
-    <h2>Ingreso al Sistema SDMO</h2>
-    
-    <form id="loginForm">
-      <div class="form-group">
-        <label for="email">Correo electrónico</label>
-        <input 
-          type="email" 
-          id="email" 
-          placeholder="tu@email.com" 
-          required
-          autocomplete="username"
-        >
+  <!-- Toast para errores -->
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="errorToast" class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body" id="toastBody"></div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
       </div>
-      
-      <div class="form-group">
-        <label for="password">Contraseña</label>
-        <input 
-          type="password" 
-          id="password" 
-          placeholder="••••••••" 
-          required
-          autocomplete="current-password"
-        >
-      </div>
-      
-      <div id="errorMsg" class="error"></div>
-      
-      <button type="submit" id="submitBtn">
-        Iniciar Sesión
-      </button>
-    </form>
-    
-    <div class="footer">
-      ¿Problemas para ingresar? <a href="#">Contactar soporte</a>
     </div>
   </div>
+
+  <div class="login-container">
+    <div class="login-card">
+      <div class="card-header">
+        <h2 class="card-title">
+          <i class="fas fa-user-shield"></i> Acceso al Sistema
+        </h2>
+      </div>
+      <div class="card-body">
+        <form id="loginForm">
+          <div class="mb-4">
+            <label for="email" class="form-label">Correo electrónico</label>
+            <input 
+              type="email" 
+              class="form-control" 
+              id="email" 
+              placeholder="usuario@dominio.com" 
+              required
+              autocomplete="username"
+            >
+          </div>
+          
+          <div class="mb-4">
+            <label for="password" class="form-label">Contraseña</label>
+            <input 
+              type="password" 
+              class="form-control" 
+              id="password" 
+              placeholder="••••••••" 
+              required
+              autocomplete="current-password"
+            >
+          </div>
+          
+          <button type="submit" class="btn btn-primary btn-login" id="submitBtn">
+            <i class="fas fa-sign-in-alt me-2"></i> Iniciar Sesión
+          </button>
+        </form>
+        
+        <div class="footer-links mt-4">
+          <p>¿Problemas para acceder? <a href="#">Contacte al administrador</a></p>
+          <p class="mt-2">© 2023 Sistema SDMO</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
