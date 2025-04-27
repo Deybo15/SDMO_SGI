@@ -42,7 +42,7 @@
     async function obtenerProximoNumero() {
       try {
         const { data, error } = await supabase
-          .from('solicitud_17')
+          .from("solicitud_cliente_interno")
           .select('numero_solicitud')
           .order('numero_solicitud', { ascending: false })
           .limit(1);
