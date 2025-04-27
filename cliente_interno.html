@@ -256,7 +256,7 @@
 
         const proximoNumero = await obtenerProximoNumero();
 
-        const { data, error } = await supabase.from("solicitud_cliente_interno").insert([{
+        const { data, error } = await supabase.from("solicitud_17").insert([{
           numero_solicitud: proximoNumero,
           id_solicitud_sa: null,
           tipo_solicitud: "STI",
@@ -343,7 +343,287 @@ let currentPage = 1;
 const itemsPerPage = 15;
 let totalItems = 0;
 
+async function cargarTabla(filtro = '') {
+  try {
+    let query = supabase.from("solicitud_17").select("*", { count: "exact" }).eq("tipo_solicitud", "STI");
 
+    if (filtro) {
+      const filtroLower = filtro.toLowerCase();
+      query = query.or(`
+        numero_solicitud.ilike.%${filtroLower}%,
+        descripcion_solicitud.ilike.%${filtroLower}%
+      `);
+    }
+
+    const { data, count, error } = await query
+      .order("numero_solicitud", { ascending: false })
+      .range((currentPage-1)*itemsPerPage, currentPage*itemsPerPage-1);
+
+    if (error) throw error;
+
+    totalItems = count || 0;
+    renderizarTabla(data || []);
+    actualizarPaginacion();
+  } catch (error) {
+    console.error("Error cargando solicitudes:", error);
+    showNotification("Error al cargar las solicitudes", "error");
+  }
+}
+
+function renderizarTabla(rows) {
+  const tbody = document.getElementById("tablaSolicitudes");
+  tbody.innerHTML = "";
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="3" class="text-center py-4">No se encontraron solicitudes</td>
+      </tr>`;
+    return;
+  }
+
+  rows.forEach(solicitud => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="fw-bold">${solicitud.numero_solicitud}</td>
+      <td>${escapeHtml(solicitud.descripcion_solicitud || '')}</td>
+      <td>${solicitud.fecha_solicitud ? new Date(solicitud.fecha_solicitud).toLocaleDateString('es-ES') : ''}</td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+function actualizarPaginacion() {
+  const pageInfo = document.getElementById('paginaActual');
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  pageInfo.textContent = `Página ${currentPage} de ${totalPages}`;
+  document.getElementById('btnAnterior').disabled = currentPage === 1;
+  document.getElementById('btnSiguiente').disabled = currentPage >= totalPages;
+}
+
+function anteriorPagina() {
+  if (currentPage > 1) {
+    currentPage--;
+    cargarTabla(document.getElementById('busqueda').value);
+  }
+}
+
+function siguientePagina() {
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  if (currentPage < totalPages) {
+    currentPage++;
+    cargarTabla(document.getElementById('busqueda').value);
+  }
+}
+
+</script>
+  <style>
+    /* Todos los estilos originales se mantienen igual */
+    :root {
+      --primary-color: #2c3e50;
+      --secondary-color: #3498db;
+      --accent-color: #e74c3c;
+      --light-bg: #f8f9fa;
+      --dark-text: #343a40;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--light-bg);
+      color: var(--dark-text);
+    }
+    
+    .main-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .card {
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      border: none;
+      margin-bottom: 20px;
+    }
+    
+    .card-header {
+      background-color: var(--primary-color);
+      color: white;
+      border-bottom: 3px solid var(--secondary-color);
+      padding: 1.25rem 1.5rem;
+    }
+    
+    .form-section {
+      padding: 1.5rem;
+      background-color: white;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .section-title {
+      position: relative;
+      padding-bottom: 0.75rem;
+      margin-bottom: 1.5rem;
+      color: var(--primary-color);
+    }
+    
+    .section-title:after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 60px;
+      height: 3px;
+      background-color: var(--secondary-color);
+    }
+    
+    .form-label {
+      font-weight: 600;
+      color: var(--primary-color);
+      margin-bottom: 0.5rem;
+    }
+    
+    .required-field::after {
+      content: " *";
+      color: var(--accent-color);
+    }
+    
+    .form-control, .form-select {
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      border: 1px solid #ced4da;
+    }
+    
+    .form-control:focus, .form-select:focus {
+      border-color: var(--secondary-color);
+      box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+    }
+    
+    textarea.form-control {
+      min-height: 120px;
+      resize: vertical;
+    }
+    
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .btn-primary {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    
+    .btn-primary:hover {
+      background-color: #1a252f;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-outline-primary {
+      color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    
+    .btn-outline-primary:hover {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    .btn-secondary {
+      background-color: #6c757d;
+      border-color: #6c757d;
+    }
+    
+    .btn-success {
+      background-color: #28a745;
+      border-color: #28a745;
+    }
+    
+    .btn-search {
+      position: absolute;
+      right: 0;
+      top: 0;
+      height: 100%;
+      border-radius: 0 6px 6px 0;
+      background-color: var(--secondary-color);
+      color: white;
+      border: none;
+      width: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .btn-search:hover {
+      background-color: #2980b9;
+    }
+    
+    .select-container {
+      position: relative;
+    }
+    
+    .table {
+      background-color: white;
+    }
+    
+    .table th {
+      background-color: var(--primary-color);
+      color: white;
+      font-weight: 600;
+      padding: 1rem;
+    }
+    
+    .table td {
+      padding: 0.75rem 1rem;
+      vertical-align: middle;
+    }
+    
+    .table tr:hover {
+      background-color: rgba(52, 152, 219, 0.05);
+    }
+    
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1100;
+    }
+    
+    .badge-indicator {
+      font-size: 0.8rem;
+      padding: 0.35rem 0.6rem;
+      font-weight: 500;
+    }
+    
+    @media (max-width: 768px) {
+      .main-container {
+        padding: 15px;
+      }
+      
+      .card-header {
+        padding: 1rem;
+      }
+      
+      .form-section {
+        padding: 1rem;
+      }
+      
+      .section-title {
+        font-size: 1.25rem;
+      }
+      
+      .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -503,7 +783,7 @@ let totalItems = 0;
 
 async function cargarTabla(filtro = '') {
   try {
-    let query = supabase.from("solicitud_cliente_interno").select("*", { count: "exact" }).eq("tipo_solicitud", "STI");
+    let query = supabase.from("solicitud_17").select("*", { count: "exact" }).eq("tipo_solicitud", "STI");
 
     if (filtro) {
       const filtroLower = filtro.toLowerCase();
@@ -573,82 +853,6 @@ function siguientePagina() {
     cargarTabla(document.getElementById('busqueda').value);
   }
 }
-
-
-let currentPage = 1;
-const itemsPerPage = 15;
-let totalItems = 0;
-
-async function cargarTabla() {
-  const termino = document.getElementById('busqueda').value.trim().toLowerCase();
-
-  let query = supabase.from('solicitud_cliente_interno').select('*', { count: 'exact' });
-
-  if (termino) {
-    query = query.or(`
-      numero_solicitud.ilike.%${termino}%,
-      descripcion_solicitud.ilike.%${termino}%
-    `);
-  }
-
-  const { data, count, error } = await query
-    .order('numero_solicitud', { ascending: false })
-    .range((currentPage - 1) * itemsPerPage, (currentPage * itemsPerPage) - 1);
-
-  if (error) return console.error('Supabase:', error);
-
-  totalItems = count || 0;
-  renderizarTabla(data || []);
-  actualizarPaginacion();
-}
-
-function renderizarTabla(rows) {
-  const tbody = document.getElementById('tablaSolicitudes');
-  tbody.innerHTML = '';
-  if (rows.length === 0) {
-    tbody.innerHTML = `
-      <tr><td colspan="3" class="text-center py-4">No se encontraron solicitudes</td></tr>`;
-    return;
-  }
-
-  rows.forEach(solicitud => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td class="fw-bold">${solicitud.numero_solicitud}</td>
-      <td>${escapeHtml(solicitud.descripcion_solicitud || '')}</td>
-      <td>${solicitud.fecha_solicitud ? new Date(solicitud.fecha_solicitud).toLocaleDateString('es-ES') : ''}</td>
-    `;
-    tbody.appendChild(row);
-  });
-}
-
-function actualizarPaginacion() {
-  const pageInfo = document.getElementById('paginaActual');
-  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
-  pageInfo.textContent = `Página ${currentPage} de ${totalPages}`;
-  document.getElementById('btnAnterior').disabled = currentPage === 1;
-  document.getElementById('btnSiguiente').disabled = currentPage >= totalPages;
-}
-
-function anteriorPagina() {
-  if (currentPage > 1) {
-    currentPage--;
-    cargarTabla();
-  }
-}
-
-function siguientePagina() {
-  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
-  if (currentPage < totalPages) {
-    currentPage++;
-    cargarTabla();
-  }
-}
-
-document.getElementById('busqueda').addEventListener('input', () => {
-  currentPage = 1;
-  cargarTabla();
-});
 
 </script>
 </body>
