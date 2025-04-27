@@ -180,7 +180,7 @@
                       </div>
                     </div>
                   </div>
-                  <div class="col-md-6 mb-3">
+                  <div class="col-12 mb-3">
                     <label for="numero_solicitud" class="form-label required-field">Número de solicitud</label>
                     <div class="input-group">
                       <span class="input-group-text"><i class="fas fa-hashtag"></i></span>
@@ -188,13 +188,6 @@
                       <div class="invalid-feedback">
                         Por favor ingrese el número de solicitud
                       </div>
-                    </div>
-                  </div>
-                  <div class="col-md-6 mb-3">
-                    <label for="departamento" class="form-label">Departamento/Área</label>
-                    <div class="input-group">
-                      <span class="input-group-text"><i class="fas fa-building"></i></span>
-                      <input type="text" id="departamento" name="departamento" class="form-control" />
                     </div>
                   </div>
                 </div>
@@ -407,7 +400,6 @@
           const autoriza = document.getElementById('autoriza').value.trim();
           const retira = document.getElementById('retira').value.trim();
           const numeroSolicitud = document.getElementById('numero_solicitud').value;
-          const departamento = document.getElementById('departamento').value.trim();
           
           // Obtener siguiente ID
           const { data: last, error: errMax } = await supabase
@@ -432,7 +424,6 @@
               autoriza, 
               retira, 
               numero_solicitud,
-              departamento,
               comentarios 
             }]);
           
@@ -460,7 +451,7 @@
           
           // Redirigir después de 3 segundos
           setTimeout(() => {
-            window.location.href = 'lista_salidas.html'; // Ajustar URL según necesidad
+            window.location.href = 'lista_salidas.html';
           }, 3000);
           
         } catch (err) {
