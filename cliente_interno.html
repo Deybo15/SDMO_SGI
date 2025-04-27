@@ -297,49 +297,7 @@
       }
     }
 
-    async function cargarTabla(filtro = '') {
-      try {
-        const { data, error } = await supabase
-          .from("solicitud_17")
-          .select("*")
-          .eq("tipo_solicitud", "STI")
-          .order("numero_solicitud", { ascending: false })
-          .limit(100);
-
-        const tbody = document.getElementById("tablaSolicitudes");
-        tbody.innerHTML = "";
-
-        if (error || !data) {
-          tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4">Error al cargar los datos</td></tr>`;
-          throw error || new Error("No se encontraron datos");
-        }
-
-        const filtroLower = filtro.toLowerCase();
-        const resultados = data.filter(solicitud =>
-          solicitud.numero_solicitud.toString().includes(filtroLower) ||
-          solicitud.descripcion_solicitud.toLowerCase().includes(filtroLower)
-        ).slice(0, 5);
-
-        if (resultados.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4">No se encontraron coincidencias</td></tr>`;
-          return;
-        }
-
-        resultados.forEach(solicitud => {
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td class="fw-bold">${solicitud.numero_solicitud}</td>
-            <td>${escapeHtml(solicitud.descripcion_solicitud)}</td>
-            <td>${new Date(solicitud.fecha_solicitud).toLocaleDateString('es-ES')}</td>
-            <td>${solicitud.area_mantenimiento || '-'}</td>
-          `;
-          tbody.appendChild(row);
-        });
-      } catch (error) {
-        console.error("Error cargando tabla:", error);
-        showNotification("Error al cargar las solicitudes", "error");
-      }
-    }
+    
 
     function showNotification(message, type = "info") {
       const notification = document.createElement("div");
@@ -380,7 +338,85 @@
       });
     });
 
-  </script>
+  
+let currentPage = 1;
+const itemsPerPage = 15;
+let totalItems = 0;
+
+async function cargarTabla(filtro = '') {
+  try {
+    let query = supabase.from("solicitud_17").select("*", { count: "exact" }).eq("tipo_solicitud", "STI");
+
+    if (filtro) {
+      const filtroLower = filtro.toLowerCase();
+      query = query.or(`
+        numero_solicitud.ilike.%${filtroLower}%,
+        descripcion_solicitud.ilike.%${filtroLower}%
+      `);
+    }
+
+    const { data, count, error } = await query
+      .order("numero_solicitud", { ascending: false })
+      .range((currentPage-1)*itemsPerPage, currentPage*itemsPerPage-1);
+
+    if (error) throw error;
+
+    totalItems = count || 0;
+    renderizarTabla(data || []);
+    actualizarPaginacion();
+  } catch (error) {
+    console.error("Error cargando solicitudes:", error);
+    showNotification("Error al cargar las solicitudes", "error");
+  }
+}
+
+function renderizarTabla(rows) {
+  const tbody = document.getElementById("tablaSolicitudes");
+  tbody.innerHTML = "";
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="3" class="text-center py-4">No se encontraron solicitudes</td>
+      </tr>`;
+    return;
+  }
+
+  rows.forEach(solicitud => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="fw-bold">${solicitud.numero_solicitud}</td>
+      <td>${escapeHtml(solicitud.descripcion_solicitud || '')}</td>
+      <td>${solicitud.fecha_solicitud ? new Date(solicitud.fecha_solicitud).toLocaleDateString('es-ES') : ''}</td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+function actualizarPaginacion() {
+  const pageInfo = document.getElementById('paginaActual');
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  pageInfo.textContent = `Página ${currentPage} de ${totalPages}`;
+  document.getElementById('btnAnterior').disabled = currentPage === 1;
+  document.getElementById('btnSiguiente').disabled = currentPage >= totalPages;
+}
+
+function anteriorPagina() {
+  if (currentPage > 1) {
+    currentPage--;
+    cargarTabla(document.getElementById('busqueda').value);
+  }
+}
+
+function siguientePagina() {
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  if (currentPage < totalPages) {
+    currentPage++;
+    cargarTabla(document.getElementById('busqueda').value);
+  }
+}
+
+</script>
   <style>
     /* Todos los estilos originales se mantienen igual */
     :root {
@@ -697,7 +733,7 @@
                   <th># Solicitud</th>
                   <th>Descripción</th>
                   <th>Fecha</th>
-                  <th>Área</th>
+                  
                 </tr>
               </thead>
               <tbody id="tablaSolicitudes">
@@ -710,6 +746,12 @@
                 </tr>
               </tbody>
             </table>
+<div class="d-flex justify-content-center align-items-center my-3">
+  <button id="btnAnterior" class="btn btn-secondary me-2" onclick="anteriorPagina()">Anterior</button>
+  <span id="paginaActual" class="mx-2">Página 1</span>
+  <button id="btnSiguiente" class="btn btn-secondary ms-2" onclick="siguientePagina()">Siguiente</button>
+</div>
+
           </div>
         </div>
       </div>
@@ -734,6 +776,84 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">
+let currentPage = 1;
+const itemsPerPage = 15;
+let totalItems = 0;
+
+async function cargarTabla(filtro = '') {
+  try {
+    let query = supabase.from("solicitud_17").select("*", { count: "exact" }).eq("tipo_solicitud", "STI");
+
+    if (filtro) {
+      const filtroLower = filtro.toLowerCase();
+      query = query.or(`
+        numero_solicitud.ilike.%${filtroLower}%,
+        descripcion_solicitud.ilike.%${filtroLower}%
+      `);
+    }
+
+    const { data, count, error } = await query
+      .order("numero_solicitud", { ascending: false })
+      .range((currentPage-1)*itemsPerPage, currentPage*itemsPerPage-1);
+
+    if (error) throw error;
+
+    totalItems = count || 0;
+    renderizarTabla(data || []);
+    actualizarPaginacion();
+  } catch (error) {
+    console.error("Error cargando solicitudes:", error);
+    showNotification("Error al cargar las solicitudes", "error");
+  }
+}
+
+function renderizarTabla(rows) {
+  const tbody = document.getElementById("tablaSolicitudes");
+  tbody.innerHTML = "";
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="3" class="text-center py-4">No se encontraron solicitudes</td>
+      </tr>`;
+    return;
+  }
+
+  rows.forEach(solicitud => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="fw-bold">${solicitud.numero_solicitud}</td>
+      <td>${escapeHtml(solicitud.descripcion_solicitud || '')}</td>
+      <td>${solicitud.fecha_solicitud ? new Date(solicitud.fecha_solicitud).toLocaleDateString('es-ES') : ''}</td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+function actualizarPaginacion() {
+  const pageInfo = document.getElementById('paginaActual');
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  pageInfo.textContent = `Página ${currentPage} de ${totalPages}`;
+  document.getElementById('btnAnterior').disabled = currentPage === 1;
+  document.getElementById('btnSiguiente').disabled = currentPage >= totalPages;
+}
+
+function anteriorPagina() {
+  if (currentPage > 1) {
+    currentPage--;
+    cargarTabla(document.getElementById('busqueda').value);
+  }
+}
+
+function siguientePagina() {
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  if (currentPage < totalPages) {
+    currentPage++;
+    cargarTabla(document.getElementById('busqueda').value);
+  }
+}
+
+</script>
 </body>
 </html>
