@@ -9,19 +9,18 @@
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    // Configuración Supabase
+    // Configuración Supabase (igual que antes)
     const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Variables para almacenar datos de los selects
+    // Variables y funciones originales (sin cambios)
     let areasData = [];
     let instalacionesData = [];
     let supervisoresData = [];
     let profesionalesData = [];
     let clientesData = [];
 
-    // Función para sanitizar inputs
     const escapeHtml = (unsafe) => {
       if (!unsafe) return '';
       return unsafe.toString()
@@ -32,7 +31,6 @@
         .replace(/'/g, "&#039;");
     };
 
-    // Función para ordenar arrays por propiedad alfabéticamente
     const ordenarAlfabeticamente = (array, propiedad) => {
       return array?.sort((a, b) => {
         const textA = a[propiedad]?.toString().toUpperCase() || '';
@@ -41,7 +39,6 @@
       }) || [];
     };
 
-    // Función para obtener el próximo número de solicitud
     async function obtenerProximoNumero() {
       try {
         const { data, error } = await supabase
@@ -59,7 +56,6 @@
       }
     }
 
-    // Cargar datos en los selects ordenados alfabéticamente
     async function cargarDesplegables() {
       try {
         const [areas, instalaciones, supervisores, profesionales, clientes] = await Promise.all([
@@ -74,7 +70,6 @@
           supabase.from("cliente_interno_15").select("id_cliente, nombre")
         ]);
 
-        // Almacenar datos para búsquedas
         areasData = ordenarAlfabeticamente(areas?.data, 'descripcion_area') || [];
         instalacionesData = ordenarAlfabeticamente(instalaciones?.data, 'instalacion_municipal') || [];
         supervisoresData = ordenarAlfabeticamente(supervisores?.data, 'alias') || [];
@@ -101,13 +96,11 @@
       }
     }
 
-    // Función para abrir modal de búsqueda
     function abrirModalBusqueda(tipo) {
       const modal = new bootstrap.Modal(document.getElementById('modalBusqueda'));
       const tituloModal = document.getElementById('tituloModal');
       const inputBusqueda = document.getElementById('inputBusqueda');
       
-      // Configurar según el tipo
       let datos = [];
       let campoTexto = '';
       let campoValor = '';
@@ -145,15 +138,12 @@
           break;
       }
       
-      // Guardar información en el modal para usar al seleccionar
       document.getElementById('modalBusqueda').dataset.tipo = tipo;
       document.getElementById('modalBusqueda').dataset.campoTexto = campoTexto;
       document.getElementById('modalBusqueda').dataset.campoValor = campoValor;
       
-      // Mostrar todos los datos inicialmente
       mostrarResultados(datos, campoTexto);
       
-      // Configurar evento de búsqueda
       inputBusqueda.oninput = () => {
         const termino = inputBusqueda.value.toLowerCase();
         const resultados = datos.filter(item => 
@@ -162,11 +152,9 @@
         mostrarResultados(resultados, campoTexto);
       };
       
-      // Mostrar modal
       modal.show();
     }
 
-    // Mostrar resultados en el modal
     function mostrarResultados(resultados, campoTexto) {
       const listaResultados = document.getElementById('listaResultados');
       listaResultados.innerHTML = '';
@@ -185,14 +173,12 @@
       });
     }
 
-    // Seleccionar un item del modal
     function seleccionarItem(item) {
       const modal = document.getElementById('modalBusqueda');
       const tipo = modal.dataset.tipo;
       const campoValor = modal.dataset.campoValor;
       const campoTexto = modal.dataset.campoTexto;
       
-      // Asignar valor al select correspondiente
       let selectId = '';
       switch(tipo) {
         case 'area': selectId = 'area_mantenimiento'; break;
@@ -204,7 +190,6 @@
       
       const select = document.getElementById(selectId);
       if (select) {
-        // Buscar la opción correspondiente en el select
         for (let i = 0; i < select.options.length; i++) {
           if (select.options[i].value === item[campoValor].toString()) {
             select.selectedIndex = i;
@@ -213,15 +198,12 @@
         }
       }
       
-      // Cerrar modal
       bootstrap.Modal.getInstance(modal).hide();
     }
 
-    // Función para resetear el formulario
     function resetForm() {
       document.getElementById("descripcion_solicitud").value = "";
       
-      // Lista de todos los selects a resetear
       const selects = [
         "area_mantenimiento", 
         "instalacion_municipal",
@@ -230,14 +212,12 @@
         "cliente_interno"
       ];
       
-      // Resetear cada select
       selects.forEach(id => {
         const select = document.getElementById(id);
         if (select) select.selectedIndex = 0;
       });
     }
 
-    // Guardar solicitud
     async function guardarSolicitud() {
       try {
         const descripcion = document.getElementById("descripcion_solicitud").value.trim();
@@ -247,7 +227,6 @@
         const profesional_responsable = document.getElementById("profesional_responsable").value;
         const cliente_interno = document.getElementById("cliente_interno").value;
 
-        // Validación
         if (!descripcion) {
           showNotification("La descripción es requerida", "error");
           document.getElementById("descripcion_solicitud").focus();
@@ -268,7 +247,6 @@
           }
         }
 
-        // Mostrar loading
         const submitBtn = document.querySelector("#btn-guardar");
         submitBtn.innerHTML = `
           <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
@@ -276,10 +254,8 @@
         `;
         submitBtn.disabled = true;
 
-        // Obtener el próximo número de solicitud
         const proximoNumero = await obtenerProximoNumero();
 
-        // Insertar nueva solicitud con el número generado
         const { data, error } = await supabase.from("solicitud_17").insert([{
           numero_solicitud: proximoNumero,
           id_solicitud_sa: null,
@@ -306,13 +282,8 @@
         if (error) throw error;
 
         showNotification(`Solicitud #${proximoNumero} guardada exitosamente`, "success");
-        
-        // Restablecer el formulario
         resetForm();
-        
-        // Enfocar el campo de descripción para nueva entrada
         document.getElementById("descripcion_solicitud").focus();
-        
         await cargarTabla();
       } catch (error) {
         console.error("Error guardando solicitud:", error);
@@ -326,7 +297,6 @@
       }
     }
 
-    // Cargar tabla de solicitudes
     async function cargarTabla(filtro = '') {
       try {
         const { data, error } = await supabase
@@ -344,12 +314,11 @@
           throw error || new Error("No se encontraron datos");
         }
 
-        // Aplicar filtro por número o descripción
         const filtroLower = filtro.toLowerCase();
         const resultados = data.filter(solicitud =>
           solicitud.numero_solicitud.toString().includes(filtroLower) ||
           solicitud.descripcion_solicitud.toLowerCase().includes(filtroLower)
-        ).slice(0, 5); // mostrar solo 5
+        ).slice(0, 5);
 
         if (resultados.length === 0) {
           tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4">No se encontraron coincidencias</td></tr>`;
@@ -372,7 +341,6 @@
       }
     }
 
-    // Mostrar notificación
     function showNotification(message, type = "info") {
       const notification = document.createElement("div");
       notification.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'primary'} border-0`;
@@ -394,13 +362,11 @@
       const toast = new bootstrap.Toast(notification);
       toast.show();
       
-      // Eliminar el toast después de ocultarse
       notification.addEventListener('hidden.bs.toast', () => {
         notification.remove();
       });
     }
 
-    // Inicialización
     window.guardarSolicitud = guardarSolicitud;
     window.abrirModalBusqueda = abrirModalBusqueda;
 
@@ -408,20 +374,15 @@
       await cargarDesplegables();
       await cargarTabla();
 
-      // Búsqueda en tiempo real
       document.getElementById('busqueda').addEventListener('input', async (e) => {
         const termino = e.target.value;
         await cargarTabla(termino);
       });
     });
 
-    // Función para mostrar/cerrar modal de salida STI
-    window.mostrarModalSalidaSTI = function() {
-      const modal = new bootstrap.Modal(document.getElementById('modalSalidaSTI'));
-      modal.show();
-    };
   </script>
   <style>
+    /* Todos los estilos originales se mantienen igual */
     :root {
       --primary-color: #2c3e50;
       --secondary-color: #3498db;
@@ -631,17 +592,15 @@
 </head>
 <body>
   <div class="main-container">
-    <!-- Contenedor de notificaciones -->
     <div id="toastContainer" class="toast-container"></div>
     
-    <!-- Tarjeta principal -->
     <div class="card">
       <div class="card-header">
         <h1 class="h4 mb-0"><i class="fas fa-file-alt me-2"></i>SOLICITUDES DE CLIENTE INTERNO</h1>
       </div>
       
       <div class="card-body">
-        <!-- Formulario de solicitud -->
+        <!-- Formulario de solicitud (intacto) -->
         <div class="form-section">
           <h3 class="section-title"><i class="fas fa-edit me-2"></i>Nueva Solicitud</h3>
           
@@ -714,7 +673,7 @@
           </div>
         </div>
         
-        <!-- Búsqueda y tabla -->
+        <!-- Tabla de historial (modificado solo el botón) -->
         <div class="form-section">
           <div class="d-flex justify-content-between align-items-center mb-4">
             <h3 class="section-title mb-0"><i class="fas fa-list me-2"></i>Historial de Solicitudes</h3>
@@ -727,9 +686,7 @@
                 </button>
               </div>
               
-              <button onclick="mostrarModalSalidaSTI()" class="btn btn-success">
-                <i class="fas fa-plus-circle me-2"></i> Nueva Salida
-              </button>
+              <!-- Botón original eliminado aquí -->
             </div>
           </div>
           
@@ -759,7 +716,7 @@
     </div>
   </div>
 
-  <!-- Modal de búsqueda -->
+  <!-- Modal de búsqueda (intacto) -->
   <div class="modal fade" id="modalBusqueda" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -777,22 +734,6 @@
     </div>
   </div>
 
-  <!-- Modal de salida STI -->
-  <div class="modal fade" id="modalSalidaSTI" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-      <div class="modal-content">
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title"><i class="fas fa-box-open me-2"></i>Registro de Salida STI</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body p-0">
-          <iframe src="./salida_sti.html" frameborder="0" style="width: 100%; height: 80vh; border: none;"></iframe>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
