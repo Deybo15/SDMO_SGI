@@ -255,26 +255,6 @@
                 </button>
               </div>
             </form>
-              <!-- Sección de Inventario Actual -->
-              <div class="form-section">
-                <h5 class="section-title"><i class="fas fa-warehouse me-2"></i>Inventario Actual</h5>
-                <div class="mb-3">
-                  <input type="text" id="buscarInventario" class="form-control" placeholder="Buscar por código o nombre...">
-                </div>
-                <div class="table-responsive" style="max-height:500px;overflow-y:auto;">
-                  <table class="table table-striped" id="tablaInventario">
-                    <thead>
-                      <tr><th>Imagen</th><th>Código</th><th>Artículo</th><th>Cantidad Disponible</th><th>Unidad</th></tr>
-                    </thead>
-                    <tbody></tbody>
-                  </table>
-                </div>
-                <div class="d-flex justify-content-between align-items-center mt-2">
-                  <button type="button" id="prevPage" class="btn btn-outline-primary">Anterior</button>
-                  <span id="pageInfo"></span>
-                  <button type="button" id="nextPage" class="btn btn-outline-primary">Siguiente</button>
-                </div>
-              </div>
           </div>
         </div>
       </div>
@@ -326,34 +306,6 @@
     </div>
   </div>
 
-  <!-- Modal de Inventario Actual -->
-  <div class="modal fade" id="modalInventario" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-      <div class="modal-content">
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title">Seleccionar Artículo</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <input type="text" id="buscarInventarioModal" class="form-control mb-3" placeholder="Buscar por código o nombre...">
-          <div class="table-responsive" style="max-height:500px;overflow-y:auto;">
-            <table class="table table-striped" id="tablaInventarioModal">
-              <thead>
-                <tr>
-                  <th>Código</th>
-                  <th>Artículo</th>
-                  <th>Cantidad Disponible</th>
-                  <th>Unidad</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Botón flotante para ayuda -->
   <button type="button" class="btn btn-primary rounded-circle floating-btn" data-bs-toggle="tooltip" data-bs-placement="left" title="Ayuda">
     <i class="fas fa-question"></i>
@@ -373,8 +325,6 @@
     let responsables = [];
     let retirantes = [];
     let inventarioActual = [];
-    let currentPage = 1;
-    const rowsPerPage = 15;
     let comentarios = '';
     let idSalidaActual = null;
 
@@ -409,7 +359,6 @@
       const form = document.getElementById('salida-form');
       const addRowBtn = document.getElementById('add-row');
       const tbody = document.querySelector('#detalle-tabla tbody');
-      const tbodyInventario = document.querySelector('#tablaInventario tbody');
 
       // Función para agregar fila de artículo (corregida)
       function agregarFila() {
@@ -561,31 +510,6 @@
         }
       });
 
-      // Eventos para inventario
-      document.getElementById('buscarInventario').addEventListener('input', (e) => {
-        const term = e.target.value.toLowerCase();
-        const filtrados = inventarioActual.filter(item =>
-          (item.codigo_articulo || '').toString().toLowerCase().includes(term) ||
-          (item.nombre_articulo || '').toString().toLowerCase().includes(term)
-        );
-        renderTable(filtrados);
-      });
-
-      document.getElementById('prevPage').addEventListener('click', () => {
-        if (currentPage > 1) { 
-          currentPage--; 
-          renderTable(inventarioActual); 
-        }
-      });
-
-      document.getElementById('nextPage').addEventListener('click', () => {
-        const totalPages = Math.ceil(inventarioActual.length / rowsPerPage);
-        if (currentPage < totalPages) { 
-          currentPage++; 
-          renderTable(inventarioActual); 
-        }
-      });
-
       // Inicializar con una fila
       agregarFila();
     });
@@ -677,35 +601,6 @@
         return;
       }
       inventarioActual = data || [];
-      renderTable(inventarioActual);
-    }
-
-    // Función para renderizar tabla de inventario
-    function renderTable(data = inventarioActual) {
-      const tbody = document.querySelector('#tablaInventario tbody');
-      tbody.innerHTML = '';
-      const start = (currentPage - 1) * rowsPerPage;
-      const end = start + rowsPerPage;
-      data.slice(start, end).forEach(item => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><img src="${item.imagen_url || 'https://via.placeholder.com/50'}" alt="Imagen" style="max-width:50px; max-height:50px;"></td>
-          <td>${item.codigo_articulo || ''}</td>
-          <td>${item.nombre_articulo || ''}</td>
-          <td>${item.cantidad_disponible || ''}</td>
-          <td>${item.unidad || ''}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-      updatePageInfo(data.length);
-    }
-
-    // Función para actualizar información de paginación
-    function updatePageInfo(totalItems = inventarioActual.length) {
-      const totalPages = Math.ceil(totalItems / rowsPerPage);
-      document.getElementById('pageInfo').textContent = `Página ${currentPage} de ${totalPages}`;
-      document.getElementById('prevPage').disabled = currentPage === 1;
-      document.getElementById('nextPage').disabled = currentPage === totalPages || totalPages === 0;
     }
 
     // Función para mostrar alertas
