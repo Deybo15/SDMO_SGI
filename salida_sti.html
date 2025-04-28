@@ -184,7 +184,7 @@
                     <label for="numero_solicitud" class="form-label required-field">Número de solicitud</label>
                     <div class="input-group">
                       <span class="input-group-text"><i class="fas fa-hashtag"></i></span>
-                      <input type="number" id="numero_solicitud" name="numero_solicitud" class="form-control" required />
+                      <input type="number" id="numero_solicitud" name="numero_solicitud" class="form-control" readonly required />
                       <div class="invalid-feedback">
                         Por favor ingrese el número de solicitud
                       </div>
@@ -491,5 +491,16 @@
       addRowBtn.addEventListener('click', agregarFila);
     });
   </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const numeroSolicitud = params.get('numero');
+  if (numeroSolicitud) {
+    document.getElementById('numero_solicitud').value = numeroSolicitud;
+  }
+});
+</script>
+
 </body>
 </html>
