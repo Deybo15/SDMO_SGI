@@ -284,7 +284,7 @@
         showNotification(`Solicitud #${proximoNumero} guardada exitosamente`, "success");
         resetForm();
         document.getElementById("descripcion_solicitud").focus();
-        await cargarTabla();
+        
       } catch (error) {
         console.error("Error guardando solicitud:", error);
         showNotification("Error al guardar la solicitud: " + error.message, "error");
@@ -330,7 +330,7 @@
 
     window.addEventListener("DOMContentLoaded", async () => {
       await cargarDesplegables();
-      await cargarTabla();
+      
 
       document.getElementById('busqueda').addEventListener('input', async (e) => {
         const termino = e.target.value;
@@ -816,7 +816,7 @@ function siguientePagina() {
 
 <script>
 function abrirTablaSTI() {
-  window.open('tabla_sti.html', 'TablaSTI', 'width=1000,height=700,scrollbars=yes,resizable=yes');
+  window.location.href = 'tabla_sti.html';
 }
 </script>
 
