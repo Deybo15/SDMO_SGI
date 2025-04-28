@@ -419,9 +419,15 @@
           <td>
             <select name="articulo" class="form-select" required>
               <option value="" selected disabled>Seleccione artículo</option>
-              ${inventarioActual.map(item => 
-                `<option value="${item.codigo_articulo}">${item.nombre_articulo} (${item.codigo_articulo})</option>`
+              ${inventarioActual.map(item =>
+               `<option value="${item.codigo_articulo}" data-img="${item.imagen_url}">
+                 <img src="${item.imagen_url}"
+                   alt="${item.nombre_articulo}"
+                   style="width:20px;vertical-align:middle;margin-right:6px;">
+                ${item.nombre_articulo}
+               </option>`
               ).join('')}
+              
             </select>
           </td>
           <td>
