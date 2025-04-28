@@ -152,6 +152,33 @@
     .btn-search:hover {
       background-color: #2980b9;
     }
+
+    /* Estilos adicionales para los artículos */
+    .articulo-select option {
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+    }
+    .articulo-select option img {
+      margin-right: 10px;
+      width: 30px;
+      height: 30px;
+      object-fit: cover;
+      border-radius: 3px;
+    }
+    .disponibilidad-text {
+      font-size: 0.75rem;
+      margin-top: 4px;
+      display: block;
+      color: #6c757d;
+    }
+    input[name="unidad"] {
+      background-color: #f8f9fa;
+      border: 1px solid #ced4da;
+    }
+    .articulo-select {
+      padding-right: 35px;
+    }
   </style>
 </head>
 <body>
@@ -360,34 +387,34 @@
       const addRowBtn = document.getElementById('add-row');
       const tbody = document.querySelector('#detalle-tabla tbody');
 
-      // Función para agregar fila de artículo (corregida)
+      // Función para agregar fila de artículo (con las nuevas especificaciones)
       function agregarFila() {
         const tr = document.createElement('tr');
         tr.className = 'animate__animated animate__fadeIn';
         tr.innerHTML = `
           <td>
-            <select name="articulo" class="form-select" required>
+            <select name="articulo" class="form-select articulo-select" required>
               <option value="" selected disabled>Seleccione artículo</option>
-              ${inventarioActual.map(item =>
-               `<option value="${item.codigo_articulo}" data-img="${item.imagen_url}">
-                 <img src="${item.imagen_url}"
-                   alt="${item.nombre_articulo}"
-                   style="width:20px;vertical-align:middle;margin-right:6px;">
-                ${item.nombre_articulo}
-               </option>`
+              ${inventarioActual.map(item => 
+                `<option 
+                  value="${item.codigo_articulo}" 
+                  data-unidad="${item.unidad || 'Unidad'}"
+                  data-cantidad="${item.cantidad_disponible || 0}"
+                  data-img="${item.imagen_url || 'https://via.placeholder.com/50'}">
+                  <img src="${item.imagen_url || 'https://via.placeholder.com/50'}" 
+                    alt="${item.nombre_articulo}" 
+                    style="width:30px; height:30px; object-fit:cover; border-radius:3px; margin-right:8px;">
+                  ${item.nombre_articulo} (Disponible: ${item.cantidad_disponible || 0} ${item.unidad || 'Unidad'})
+                </option>`
               ).join('')}
-              
             </select>
           </td>
           <td>
             <input type="number" name="cantidad" class="form-control" min="1" required>
+            <small class="text-muted disponibilidad-text" style="display:none;"></small>
           </td>
           <td>
-            <select name="unidad" class="form-select" required>
-              <option value="Unidad">Unidad</option>
-              <option value="Caja">Caja</option>
-              <option value="Paquete">Paquete</option>
-            </select>
+            <input type="text" name="unidad" class="form-control" readonly>
           </td>
           <td class="text-center">
             <button type="button" class="btn btn-sm btn-danger btn-remove">
@@ -395,7 +422,43 @@
             </button>
           </td>
         `;
-        
+
+        // Evento para actualizar unidad y validar cantidad al seleccionar artículo
+        const selectArticulo = tr.querySelector('select[name="articulo"]');
+        const inputUnidad = tr.querySelector('input[name="unidad"]');
+        const inputCantidad = tr.querySelector('input[name="cantidad"]');
+        const disponibilidadText = tr.querySelector('.disponibilidad-text');
+
+        selectArticulo.addEventListener('change', function() {
+          const selectedOption = this.options[this.selectedIndex];
+          const unidad = selectedOption.dataset.unidad;
+          const disponible = parseInt(selectedOption.dataset.cantidad);
+          
+          // Actualizar unidad
+          inputUnidad.value = unidad;
+          
+          // Actualizar información de disponibilidad
+          if (this.value) {
+            disponibilidadText.textContent = `Máximo: ${disponible} ${unidad}`;
+            disponibilidadText.style.display = 'block';
+            inputCantidad.max = disponible;
+            inputCantidad.placeholder = `Máx. ${disponible}`;
+          } else {
+            disponibilidadText.style.display = 'none';
+            inputCantidad.removeAttribute('max');
+            inputCantidad.placeholder = '';
+          }
+        });
+
+        // Validar cantidad no exceda disponibilidad
+        inputCantidad.addEventListener('change', function() {
+          const max = parseInt(this.max);
+          if (this.value > max) {
+            showAlert(`La cantidad no puede exceder el disponible (${max})`, 'warning');
+            this.value = max;
+          }
+        });
+
         // Eliminar fila con animación
         tr.querySelector('.btn-remove').addEventListener('click', () => {
           tr.classList.add('animate__fadeOut');
@@ -471,11 +534,15 @@
           
           // Recopilar datos detalle
           const detalles = filas.map(tr => {
+            const selectArticulo = tr.querySelector('select[name="articulo"]');
+            const selectedOption = selectArticulo.options[selectArticulo.selectedIndex];
+            
             return {
               id_salida: newId,
-              articulo: tr.querySelector('select[name="articulo"]').value.trim(),
+              codigo_articulo: selectArticulo.value.trim(),
+              articulo: selectedOption.textContent.split('(')[0].trim(),
               cantidad: parseFloat(tr.querySelector('input[name="cantidad"]').value),
-              unidad: tr.querySelector('select[name="unidad"]').value
+              unidad: tr.querySelector('input[name="unidad"]').value
             };
           });
           
@@ -594,13 +661,24 @@
     async function cargarInventario() {
       const { data, error } = await supabase
         .from('inventario_actual')
-        .select('codigo_articulo, nombre_articulo, cantidad_disponible, unidad, imagen_url');
+        .select('codigo_articulo, nombre_articulo, cantidad_disponible, unidad, imagen_url')
+        .order('nombre_articulo', { ascending: true });
       
       if (error) {
         console.error('Error cargando inventario:', error);
+        showAlert('Error al cargar el inventario', 'danger');
         return;
       }
+      
       inventarioActual = data || [];
+      
+      // Asegurar valores por defecto
+      inventarioActual = inventarioActual.map(item => ({
+        ...item,
+        unidad: item.unidad || 'Unidad',
+        cantidad_disponible: item.cantidad_disponible || 0,
+        imagen_url: item.imagen_url || 'https://via.placeholder.com/50'
+      }));
     }
 
     // Función para mostrar alertas
