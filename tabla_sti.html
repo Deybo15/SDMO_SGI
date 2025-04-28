@@ -18,7 +18,85 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
 
   <style>
-    body{font-family:Arial,sans-serif;background:#f4f6f8;margin:0;padding:0}
+    
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #ecf0f3;
+  margin: 0;
+  padding: 20px;
+}
+.container {
+  max-width: 1100px;
+  margin: auto;
+  background: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}
+.filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.filters input {
+  flex: 1;
+  padding: .75rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+.buttons {
+  margin-bottom: 1.5rem;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+th, td {
+  border: 1px solid #dee2e6;
+  padding: 0.75rem;
+  text-align: center;
+  vertical-align: middle;
+}
+th {
+  background: #3498db;
+  color: #fff;
+  font-weight: bold;
+}
+tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+}
+.btn {
+  padding: 0.5rem 1.2rem;
+  background: #3498db;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btn:hover {
+  background: #2980b9;
+}
+.btn-action {
+  padding: 0.4rem 0.8rem;
+  background: #28a745;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.btn-action:hover {
+  background: #218838;
+}
+
     header{background:#2c3e50;color:#fff;padding:1rem;text-align:center}
     .container{max-width:1000px;margin:auto;background:#fff;padding:1rem}
     .filters{display:flex;gap:1rem;margin-bottom:1rem}
@@ -33,9 +111,7 @@
   </style>
 </head>
 <body>
-  <header>
-    <h1>Solicitudes Cliente Interno</h1>
-  </header>
+  
 
   <div class="container">
     <div class="filters">
@@ -53,7 +129,7 @@
         <tr>
           <th>Número de Solicitud</th>
           <th>Descripción</th>
-          <th>Fecha de Solicitud</th>
+          <th>Fecha de Solicitud</th><th>Acción</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -103,22 +179,49 @@ function renderizarTabla(rows) {
   const tbody = document.querySelector('#tabla-solicitudes tbody');
   tbody.innerHTML = '';
   rows.forEach(r => {
-    tbody.insertAdjacentHTML('beforeend',`
-      <tr>
-        <td>${r.numero_solicitud}</td>
-        <td>${r.descripcion_solicitud}</td>
-        <td>${r.fecha_solicitud ? new Date(r.fecha_solicitud).toLocaleDateString('es-CR') : ''}</td>
-      </tr>`);
+    
+tbody.insertAdjacentHTML('beforeend',`
+  <tr>
+    <td>${r.numero_solicitud}</td>
+    <td>${r.descripcion_solicitud}</td>
+    <td>${r.fecha_solicitud ? new Date(r.fecha_solicitud).toLocaleDateString('es-CR') : ''}</td>
+    <td><button class="btn-action" onclick="abrirSalida(${r.numero_solicitud})">Salida</button></td>
+  </tr>`);
+
   });
 }
 
 document.getElementById('filtro-numero')
-  .addEventListener('input', ()=>{currentPage=1;cargarDatos();});
-document.getElementById('filtro-descripcion')
-  .addEventListener('input', ()=>{currentPage=1;cargarDatos();});
+  .addEventListener('input', ()=>{currentPage=1;
+cargarDatos();
 
-window.prevPage = () => { if(currentPage>1){currentPage--;cargarDatos();} };
-window.nextPage = () => { if((currentPage*itemsPerPage)<totalItems){currentPage++;cargarDatos();} };
+window.abrirSalida = (numero) => {
+  window.location.href = `salida_sti.html?numero=${numero}`;
+};
+});
+document.getElementById('filtro-descripcion')
+  .addEventListener('input', ()=>{currentPage=1;
+cargarDatos();
+
+window.abrirSalida = (numero) => {
+  window.location.href = `salida_sti.html?numero=${numero}`;
+};
+});
+
+window.prevPage = () => { if(currentPage>1){currentPage--;
+cargarDatos();
+
+window.abrirSalida = (numero) => {
+  window.location.href = `salida_sti.html?numero=${numero}`;
+};
+} };
+window.nextPage = () => { if((currentPage*itemsPerPage)<totalItems){currentPage++;
+cargarDatos();
+
+window.abrirSalida = (numero) => {
+  window.location.href = `salida_sti.html?numero=${numero}`;
+};
+} };
 
 window.exportToExcel = () => {
   const wb = XLSX.utils.book_new();
@@ -135,7 +238,13 @@ window.exportToPDF = () => {
   doc.save('Solicitudes_Cliente_Interno.pdf');
 };
 
+
 cargarDatos();
+
+window.abrirSalida = (numero) => {
+  window.location.href = `salida_sti.html?numero=${numero}`;
+};
+
 </script>
 
 </body>
