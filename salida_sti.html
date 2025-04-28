@@ -132,26 +132,29 @@
       }
     }
   
-    <style>
-    .select-container {
-      position: relative;
-    }
-    .btn-search {
-      height: 100%;
-      width: 40px;
-      border: none;
-      background-color: var(--secondary-color);
-      color: white;
-      border-radius: 0 6px 6px 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .btn-search:hover {
-      background-color: #2980b9;
-    }
-    </style>
-    
+<style>
+.select-container {
+  position: relative;
+}
+.btn-search {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 40px;
+  background-color: var(--secondary-color);
+  color: white;
+  border: none;
+  border-radius: 0 6px 6px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-search:hover {
+  background-color: #2980b9;
+}
+</style>
+
 </style>
 </head>
 <body>
@@ -186,22 +189,22 @@
 <label for="autoriza" class="form-label required-field">Responsable que autoriza</label>
 <div class="select-container position-relative">
   <select id="autoriza" name="autoriza" class="form-select" required></select>
-  <button type="button" class="btn btn-search position-absolute top-0 end-0" onclick="abrirModalBusqueda('autoriza')">
+  <button type="button" class="btn-search" onclick="abrirModalBusqueda('autoriza')">
     <i class="fas fa-search"></i>
   </button>
 </div>
-    
+
                   </div>
                   <div class="col-md-6 mb-3">
                     
 <label for="retira" class="form-label required-field">Persona que retira</label>
 <div class="select-container position-relative">
   <select id="retira" name="retira" class="form-select" required></select>
-  <button type="button" class="btn btn-search position-absolute top-0 end-0" onclick="abrirModalBusqueda('retira')">
+  <button type="button" class="btn-search" onclick="abrirModalBusqueda('retira')">
     <i class="fas fa-search"></i>
   </button>
 </div>
-    
+
                   </div>
                   <div class="col-12 mb-3">
                     <label for="numero_solicitud" class="form-label required-field">Número de solicitud</label>
@@ -526,52 +529,107 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 
+<!-- Modal de Búsqueda -->
+<div class="modal fade" id="modalBusqueda" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="tituloModalBusqueda">Buscar</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <input type="text" id="inputBusqueda" class="form-control" placeholder="Escriba para buscar...">
+        </div>
+        <ul id="listaResultados" class="list-group" style="max-height: 400px; overflow-y: auto;"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
 const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // Poner tu key pública
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // Tu key pública
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 let responsables = [];
 let retirantes = [];
 
-async function cargarDatos() {
-  const { data: autorizados } = await supabase.from('colaboradores_06').select('identificacion, alias').eq('autorizado', true);
-  const { data: retiran } = await supabase.from('colaboradores_06').select('identificacion, colaborador').eq('condicion_laboral', false);
+async function cargarColaboradores() {
+  try {
+    const [{ data: autorizados }, { data: retirados }] = await Promise.all([
+      supabase.from('colaboradores_06').select('identificacion, alias').eq('autorizado', true),
+      supabase.from('colaboradores_06').select('identificacion, colaborador').eq('condicion_laboral', false)
+    ]);
+    responsables = autorizados || [];
+    retirantes = retirados || [];
 
-  responsables = autorizados || [];
-  retirantes = retiran || [];
-
-  llenarSelect('autoriza', responsables, 'alias');
-  llenarSelect('retira', retirantes, 'colaborador');
+    llenarSelect('autoriza', responsables, 'alias');
+    llenarSelect('retira', retirantes, 'colaborador');
+  } catch (error) {
+    console.error('Error cargando colaboradores:', error.message);
+  }
 }
 
-function llenarSelect(id, data, campo) {
+function llenarSelect(id, datos, campo) {
   const select = document.getElementById(id);
   select.innerHTML = '<option value="" disabled selected>-- Seleccione --</option>';
-  data.forEach(item => {
-    const option = document.createElement('option');
-    option.value = item[campo];
-    option.textContent = item[campo];
-    select.appendChild(option);
+  datos.forEach(item => {
+    const opt = document.createElement('option');
+    opt.value = item[campo];
+    opt.textContent = item[campo];
+    select.appendChild(opt);
   });
 }
 
 window.abrirModalBusqueda = function(tipo) {
-  const termino = prompt('Escriba para buscar:');
-  if (!termino) return;
   const datos = tipo === 'autoriza' ? responsables : retirantes;
-  const campoTexto = tipo === 'autoriza' ? 'alias' : 'colaborador';
-  const resultado = datos.find(item => item[campoTexto].toLowerCase().includes(termino.toLowerCase()));
-  if (resultado) {
-    document.getElementById(tipo).value = resultado[campoTexto];
-  } else {
-    alert('No se encontraron resultados.');
+  const campo = tipo === 'autoriza' ? 'alias' : 'colaborador';
+
+  const modal = new bootstrap.Modal(document.getElementById('modalBusqueda'));
+  document.getElementById('inputBusqueda').value = '';
+  document.getElementById('listaResultados').innerHTML = '';
+  document.getElementById('modalBusqueda').dataset.tipo = tipo;
+  document.getElementById('tituloModalBusqueda').textContent = tipo === 'autoriza' ? 'Buscar Responsable' : 'Buscar Persona que Retira';
+
+  mostrarResultados(datos, campo);
+
+  document.getElementById('inputBusqueda').oninput = () => {
+    const termino = document.getElementById('inputBusqueda').value.toLowerCase();
+    const filtrados = datos.filter(item => item[campo]?.toLowerCase().includes(termino));
+    mostrarResultados(filtrados, campo);
+  };
+
+  modal.show();
+};
+
+function mostrarResultados(lista, campo) {
+  const contenedor = document.getElementById('listaResultados');
+  contenedor.innerHTML = '';
+  if (lista.length === 0) {
+    contenedor.innerHTML = '<li class="list-group-item text-muted">No se encontraron resultados</li>';
+    return;
   }
+  lista.forEach(item => {
+    const li = document.createElement('li');
+    li.className = 'list-group-item list-group-item-action';
+    li.textContent = item[campo];
+    li.onclick = () => seleccionarItem(item[campo]);
+    contenedor.appendChild(li);
+  });
 }
 
-document.addEventListener('DOMContentLoaded', cargarDatos);
+function seleccionarItem(valor) {
+  const tipo = document.getElementById('modalBusqueda').dataset.tipo;
+  document.getElementById(tipo).value = valor;
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalBusqueda'));
+  modal.hide();
+}
+
+document.addEventListener('DOMContentLoaded', cargarColaboradores);
 </script>
 
 </body>
