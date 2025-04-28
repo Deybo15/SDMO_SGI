@@ -262,6 +262,27 @@
                 </button>
               </div>
             </form>
+              <!-- Sección de Inventario Actual -->
+              <div class="form-section">
+                <h5 class="section-title"><i class="fas fa-warehouse me-2"></i>Inventario Actual</h5>
+                <div class="mb-3">
+                  <input type="text" id="buscarInventario" class="form-control" placeholder="Buscar por código o nombre...">
+                </div>
+                <div class="table-responsive" style="max-height:500px;overflow-y:auto;">
+                  <table class="table table-striped" id="tablaInventario">
+                    <thead>
+                      <tr><th>Código</th><th>Artículo</th><th>Cantidad Disponible</th><th>Unidad</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                  <button type="button" id="prevPage" class="btn btn-outline-primary">Anterior</button>
+                  <span id="pageInfo"></span>
+                  <button type="button" id="nextPage" class="btn btn-outline-primary">Siguiente</button>
+                </div>
+              </div>
+
           </div>
         </div>
       </div>
@@ -746,6 +767,56 @@ document.addEventListener('DOMContentLoaded', () => {
     \`;
     tablaDetalle.appendChild(tr);
   }
+});
+</script>
+
+
+<script type="module">
+// SECCIÓN INVENTARIO ACTUAL CON PAGINACIÓN
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+const supabase = createClient('https://qpccqoeronbcdyejfjod.supabase.co', 'eyJhbG...');
+let inventarioActual = [];
+let currentPage = 1;
+const rowsPerPage = 15;
+
+async function cargarInventario(){
+  const { data, error } = await supabase.from('inventario_actual').select('codigo_articulo, articulo, cantidad, unidad');
+  if(error){ console.error('Error inventario:', error); return; }
+  inventarioActual = data || [];
+  renderTable();
+}
+function renderTable(){
+  const tbody = document.querySelector('#tablaInventario tbody');
+  tbody.innerHTML = '';
+  const start = (currentPage-1)*rowsPerPage, end = start+rowsPerPage;
+  inventarioActual.slice(start,end).forEach(item=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${item.codigo_articulo}</td><td>${item.articulo}</td><td>${item.cantidad}</td><td>${item.unidad}</td>`;
+    tbody.appendChild(tr);
+  });
+  updatePageInfo();
+}
+function updatePageInfo(){
+  const total = Math.ceil(inventarioActual.length/rowsPerPage);
+  document.getElementById('pageInfo').textContent = `Página ${currentPage} de ${total}`;
+  document.getElementById('prevPage').disabled = currentPage===1;
+  document.getElementById('nextPage').disabled = currentPage===total;
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  cargarInventario();
+  document.getElementById('buscarInventario').addEventListener('input', e=>{
+    const term = e.target.value.toLowerCase();
+    // reload from full data
+    cargarInventario().then(()=>{
+      inventarioActual = inventarioActual.filter(i=>
+        i.codigo_articulo.toLowerCase().includes(term)||
+        i.articulo.toLowerCase().includes(term)
+      );
+      currentPage=1; renderTable();
+    });
+  });
+  document.getElementById('prevPage').addEventListener('click', ()=>{ if(currentPage>1){currentPage--; renderTable();}});
+  document.getElementById('nextPage').addEventListener('click', ()=>{ if(currentPage<Math.ceil(inventarioActual.length/rowsPerPage)){ currentPage++; renderTable();}});
 });
 </script>
 
