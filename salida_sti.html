@@ -271,7 +271,7 @@
                 <div class="table-responsive" style="max-height:500px;overflow-y:auto;">
                   <table class="table table-striped" id="tablaInventario">
                     <thead>
-                      <tr><th>Código</th><th>Artículo</th><th>Cantidad Disponible</th><th>Unidad</th></tr>
+                      <tr><th>Imagen</th><th>Código</th><th>Artículo</th><th>Cantidad Disponible</th><th>Unidad</th></tr>
                     </thead>
                     <tbody></tbody>
                   </table>
@@ -382,7 +382,7 @@
       function agregarFila() {
         const tr = document.createElement('tr');
         tr.className = 'animate__animated animate__fadeIn';
-        tr.innerHTML = `
+        tr.innerHTML = `<td><img src="${item.imagen_url}" alt="Imagen" style="max-width:50px; max-height:50px;"></td>
           
           <td class="text-center">
             <button type="button" class="btn btn-sm btn-danger btn-remove">
@@ -771,6 +771,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 
+
 <script type="module">
 // Paginación Inventario Actual
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
@@ -798,7 +799,12 @@ function renderTable() {
   const end = start + rowsPerPage;
   inventarioActual.slice(start, end).forEach(item => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${item.codigo_articulo}</td><td>${item.articulo}</td><td>${item.cantidad}</td><td>${item.unidad}</td>`;
+    tr.innerHTML = `<td><img src="${item.imagen_url}" alt="Imagen" style="max-width:50px; max-height:50px;"></td>
+      <td>${item.codigo_articulo || ''}</td>
+      <td>${item.nombre_articulo || ''}</td>
+      <td>${item.cantidad_disponible || ''}</td>
+      <td>${item.unidad || ''}</td>
+    `;
     tbody.appendChild(tr);
   });
   updatePageInfo();
@@ -815,14 +821,12 @@ document.addEventListener('DOMContentLoaded', () => {
   cargarInventario();
   document.getElementById('buscarInventario').addEventListener('input', e => {
     const term = e.target.value.toLowerCase();
-    cargarInventario().then(() => {
-      inventarioActual = inventarioActual.filter(item =>
-        item.codigo_articulo.toLowerCase().includes(term) ||
-        item.articulo.toLowerCase().includes(term)
-      );
-      currentPage = 1;
-      renderTable();
-    });
+    inventarioActual = inventarioActual.filter(item =>
+      (item.codigo_articulo || '').toString().toLowerCase().includes(term) ||
+      (item.nombre_articulo || '').toString().toLowerCase().includes(term)
+    );
+    currentPage = 1;
+    renderTable();
   });
   document.getElementById('prevPage').addEventListener('click', () => {
     if (currentPage > 1) { currentPage--; renderTable(); }
@@ -833,6 +837,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 </script>
+
 
 </body>
 </html>
