@@ -671,7 +671,7 @@ document.addEventListener('DOMContentLoaded', cargarColaboradores);
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'; // Llave pública
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // Llave pública
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 let inventarioActual = [];
@@ -772,51 +772,65 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 <script type="module">
-// SECCIÓN INVENTARIO ACTUAL CON PAGINACIÓN
+// Paginación Inventario Actual
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-const supabase = createClient('https://qpccqoeronbcdyejfjod.supabase.co', 'eyJhbG...');
+const supabaseInventory = createClient('https://qpccqoeronbcdyejfjod.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ');
 let inventarioActual = [];
 let currentPage = 1;
 const rowsPerPage = 15;
 
-async function cargarInventario(){
-  const { data, error } = await supabase.from('inventario_actual').select('codigo_articulo, articulo, cantidad, unidad');
-  if(error){ console.error('Error inventario:', error); return; }
+async function cargarInventario() {
+  const { data, error } = await supabaseInventory
+    .from('inventario_actual')
+    .select('codigo_articulo, articulo, cantidad, unidad');
+  if (error) {
+    console.error('Error inventario:', error);
+    return;
+  }
   inventarioActual = data || [];
   renderTable();
 }
-function renderTable(){
+
+function renderTable() {
   const tbody = document.querySelector('#tablaInventario tbody');
   tbody.innerHTML = '';
-  const start = (currentPage-1)*rowsPerPage, end = start+rowsPerPage;
-  inventarioActual.slice(start,end).forEach(item=>{
+  const start = (currentPage - 1) * rowsPerPage;
+  const end = start + rowsPerPage;
+  inventarioActual.slice(start, end).forEach(item => {
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${item.codigo_articulo}</td><td>${item.articulo}</td><td>${item.cantidad}</td><td>${item.unidad}</td>`;
     tbody.appendChild(tr);
   });
   updatePageInfo();
 }
-function updatePageInfo(){
-  const total = Math.ceil(inventarioActual.length/rowsPerPage);
+
+function updatePageInfo() {
+  const total = Math.ceil(inventarioActual.length / rowsPerPage);
   document.getElementById('pageInfo').textContent = `Página ${currentPage} de ${total}`;
-  document.getElementById('prevPage').disabled = currentPage===1;
-  document.getElementById('nextPage').disabled = currentPage===total;
+  document.getElementById('prevPage').disabled = currentPage === 1;
+  document.getElementById('nextPage').disabled = currentPage === total;
 }
-document.addEventListener('DOMContentLoaded', ()=>{
+
+document.addEventListener('DOMContentLoaded', () => {
   cargarInventario();
-  document.getElementById('buscarInventario').addEventListener('input', e=>{
+  document.getElementById('buscarInventario').addEventListener('input', e => {
     const term = e.target.value.toLowerCase();
-    // reload from full data
-    cargarInventario().then(()=>{
-      inventarioActual = inventarioActual.filter(i=>
-        i.codigo_articulo.toLowerCase().includes(term)||
-        i.articulo.toLowerCase().includes(term)
+    cargarInventario().then(() => {
+      inventarioActual = inventarioActual.filter(item =>
+        item.codigo_articulo.toLowerCase().includes(term) ||
+        item.articulo.toLowerCase().includes(term)
       );
-      currentPage=1; renderTable();
+      currentPage = 1;
+      renderTable();
     });
   });
-  document.getElementById('prevPage').addEventListener('click', ()=>{ if(currentPage>1){currentPage--; renderTable();}});
-  document.getElementById('nextPage').addEventListener('click', ()=>{ if(currentPage<Math.ceil(inventarioActual.length/rowsPerPage)){ currentPage++; renderTable();}});
+  document.getElementById('prevPage').addEventListener('click', () => {
+    if (currentPage > 1) { currentPage--; renderTable(); }
+  });
+  document.getElementById('nextPage').addEventListener('click', () => {
+    const totalPages = Math.ceil(inventarioActual.length / rowsPerPage);
+    if (currentPage < totalPages) { currentPage++; renderTable(); }
+  });
 });
 </script>
 
