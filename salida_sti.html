@@ -238,7 +238,17 @@
                 </div>
                 
                 <div class="table-responsive">
-                  
+                  <table class="table table-hover align-middle" id="detalle-tabla">
+                    <thead class="table-light">
+                      <tr>
+                        <th width="50%">Artículo</th>
+                        <th width="20%">Cantidad</th>
+                        <th width="20%">Unidad</th>
+                        <th width="10%">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
                 </div>
               </div>
               
@@ -292,7 +302,206 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    // Configuración Supabase
+    const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Inicializar tooltips
+      const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+      });
+
+      // Variables globales
+      const form = document.getElementById('salida-form');
+      const addRowBtn = document.getElementById('add-row');
+      const tbody = document.querySelector('#detalle-tabla tbody');
+      const today = new Date().toISOString().split('T')[0];
+      let comentarios = '';
+      let nextId = 1;
+      
+      // Mostrar fecha actual formateada
+      document.getElementById('fecha-actual').textContent = formatDate(today);
+      
+      // Función para formatear fecha
+      function formatDate(dateString) {
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        return new Date(dateString).toLocaleDateString('es-ES', options);
+      }
+      
+      // Función para mostrar el modal de comentarios
+      window.showComentariosModal = function() {
+        const modal = new bootstrap.Modal(document.getElementById('comentariosModal'));
+        document.getElementById('comentarios-text').value = comentarios;
+        modal.show();
+      };
+      
+      // Guardar comentarios
+      document.getElementById('save-comentarios').addEventListener('click', () => {
+        comentarios = document.getElementById('comentarios-text').value;
+        const modal = bootstrap.Modal.getInstance(document.getElementById('comentariosModal'));
+        modal.hide();
+        
+        // Mostrar indicador de comentarios
+        const comentariosBadge = document.getElementById('comentarios-badge');
+        if (comentarios.trim()) {
+          comentariosBadge.classList.remove('d-none');
+          comentariosBadge.classList.add('animate__fadeIn');
+        } else {
+          comentariosBadge.classList.add('d-none');
+        }
+      });
+      
+      // Función para agregar fila de artículo
+      function agregarFila() {
+        const tr = document.createElement('tr');
+        tr.className = 'animate__animated animate__fadeIn';
+        tr.innerHTML = `
+          
+          <td class="text-center">
+            <button type="button" class="btn btn-sm btn-danger btn-remove">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </td>
+        `;
+        
+        // Eliminar fila con animación
+        tr.querySelector('.btn-remove').addEventListener('click', () => {
+          tr.classList.add('animate__fadeOut');
+          setTimeout(() => tr.remove(), 300);
+        });
+        
+        tbody.appendChild(tr);
+        setTimeout(() => tr.querySelector('input[name="articulo"]').focus(), 100);
+      }
+      
+      // Validación del formulario
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!form.checkValidity()) {
+          form.classList.add('was-validated');
+          return;
+        }
+        
+        // Validar al menos un artículo
+        const filas = Array.from(document.querySelectorAll('#detalle-tabla tbody tr'));
+        if (filas.length === 0) {
+          showAlert('Debe agregar al menos un artículo', 'danger');
+          return;
+        }
+        
+        // Mostrar loading
+        const submitBtn = document.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.innerHTML = `
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          Guardando...
+        `;
+        submitBtn.disabled = true;
+        
+        try {
+          // Obtener datos del formulario
+          const autoriza = document.getElementById('autoriza').value.trim();
+          const retira = document.getElementById('retira').value.trim();
+          const numeroSolicitud = document.getElementById('numero_solicitud').value;
+          
+          // Obtener siguiente ID
+          const { data: last, error: errMax } = await supabase
+            .from('salida_articulo_08')
+            .select('id_salida')
+            .order('id_salida', { ascending: false })
+            .limit(1);
+          
+          if (errMax) throw errMax;
+          const maxId = last.length ? last[0].id_salida : 0;
+          const newId = maxId + 1;
+          
+          // Actualizar folio en pantalla
+          document.getElementById('folio-text').textContent = `Folio: SA-${newId.toString().padStart(4, '0')}`;
+          
+          // Insertar encabezado
+          const { error: errEnc } = await supabase
+            .from('salida_articulo_08')
+            .insert([{ 
+              id_salida: newId, 
+              fecha_salida: today, 
+              autoriza, 
+              retira, 
+              numero_solicitud,
+              comentarios 
+            }]);
+          
+          if (errEnc) throw errEnc;
+          
+          // Recopilar datos detalle
+          const detalles = filas.map(tr => {
+            return {
+              id_salida: newId,
+              articulo: tr.querySelector('input[name="articulo"]').value.trim(),
+              cantidad: parseFloat(tr.querySelector('input[name="cantidad"]').value),
+              unidad: tr.querySelector('select[name="unidad"]').value
+            };
+          });
+          
+          // Insertar detalle
+          const { error: errDet } = await supabase
+            .from('dato_salida_13')
+            .insert(detalles);
+          
+          if (errDet) throw errDet;
+          
+          // Mostrar éxito
+          showAlert(`Salida registrada exitosamente con folio SA-${newId.toString().padStart(4, '0')}`, 'success');
+          
+          // Redirigir después de 3 segundos
+          setTimeout(() => {
+            window.location.href = 'lista_salidas.html';
+          }, 3000);
+          
+        } catch (err) {
+          console.error(err);
+          showAlert('Error al guardar: ' + err.message, 'danger');
+        } finally {
+          submitBtn.innerHTML = originalBtnText;
+          submitBtn.disabled = false;
+        }
+      });
+      
+      // Mostrar alerta
+      function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show animate__animated animate__fadeIn`;
+        alertDiv.role = 'alert';
+        alertDiv.innerHTML = `
+          <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-2"></i>
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        const container = document.querySelector('.alert-container');
+        container.innerHTML = '';
+        container.appendChild(alertDiv);
+      }
+      
+      // Cancelar formulario
+      document.getElementById('btn-cancel').addEventListener('click', () => {
+        if (confirm('¿Está seguro que desea cancelar? Todos los datos no guardados se perderán.')) {
+          window.history.back();
+        }
+      });
+      
+      // Inicializar con una fila
+      agregarFila();
+      addRowBtn.addEventListener('click', agregarFila);
+    });
+  </script>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -324,299 +533,221 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 
-
-
-
-<!-- Modal de Inventario Actual Mejorado -->
-<div class="modal fade" id="modalInventario" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-xl">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title">Seleccionar Artículo del Inventario</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body">
-        <div class="filters mb-3">
-          <input type="text" id="filtro-codigo" class="form-control" placeholder="Buscar por código">
-          <input type="text" id="filtro-articulo" class="form-control" placeholder="Buscar por artículo">
-        </div>
-        <div class="table-responsive" style="max-height:500px; overflow-y:auto;">
-          <table class="table table-striped" id="tabla-inventario-modal">
-            <thead>
-              <tr>
-                <th>Imagen</th>
-                <th>Código</th>
-                <th>Artículo</th>
-                <th>Unidad</th>
-                <th>Cantidad</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-
-
-
-<!-- Modal de Inventario Actual Completo -->
-<div class="modal fade" id="modalInventario" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-xl">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title">Seleccionar Artículo</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body">
-        <div class="filters mb-3">
-          <input type="text" id="filtro-codigo" class="form-control" placeholder="Buscar por código">
-          <input type="text" id="filtro-articulo" class="form-control" placeholder="Buscar por artículo">
-        </div>
-        <div class="table-responsive" style="max-height:500px; overflow-y:auto;">
-          <table class="table table-striped" id="tabla-inventario-modal">
-            <thead>
-              <tr>
-                <th>Imagen</th>
-                <th>Código</th>
-                <th>Artículo</th>
-                <th>Unidad</th>
-                <th>Cantidad</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-
-
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-
-
-
-<!-- Modal Buscar Responsable / Retira -->
-<div class="modal fade" id="modalBusqueda" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title" id="tituloModalBusqueda">Buscar</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <input type="text" id="inputBusqueda" class="form-control mb-3" placeholder="Buscar...">
-        <ul id="listaResultados" class="list-group" style="max-height:300px; overflow-y:auto;"></ul>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Inventario Actual -->
-<div class="modal fade" id="modalInventario" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-xl">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title">Seleccionar Artículo</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="filters mb-3">
-          <input type="text" id="filtro-codigo" class="form-control" placeholder="Buscar por código">
-          <input type="text" id="filtro-articulo" class="form-control" placeholder="Buscar por artículo">
-        </div>
-        <div class="table-responsive" style="max-height:500px; overflow-y:auto;">
-          <table class="table table-striped" id="tabla-inventario-modal">
-            <thead>
-              <tr>
-                <th>Imagen</th>
-                <th>Código</th>
-                <th>Artículo</th>
-                <th>Unidad</th>
-                <th>Cantidad</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
 const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'; // Tu key pública
 const supabase = createClient(supabaseUrl, supabaseKey);
-
 
 let responsables = [];
 let retirantes = [];
+
+async function cargarColaboradores() {
+  try {
+    const [{ data: autorizados }, { data: retirados }] = await Promise.all([
+      supabase.from('colaboradores_06').select('identificacion, alias').eq('autorizado', true),
+      supabase.from('colaboradores_06').select('identificacion, colaborador').eq('condicion_laboral', false)
+    ]);
+    responsables = autorizados || [];
+    retirantes = retirados || [];
+
+    llenarSelect('autoriza', responsables, 'alias');
+    llenarSelect('retira', retirantes, 'colaborador');
+  } catch (error) {
+    console.error('Error cargando colaboradores:', error.message);
+  }
+}
+
+function llenarSelect(id, datos, campo) {
+  const select = document.getElementById(id);
+  select.innerHTML = '<option value="" disabled selected>-- Seleccione --</option>';
+  datos.forEach(item => {
+    const opt = document.createElement('option');
+    opt.value = item[campo];
+    opt.textContent = item[campo];
+    select.appendChild(opt);
+  });
+}
+
+window.abrirModalBusqueda = function(tipo) {
+  const datos = tipo === 'autoriza' ? responsables : retirantes;
+  const campo = tipo === 'autoriza' ? 'alias' : 'colaborador';
+
+  const modal = new bootstrap.Modal(document.getElementById('modalBusqueda'));
+  document.getElementById('inputBusqueda').value = '';
+  document.getElementById('listaResultados').innerHTML = '';
+  document.getElementById('modalBusqueda').dataset.tipo = tipo;
+  document.getElementById('tituloModalBusqueda').textContent = tipo === 'autoriza' ? 'Buscar Responsable' : 'Buscar Persona que Retira';
+
+  mostrarResultados(datos, campo);
+
+  document.getElementById('inputBusqueda').oninput = () => {
+    const termino = document.getElementById('inputBusqueda').value.toLowerCase();
+    const filtrados = datos.filter(item => item[campo]?.toLowerCase().includes(termino));
+    mostrarResultados(filtrados, campo);
+  };
+
+  modal.show();
+};
+
+function mostrarResultados(lista, campo) {
+  const contenedor = document.getElementById('listaResultados');
+  contenedor.innerHTML = '';
+  if (lista.length === 0) {
+    contenedor.innerHTML = '<li class="list-group-item text-muted">No se encontraron resultados</li>';
+    return;
+  }
+  lista.forEach(item => {
+    const li = document.createElement('li');
+    li.className = 'list-group-item list-group-item-action';
+    li.textContent = item[campo];
+    li.onclick = () => seleccionarItem(item[campo]);
+    contenedor.appendChild(li);
+  });
+}
+
+function seleccionarItem(valor) {
+  const tipo = document.getElementById('modalBusqueda').dataset.tipo;
+  document.getElementById(tipo).value = valor;
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalBusqueda'));
+  modal.hide();
+}
+
+document.addEventListener('DOMContentLoaded', cargarColaboradores);
+</script>
+
+
+<!-- Modal de Inventario Actual -->
+<div class="modal fade" id="modalInventario" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Seleccionar Artículo</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="buscarInventario" class="form-control mb-3" placeholder="Buscar por código o nombre...">
+        <div class="table-responsive" style="max-height:500px;overflow-y:auto;">
+          <table class="table table-striped" id="tablaInventario">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Artículo</th>
+                <th>Cantidad Disponible</th>
+                <th>Unidad</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // Llave pública
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 let inventarioActual = [];
+let idSalidaActual = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-  cargarColaboradores();
-
   const btnAgregarArticulo = document.getElementById('add-row');
-  const tablaInventario = document.querySelector('#tabla-inventario-modal tbody');
-  const filtroCodigo = document.getElementById('filtro-codigo');
-  const filtroArticulo = document.getElementById('filtro-articulo');
-  const tablaDetalle = document.getElementById('detalle-tabla tbody');
+  const tbodyInventario = document.querySelector('#tablaInventario tbody');
+  const buscarInput = document.getElementById('buscarInventario');
+  const tablaDetalle = document.querySelector('#detalle-tabla tbody');
 
   btnAgregarArticulo.addEventListener('click', async () => {
-    const { data, error } = await supabase.from('inventario_actual').select('imagen_url, codigo_articulo, nombre_articulo, unidad, cantidad_disponible');
+    const { data, error } = await supabase.from('inventario_actual').select('codigo_articulo, articulo, cantidad, unidad');
     if (error) {
       console.error('Error cargando inventario:', error);
       return;
     }
     inventarioActual = data || [];
-    renderInventario(inventarioActual);
+    renderizarTablaInventario(inventarioActual);
     new bootstrap.Modal(document.getElementById('modalInventario')).show();
   });
 
-  filtroCodigo.addEventListener('input', actualizarBusqueda);
-  filtroArticulo.addEventListener('input', actualizarBusqueda);
-
-  function cargarColaboradores() {
-    supabase.from('colaboradores_06').select('identificacion, alias, colaborador, autorizado, condicion_laboral')
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('Error colaboradores:', error);
-          return;
-        }
-        responsables = data.filter(c => c.autorizado);
-        retirantes = data.filter(c => !c.condicion_laboral);
-      });
-  }
-
-  window.abrirModalBusqueda = function(tipo) {
-    const datos = tipo === 'autoriza' ? responsables : retirantes;
-    const campo = tipo === 'autoriza' ? 'alias' : 'colaborador';
-
-    const modal = new bootstrap.Modal(document.getElementById('modalBusqueda'));
-    document.getElementById('inputBusqueda').value = '';
-    document.getElementById('listaResultados').innerHTML = '';
-    document.getElementById('modalBusqueda').dataset.tipo = tipo;
-
-    mostrarResultados(datos, campo);
-    document.getElementById('inputBusqueda').oninput = () => {
-      const termino = document.getElementById('inputBusqueda').value.toLowerCase();
-      const filtrados = datos.filter(item => item[campo]?.toLowerCase().includes(termino));
-      mostrarResultados(filtrados, campo);
-    };
-
-    modal.show();
-  };
-
-  function mostrarResultados(lista, campo) {
-    const contenedor = document.getElementById('listaResultados');
-    contenedor.innerHTML = '';
-    if (lista.length === 0) {
-      contenedor.innerHTML = '<li class="list-group-item text-muted">No se encontraron resultados</li>';
-      return;
-    }
-    lista.forEach(item => {
-      const li = document.createElement('li');
-      li.className = 'list-group-item list-group-item-action';
-      li.textContent = item[campo];
-      li.onclick = () => seleccionarItem(item[campo]);
-      contenedor.appendChild(li);
-    });
-  }
-
-  function seleccionarItem(valor) {
-    const tipo = document.getElementById('modalBusqueda').dataset.tipo;
-    document.getElementById(tipo).value = valor;
-    const modal = bootstrap.Modal.getInstance(document.getElementById('modalBusqueda'));
-    modal.hide();
-  }
-
-  function actualizarBusqueda() {
-    const cod = filtroCodigo.value.toLowerCase();
-    const art = filtroArticulo.value.toLowerCase();
+  buscarInput.addEventListener('input', () => {
+    const termino = buscarInput.value.toLowerCase();
     const filtrados = inventarioActual.filter(item =>
-      item.codigo_articulo.toLowerCase().includes(cod) &&
-      item.nombre_articulo.toLowerCase().includes(art)
+      item.codigo_articulo.toLowerCase().includes(termino) ||
+      item.articulo.toLowerCase().includes(termino)
     );
-    renderInventario(filtrados);
-  }
+    renderizarTablaInventario(filtrados);
+  });
 
-  function renderInventario(lista) {
-    tablaInventario.innerHTML = '';
+  function renderizarTablaInventario(lista) {
+    tbodyInventario.innerHTML = '';
     lista.forEach(item => {
       const tr = document.createElement('tr');
-      const imgSrc = item.imagen_url ? item.imagen_url : 'https://via.placeholder.com/50?text=No+Img';
-      tr.innerHTML = '<td><img src="' + imgSrc + '" alt="Img" style="max-width:50px;"></td>' +
-                     '<td>' + item.codigo_articulo + '</td>' +
-                     '<td>' + item.nombre_articulo + '</td>' +
-                     '<td>' + item.unidad + '</td>' +
-                     '<td>' + (item.cantidad_disponible ?? 'N/D') + '</td>';
+      tr.innerHTML = \`
+        <td>\${item.codigo_articulo}</td>
+        <td>\${item.articulo}</td>
+        <td>\${item.cantidad}</td>
+        <td>\${item.unidad}</td>
+      \`;
       tr.addEventListener('dblclick', () => seleccionarArticulo(item));
-      tablaInventario.appendChild(tr);
+      tbodyInventario.appendChild(tr);
     });
   }
 
-  function seleccionarArticulo(item) {
-    const cantidadStr = prompt('Ingrese cantidad a retirar:');
-    if (!cantidadStr) return;
-    const cantidad = parseFloat(cantidadStr);
+  async function seleccionarArticulo(item) {
+    const cantidadSolicitada = prompt('Digite la cantidad a retirar:');
+    if (cantidadSolicitada === null) return;
+    const cantidad = parseFloat(cantidadSolicitada);
+
     if (isNaN(cantidad) || cantidad <= 0) {
       alert('Cantidad no válida.');
       return;
     }
-    if (cantidad > item.cantidad_disponible) {
-      alert('Cantidad mayor a disponible.');
+    if (cantidad > item.cantidad) {
+      alert('Cantidad no disponible. Debe ser igual o menor a la disponible.');
+      return;
+    }
+
+    if (!idSalidaActual) {
+      const { data, error } = await supabase.from('salida_articulo_08').select('id_salida').order('id_salida', { ascending: false }).limit(1);
+      if (error || !data.length) {
+        alert('Error obteniendo ID de salida.');
+        return;
+      }
+      idSalidaActual = data[0].id_salida + 1; // Asignar uno nuevo
+    }
+
+    const { error: insertError } = await supabase.from('dato_salida_13').insert([{
+      id_salida: idSalidaActual,
+      codigo_articulo: item.codigo_articulo,
+      articulo: item.articulo,
+      cantidad: cantidad
+    }]);
+
+    if (insertError) {
+      console.error('Error insertando en dato_salida_13:', insertError);
       return;
     }
 
     agregarFilaDetalle(item, cantidad);
+    bootstrap.Modal.getInstance(document.getElementById('modalInventario')).hide();
   }
 
   function agregarFilaDetalle(item, cantidad) {
     const tr = document.createElement('tr');
-    tr.innerHTML = '<td><input type="text" class="form-control" value="' + item.nombre_articulo + '" readonly></td>' +
-                   '<td><input type="number" class="form-control text-end" value="' + cantidad + '" readonly></td>' +
-                   '<td><input type="text" class="form-control" value="' + item.unidad + '" readonly></td>' +
-                   '<td class="text-center"><button type="button" class="btn btn-sm btn-danger" onclick="this.closest(\'tr\').remove()">' +
-                   '<i class="fas fa-trash-alt"></i></button></td>';
-    if (!tablaDetalle) { console.error('Tabla detalle no encontrada'); return; }
+    tr.innerHTML = \`
+      <td><input type="text" class="form-control" value="\${item.articulo}" readonly></td>
+      <td><input type="number" class="form-control text-end" value="\${cantidad}" readonly></td>
+      <td><input type="text" class="form-control" value="\${item.unidad}" readonly></td>
+      <td class="text-center"><button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove()"><i class="fas fa-trash-alt"></i></button></td>
+    \`;
     tablaDetalle.appendChild(tr);
   }
 });
 </script>
-
-
-
-
-
-<!-- Modal de Búsqueda de Responsable o Retirante -->
-<div class="modal fade" id="modalBusqueda" tabindex="-1" aria-labelledby="modalBusquedaLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title" id="modalBusquedaLabel">Buscar Responsable o Persona que Retira</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body">
-        <input type="text" id="inputBusqueda" class="form-control mb-3" placeholder="Buscar...">
-        <ul id="listaResultados" class="list-group" style="max-height:300px; overflow-y:auto;"></ul>
-      </div>
-    </div>
-  </div>
-</div>
 
 </body>
 </html>
