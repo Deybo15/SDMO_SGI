@@ -131,7 +131,28 @@
         font-size: 1.25rem;
       }
     }
-  </style>
+  
+    <style>
+    .select-container {
+      position: relative;
+    }
+    .btn-search {
+      height: 100%;
+      width: 40px;
+      border: none;
+      background-color: var(--secondary-color);
+      color: white;
+      border-radius: 0 6px 6px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-search:hover {
+      background-color: #2980b9;
+    }
+    </style>
+    
+</style>
 </head>
 <body>
   <div class="container py-4">
@@ -161,24 +182,26 @@
                 <h5 class="section-title"><i class="fas fa-user-tie me-2"></i>Información de la Salida</h5>
                 <div class="row">
                   <div class="col-md-6 mb-3">
-                    <label for="autoriza" class="form-label required-field">Responsable que autoriza</label>
-                    <div class="input-group">
-                      <span class="input-group-text"><i class="fas fa-user-check"></i></span>
-                      <input type="text" id="autoriza" name="autoriza" class="form-control" required />
-                      <div class="invalid-feedback">
-                        Por favor ingrese el nombre del responsable
-                      </div>
-                    </div>
+                    
+<label for="autoriza" class="form-label required-field">Responsable que autoriza</label>
+<div class="select-container position-relative">
+  <select id="autoriza" name="autoriza" class="form-select" required></select>
+  <button type="button" class="btn btn-search position-absolute top-0 end-0" onclick="abrirModalBusqueda('autoriza')">
+    <i class="fas fa-search"></i>
+  </button>
+</div>
+    
                   </div>
                   <div class="col-md-6 mb-3">
-                    <label for="retira" class="form-label required-field">Persona que retira</label>
-                    <div class="input-group">
-                      <span class="input-group-text"><i class="fas fa-user"></i></span>
-                      <input type="text" id="retira" name="retira" class="form-control" required />
-                      <div class="invalid-feedback">
-                        Por favor ingrese el nombre de quien retira
-                      </div>
-                    </div>
+                    
+<label for="retira" class="form-label required-field">Persona que retira</label>
+<div class="select-container position-relative">
+  <select id="retira" name="retira" class="form-select" required></select>
+  <button type="button" class="btn btn-search position-absolute top-0 end-0" onclick="abrirModalBusqueda('retira')">
+    <i class="fas fa-search"></i>
+  </button>
+</div>
+    
                   </div>
                   <div class="col-12 mb-3">
                     <label for="numero_solicitud" class="form-label required-field">Número de solicitud</label>
@@ -500,6 +523,55 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('numero_solicitud').value = numeroSolicitud;
   }
 });
+</script>
+
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // Poner tu key pública
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+let responsables = [];
+let retirantes = [];
+
+async function cargarDatos() {
+  const { data: autorizados } = await supabase.from('colaboradores_06').select('identificacion, alias').eq('autorizado', true);
+  const { data: retiran } = await supabase.from('colaboradores_06').select('identificacion, colaborador').eq('condicion_laboral', false);
+
+  responsables = autorizados || [];
+  retirantes = retiran || [];
+
+  llenarSelect('autoriza', responsables, 'alias');
+  llenarSelect('retira', retirantes, 'colaborador');
+}
+
+function llenarSelect(id, data, campo) {
+  const select = document.getElementById(id);
+  select.innerHTML = '<option value="" disabled selected>-- Seleccione --</option>';
+  data.forEach(item => {
+    const option = document.createElement('option');
+    option.value = item[campo];
+    option.textContent = item[campo];
+    select.appendChild(option);
+  });
+}
+
+window.abrirModalBusqueda = function(tipo) {
+  const termino = prompt('Escriba para buscar:');
+  if (!termino) return;
+  const datos = tipo === 'autoriza' ? responsables : retirantes;
+  const campoTexto = tipo === 'autoriza' ? 'alias' : 'colaborador';
+  const resultado = datos.find(item => item[campoTexto].toLowerCase().includes(termino.toLowerCase()));
+  if (resultado) {
+    document.getElementById(tipo).value = resultado[campoTexto];
+  } else {
+    alert('No se encontraron resultados.');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', cargarDatos);
 </script>
 
 </body>
