@@ -357,43 +357,7 @@
         }
       });
       
-      // Función para agregar fila de artículo
-      function agregarFila() {
-        const tr = document.createElement('tr');
-        tr.className = 'animate__animated animate__fadeIn';
-        tr.innerHTML = `
-          <td>
-            <input type="text" name="articulo" class="form-control" placeholder="Descripción del artículo" required />
-          </td>
-          <td>
-            <input type="number" name="cantidad" class="form-control text-end" placeholder="0.00" min="0" step="0.01" required />
-          </td>
-          <td>
-            <select name="unidad" class="form-select">
-              <option value="Pieza">Pieza</option>
-              <option value="Caja">Caja</option>
-              <option value="Litro">Litro</option>
-              <option value="Kg">Kilogramo</option>
-              <option value="Paquete">Paquete</option>
-              <option value="Otro">Otro</option>
-            </select>
-          </td>
-          <td class="text-center">
-            <button type="button" class="btn btn-sm btn-danger btn-remove">
-              <i class="fas fa-trash-alt"></i>
-            </button>
-          </td>
-        `;
-        
-        // Eliminar fila con animación
-        tr.querySelector('.btn-remove').addEventListener('click', () => {
-          tr.classList.add('animate__fadeOut');
-          setTimeout(() => tr.remove(), 300);
-        });
-        
-        tbody.appendChild(tr);
-        setTimeout(() => tr.querySelector('input[name="articulo"]').focus(), 100);
-      }
+      // Función agregarFila eliminada
       
       // Validación del formulario
       form.addEventListener('submit', async (e) => {
@@ -512,9 +476,13 @@
         }
       });
       
-      // Inicializar con una fila
-      agregarFila();
-      addRowBtn.addEventListener('click', agregarFila);
+      
+// Función para abrir modal de Inventario
+function abrirModalInventario() {
+  alert('Aquí debería abrir el modal de inventario_actual para seleccionar artículo.');
+}
+
+      addRowBtn.addEventListener('click', abrirModalInventario);
     });
   </script>
 
@@ -630,6 +598,137 @@ function seleccionarItem(valor) {
 }
 
 document.addEventListener('DOMContentLoaded', cargarColaboradores);
+</script>
+
+
+<!-- Modal de Inventario Actual -->
+<div class="modal fade" id="modalInventario" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Seleccionar Artículo</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="buscarInventario" class="form-control mb-3" placeholder="Buscar por código o nombre...">
+        <div class="table-responsive" style="max-height:500px;overflow-y:auto;">
+          <table class="table table-striped" id="tablaInventario">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Artículo</th>
+                <th>Cantidad Disponible</th>
+                <th>Unidad</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+let inventarioActual = [];
+let idSalidaActual = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  const addRowBtn = document.getElementById('add-row');
+  const tbodyInventario = document.querySelector('#tablaInventario tbody');
+  const buscarInput = document.getElementById('buscarInventario');
+  const tablaDetalle = document.querySelector('#detalle-tabla tbody');
+
+  addRowBtn.addEventListener('click', async () => {
+    const { data, error } = await supabase.from('inventario_actual').select('codigo_articulo, articulo, cantidad, unidad');
+    if (error) {
+      console.error('Error cargando inventario:', error);
+      return;
+    }
+    inventarioActual = data || [];
+    renderizarTablaInventario(inventarioActual);
+    new bootstrap.Modal(document.getElementById('modalInventario')).show();
+  });
+
+  buscarInput.addEventListener('input', () => {
+    const termino = buscarInput.value.toLowerCase();
+    const filtrados = inventarioActual.filter(item =>
+      item.codigo_articulo.toLowerCase().includes(termino) ||
+      item.articulo.toLowerCase().includes(termino)
+    );
+    renderizarTablaInventario(filtrados);
+  });
+
+  function renderizarTablaInventario(lista) {
+    tbodyInventario.innerHTML = '';
+    lista.forEach(item => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = \`
+        <td>\${item.codigo_articulo}</td>
+        <td>\${item.articulo}</td>
+        <td>\${item.cantidad}</td>
+        <td>\${item.unidad}</td>
+      \`;
+      tr.addEventListener('dblclick', () => seleccionarArticulo(item));
+      tbodyInventario.appendChild(tr);
+    });
+  }
+
+  async function seleccionarArticulo(item) {
+    const cantidadSolicitada = prompt('Digite la cantidad a retirar:');
+    if (cantidadSolicitada === null) return;
+    const cantidad = parseFloat(cantidadSolicitada);
+    if (isNaN(cantidad) || cantidad <= 0) {
+      alert('Cantidad no válida.');
+      return;
+    }
+    if (cantidad > item.cantidad) {
+      alert('No hay suficiente cantidad disponible. Debe ingresar un valor igual o menor.');
+      return;
+    }
+
+    if (!idSalidaActual) {
+      const { data, error } = await supabase.from('salida_articulo_08').select('id_salida').order('id_salida', { ascending: false }).limit(1);
+      if (error || !data.length) {
+        alert('Error obteniendo ID de salida.');
+        return;
+      }
+      idSalidaActual = data[0].id_salida + 1; // Asignar uno nuevo
+    }
+
+    const { error: insertError } = await supabase.from('dato_salida_13').insert([{
+      id_salida: idSalidaActual,
+      codigo_articulo: item.codigo_articulo,
+      articulo: item.articulo,
+      cantidad: cantidad
+    }]);
+
+    if (insertError) {
+      console.error('Error insertando en dato_salida_13:', insertError);
+      return;
+    }
+
+    agregarFilaDetalle(item, cantidad);
+    bootstrap.Modal.getInstance(document.getElementById('modalInventario')).hide();
+  }
+
+  function agregarFilaDetalle(item, cantidad) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = \`
+      <td><input type="text" class="form-control" value="\${item.articulo}" readonly></td>
+      <td><input type="number" class="form-control text-end" value="\${cantidad}" readonly></td>
+      <td><input type="text" class="form-control" value="\${item.unidad}" readonly></td>
+      <td class="text-center"><button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove()"><i class="fas fa-trash-alt"></i></button></td>
+    \`;
+    tablaDetalle.appendChild(tr);
+  }
+});
 </script>
 
 </body>
