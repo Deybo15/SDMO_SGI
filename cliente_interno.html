@@ -254,10 +254,10 @@
         `;
         submitBtn.disabled = true;
 
-        const proximoNumero = await obtenerProximoNumero();
+        // const proximoNumero = await obtenerProximoNumero();
 
         const { data, error } = await supabase.from("solicitud_17").insert([{
-          numero_solicitud: proximoNumero,
+          // numero_solicitud: proximoNumero,
           id_solicitud_sa: null,
           tipo_solicitud: "STI",
           fecha_solicitud: new Date().toISOString().split("T")[0],
