@@ -342,41 +342,13 @@
       const form = document.getElementById('salida-form');
       const addRowBtn = document.getElementById('add-row');
       const tbody = document.querySelector('#detalle-tabla tbody');
-      const today = new Date().toISOString().split('T')[0];
-      let comentarios = '';
-      let nextId = 1;
-      
-      // Mostrar fecha actual formateada
-      document.getElementById('fecha-actual').textContent = formatDate(today);
-      
-      // Función para formatear fecha
-      function formatDate(dateString) {
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        return new Date(dateString).toLocaleDateString('es-ES', options);
-      }
-      
-      // Función para mostrar el modal de comentarios
-      window.showComentariosModal = function() {
-        const modal = new bootstrap.Modal(document.getElementById('comentariosModal'));
-        document.getElementById('comentarios-text').value = comentarios;
-        modal.show();
-      };
-      
-      // Guardar comentarios
-      document.getElementById('save-comentarios').addEventListener('click', () => {
-        comentarios = document.getElementById('comentarios-text').value;
-        const modal = bootstrap.Modal.getInstance(document.getElementById('comentariosModal'));
-        modal.hide();
-        
-        // Mostrar indicador de comentarios
-        const comentariosBadge = document.getElementById('comentarios-badge');
-        if (comentarios.trim()) {
-          comentariosBadge.classList.remove('d-none');
-          comentariosBadge.classList.add('animate__fadeIn');
-        } else {
-          comentariosBadge.classList.add('d-none');
-        }
-      });
+      const now = new Date();
+        document.getElementById('fecha-actual').textContent = now.toLocaleDateString('es-ES', {
+          weekday: 'long',
+          year:    'numeric',
+          month:   'long',
+          day:     'numeric'
+        });;
       
       // Función para agregar fila de artículo
       function agregarFila() {
