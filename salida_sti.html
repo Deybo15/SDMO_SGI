@@ -600,5 +600,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+
+
+<!-- Modal de Búsqueda de Responsable o Retirante -->
+<div class="modal fade" id="modalBusqueda" tabindex="-1" aria-labelledby="modalBusquedaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="modalBusquedaLabel">Buscar Responsable o Persona que Retira</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="inputBusqueda" class="form-control mb-3" placeholder="Buscar...">
+        <ul id="listaResultados" class="list-group" style="max-height:300px; overflow-y:auto;"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
