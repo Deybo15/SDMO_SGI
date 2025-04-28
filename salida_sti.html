@@ -132,30 +132,27 @@
       }
     }
   
-<style>
-.select-container {
-  position: relative;
-}
-.btn-search {
-  position: absolute;
-  right: 0;
-  top: 0;
-  height: 100%;
-  width: 40px;
-  background-color: var(--secondary-color);
-  color: white;
-  border: none;
-  border-radius: 0 6px 6px 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.btn-search:hover {
-  background-color: #2980b9;
-}
-</style>
-
-</style>
+    .select-container {
+      position: relative;
+    }
+    .btn-search {
+      position: absolute;
+      right: 0;
+      top: 0;
+      height: 100%;
+      width: 40px;
+      background-color: var(--secondary-color);
+      color: white;
+      border: none;
+      border-radius: 0 6px 6px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-search:hover {
+      background-color: #2980b9;
+    }
+  </style>
 </head>
 <body>
   <div class="container py-4">
@@ -185,26 +182,22 @@
                 <h5 class="section-title"><i class="fas fa-user-tie me-2"></i>Información de la Salida</h5>
                 <div class="row">
                   <div class="col-md-6 mb-3">
-                    
-<label for="autoriza" class="form-label required-field">Responsable que autoriza</label>
-<div class="select-container position-relative">
-  <select id="autoriza" name="autoriza" class="form-select" required></select>
-  <button type="button" class="btn-search" onclick="abrirModalBusqueda('autoriza')">
-    <i class="fas fa-search"></i>
-  </button>
-</div>
-
+                    <label for="autoriza" class="form-label required-field">Responsable que autoriza</label>
+                    <div class="select-container position-relative">
+                      <select id="autoriza" name="autoriza" class="form-select" required></select>
+                      <button type="button" class="btn-search" onclick="abrirModalBusqueda('autoriza')">
+                        <i class="fas fa-search"></i>
+                      </button>
+                    </div>
                   </div>
                   <div class="col-md-6 mb-3">
-                    
-<label for="retira" class="form-label required-field">Persona que retira</label>
-<div class="select-container position-relative">
-  <select id="retira" name="retira" class="form-select" required></select>
-  <button type="button" class="btn-search" onclick="abrirModalBusqueda('retira')">
-    <i class="fas fa-search"></i>
-  </button>
-</div>
-
+                    <label for="retira" class="form-label required-field">Persona que retira</label>
+                    <div class="select-container position-relative">
+                      <select id="retira" name="retira" class="form-select" required></select>
+                      <button type="button" class="btn-search" onclick="abrirModalBusqueda('retira')">
+                        <i class="fas fa-search"></i>
+                      </button>
+                    </div>
                   </div>
                   <div class="col-12 mb-3">
                     <label for="numero_solicitud" class="form-label required-field">Número de solicitud</label>
@@ -282,7 +275,6 @@
                   <button type="button" id="nextPage" class="btn btn-outline-primary">Siguiente</button>
                 </div>
               </div>
-
           </div>
         </div>
       </div>
@@ -316,6 +308,52 @@
     </div>
   </div>
 
+  <!-- Modal de Búsqueda -->
+  <div class="modal fade" id="modalBusqueda" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="tituloModalBusqueda">Buscar</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <input type="text" id="inputBusqueda" class="form-control" placeholder="Escriba para buscar...">
+          </div>
+          <ul id="listaResultados" class="list-group" style="max-height: 400px; overflow-y: auto;"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Inventario Actual -->
+  <div class="modal fade" id="modalInventario" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">Seleccionar Artículo</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="text" id="buscarInventarioModal" class="form-control mb-3" placeholder="Buscar por código o nombre...">
+          <div class="table-responsive" style="max-height:500px;overflow-y:auto;">
+            <table class="table table-striped" id="tablaInventarioModal">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Artículo</th>
+                  <th>Cantidad Disponible</th>
+                  <th>Unidad</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Botón flotante para ayuda -->
   <button type="button" class="btn btn-primary rounded-circle floating-btn" data-bs-toggle="tooltip" data-bs-placement="left" title="Ayuda">
     <i class="fas fa-question"></i>
@@ -326,36 +364,76 @@
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    // Configuración Supabase
+    // Configuración Supabase (única instancia)
     const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    document.addEventListener('DOMContentLoaded', () => {
+    // Variables globales
+    let responsables = [];
+    let retirantes = [];
+    let inventarioActual = [];
+    let currentPage = 1;
+    const rowsPerPage = 15;
+    let comentarios = '';
+    let idSalidaActual = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
       // Inicializar tooltips
       const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
       tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
       });
 
-      // Variables globales
+      // Configurar fecha actual
+      const now = new Date();
+      document.getElementById('fecha-actual').textContent = now.toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      // Cargar número de solicitud desde URL
+      const params = new URLSearchParams(window.location.search);
+      const numeroSolicitud = params.get('numero');
+      if (numeroSolicitud) {
+        document.getElementById('numero_solicitud').value = numeroSolicitud;
+      }
+
+      // Cargar datos iniciales
+      await cargarColaboradores();
+      await cargarInventario();
+
+      // Variables del formulario
       const form = document.getElementById('salida-form');
       const addRowBtn = document.getElementById('add-row');
       const tbody = document.querySelector('#detalle-tabla tbody');
-      const now = new Date();
-        document.getElementById('fecha-actual').textContent = now.toLocaleDateString('es-ES', {
-          weekday: 'long',
-          year:    'numeric',
-          month:   'long',
-          day:     'numeric'
-        });;
-      
-      // Función para agregar fila de artículo
+      const tbodyInventario = document.querySelector('#tablaInventario tbody');
+
+      // Función para agregar fila de artículo (corregida)
       function agregarFila() {
         const tr = document.createElement('tr');
         tr.className = 'animate__animated animate__fadeIn';
-        tr.innerHTML = `<td><img src="${item.imagen_url}" alt="Imagen" style="max-width:50px; max-height:50px;"></td>
-          
+        tr.innerHTML = `
+          <td>
+            <select name="articulo" class="form-select" required>
+              <option value="" selected disabled>Seleccione artículo</option>
+              ${inventarioActual.map(item => 
+                `<option value="${item.codigo_articulo}">${item.nombre_articulo} (${item.codigo_articulo})</option>`
+              ).join('')}
+            </select>
+          </td>
+          <td>
+            <input type="number" name="cantidad" class="form-control" min="1" required>
+          </td>
+          <td>
+            <select name="unidad" class="form-select" required>
+              <option value="Unidad">Unidad</option>
+              <option value="Caja">Caja</option>
+              <option value="Paquete">Paquete</option>
+            </select>
+          </td>
           <td class="text-center">
             <button type="button" class="btn btn-sm btn-danger btn-remove">
               <i class="fas fa-trash-alt"></i>
@@ -370,9 +448,12 @@
         });
         
         tbody.appendChild(tr);
-        setTimeout(() => tr.querySelector('input[name="articulo"]').focus(), 100);
+        setTimeout(() => tr.querySelector('select[name="articulo"]').focus(), 100);
       }
-      
+
+      // Evento para agregar fila
+      addRowBtn.addEventListener('click', agregarFila);
+
       // Validación del formulario
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -424,7 +505,7 @@
             .from('salida_articulo_08')
             .insert([{ 
               id_salida: newId, 
-              fecha_salida: today, 
+              fecha_salida: new Date().toISOString(), 
               autoriza, 
               retira, 
               numero_solicitud,
@@ -437,7 +518,7 @@
           const detalles = filas.map(tr => {
             return {
               id_salida: newId,
-              articulo: tr.querySelector('input[name="articulo"]').value.trim(),
+              articulo: tr.querySelector('select[name="articulo"]').value.trim(),
               cantidad: parseFloat(tr.querySelector('input[name="cantidad"]').value),
               unidad: tr.querySelector('select[name="unidad"]').value
             };
@@ -467,349 +548,193 @@
         }
       });
       
-      // Mostrar alerta
-      function showAlert(message, type) {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} alert-dismissible fade show animate__animated animate__fadeIn`;
-        alertDiv.role = 'alert';
-        alertDiv.innerHTML = `
-          <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-2"></i>
-          ${message}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-        
-        const container = document.querySelector('.alert-container');
-        container.innerHTML = '';
-        container.appendChild(alertDiv);
-      }
-      
       // Cancelar formulario
       document.getElementById('btn-cancel').addEventListener('click', () => {
         if (confirm('¿Está seguro que desea cancelar? Todos los datos no guardados se perderán.')) {
           window.history.back();
         }
       });
-      
+
+      // Eventos para inventario
+      document.getElementById('buscarInventario').addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        const filtrados = inventarioActual.filter(item =>
+          (item.codigo_articulo || '').toString().toLowerCase().includes(term) ||
+          (item.nombre_articulo || '').toString().toLowerCase().includes(term)
+        );
+        renderTable(filtrados);
+      });
+
+      document.getElementById('prevPage').addEventListener('click', () => {
+        if (currentPage > 1) { 
+          currentPage--; 
+          renderTable(inventarioActual); 
+        }
+      });
+
+      document.getElementById('nextPage').addEventListener('click', () => {
+        const totalPages = Math.ceil(inventarioActual.length / rowsPerPage);
+        if (currentPage < totalPages) { 
+          currentPage++; 
+          renderTable(inventarioActual); 
+        }
+      });
+
       // Inicializar con una fila
       agregarFila();
-      addRowBtn.addEventListener('click', agregarFila);
     });
-  </script>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const params = new URLSearchParams(window.location.search);
-  const numeroSolicitud = params.get('numero');
-  if (numeroSolicitud) {
-    document.getElementById('numero_solicitud').value = numeroSolicitud;
-  }
-});
-</script>
+    // Función para cargar colaboradores
+    async function cargarColaboradores() {
+      try {
+        const [{ data: autorizados }, { data: retirados }] = await Promise.all([
+          supabase.from('colaboradores_06').select('identificacion, alias').eq('autorizado', true),
+          supabase.from('colaboradores_06').select('identificacion, colaborador').eq('condicion_laboral', false)
+        ]);
+        responsables = autorizados || [];
+        retirantes = retirados || [];
 
-
-<!-- Modal de Búsqueda -->
-<div class="modal fade" id="modalBusqueda" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title" id="tituloModalBusqueda">Buscar</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-3">
-          <input type="text" id="inputBusqueda" class="form-control" placeholder="Escriba para buscar...">
-        </div>
-        <ul id="listaResultados" class="list-group" style="max-height: 400px; overflow-y: auto;"></ul>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-<script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'; // Tu key pública
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-let responsables = [];
-let retirantes = [];
-
-async function cargarColaboradores() {
-  try {
-    const [{ data: autorizados }, { data: retirados }] = await Promise.all([
-      supabase.from('colaboradores_06').select('identificacion, alias').eq('autorizado', true),
-      supabase.from('colaboradores_06').select('identificacion, colaborador').eq('condicion_laboral', false)
-    ]);
-    responsables = autorizados || [];
-    retirantes = retirados || [];
-
-    llenarSelect('autoriza', responsables, 'alias');
-    llenarSelect('retira', retirantes, 'colaborador');
-  } catch (error) {
-    console.error('Error cargando colaboradores:', error.message);
-  }
-}
-
-function llenarSelect(id, datos, campo) {
-  const select = document.getElementById(id);
-  select.innerHTML = '<option value="" disabled selected>-- Seleccione --</option>';
-  datos.forEach(item => {
-    const opt = document.createElement('option');
-    opt.value = item[campo];
-    opt.textContent = item[campo];
-    select.appendChild(opt);
-  });
-}
-
-window.abrirModalBusqueda = function(tipo) {
-  const datos = tipo === 'autoriza' ? responsables : retirantes;
-  const campo = tipo === 'autoriza' ? 'alias' : 'colaborador';
-
-  const modal = new bootstrap.Modal(document.getElementById('modalBusqueda'));
-  document.getElementById('inputBusqueda').value = '';
-  document.getElementById('listaResultados').innerHTML = '';
-  document.getElementById('modalBusqueda').dataset.tipo = tipo;
-  document.getElementById('tituloModalBusqueda').textContent = tipo === 'autoriza' ? 'Buscar Responsable' : 'Buscar Persona que Retira';
-
-  mostrarResultados(datos, campo);
-
-  document.getElementById('inputBusqueda').oninput = () => {
-    const termino = document.getElementById('inputBusqueda').value.toLowerCase();
-    const filtrados = datos.filter(item => item[campo]?.toLowerCase().includes(termino));
-    mostrarResultados(filtrados, campo);
-  };
-
-  modal.show();
-};
-
-function mostrarResultados(lista, campo) {
-  const contenedor = document.getElementById('listaResultados');
-  contenedor.innerHTML = '';
-  if (lista.length === 0) {
-    contenedor.innerHTML = '<li class="list-group-item text-muted">No se encontraron resultados</li>';
-    return;
-  }
-  lista.forEach(item => {
-    const li = document.createElement('li');
-    li.className = 'list-group-item list-group-item-action';
-    li.textContent = item[campo];
-    li.onclick = () => seleccionarItem(item[campo]);
-    contenedor.appendChild(li);
-  });
-}
-
-function seleccionarItem(valor) {
-  const tipo = document.getElementById('modalBusqueda').dataset.tipo;
-  document.getElementById(tipo).value = valor;
-  const modal = bootstrap.Modal.getInstance(document.getElementById('modalBusqueda'));
-  modal.hide();
-}
-
-document.addEventListener('DOMContentLoaded', cargarColaboradores);
-</script>
-
-
-<!-- Modal de Inventario Actual -->
-<div class="modal fade" id="modalInventario" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-xl">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title">Seleccionar Artículo</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <input type="text" id="buscarInventario" class="form-control mb-3" placeholder="Buscar por código o nombre...">
-        <div class="table-responsive" style="max-height:500px;overflow-y:auto;">
-          <table class="table table-striped" id="tablaInventario">
-            <thead>
-              <tr>
-                <th>Código</th>
-                <th>Artículo</th>
-                <th>Cantidad Disponible</th>
-                <th>Unidad</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-<script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'; // Llave pública
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-let inventarioActual = [];
-let idSalidaActual = null;
-
-document.addEventListener('DOMContentLoaded', () => {
-  const btnAgregarArticulo = document.getElementById('add-row');
-  const tbodyInventario = document.querySelector('#tablaInventario tbody');
-  const buscarInput = document.getElementById('buscarInventario');
-  const tablaDetalle = document.querySelector('#detalle-tabla tbody');
-
-  btnAgregarArticulo.addEventListener('click', async () => {
-    const { data, error } = await supabase.from('inventario_actual').select('codigo_articulo, articulo, cantidad, unidad');
-    if (error) {
-      console.error('Error cargando inventario:', error);
-      return;
-    }
-    inventarioActual = data || [];
-    renderizarTablaInventario(inventarioActual);
-    new bootstrap.Modal(document.getElementById('modalInventario')).show();
-  });
-
-  buscarInput.addEventListener('input', () => {
-    const termino = buscarInput.value.toLowerCase();
-    const filtrados = inventarioActual.filter(item =>
-      item.codigo_articulo.toLowerCase().includes(termino) ||
-      item.articulo.toLowerCase().includes(termino)
-    );
-    renderizarTablaInventario(filtrados);
-  });
-
-  function renderizarTablaInventario(lista) {
-    tbodyInventario.innerHTML = '';
-    lista.forEach(item => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = \`
-        <td>\${item.codigo_articulo}</td>
-        <td>\${item.articulo}</td>
-        <td>\${item.cantidad}</td>
-        <td>\${item.unidad}</td>
-      \`;
-      tr.addEventListener('dblclick', () => seleccionarArticulo(item));
-      tbodyInventario.appendChild(tr);
-    });
-  }
-
-  async function seleccionarArticulo(item) {
-    const cantidadSolicitada = prompt('Digite la cantidad a retirar:');
-    if (cantidadSolicitada === null) return;
-    const cantidad = parseFloat(cantidadSolicitada);
-
-    if (isNaN(cantidad) || cantidad <= 0) {
-      alert('Cantidad no válida.');
-      return;
-    }
-    if (cantidad > item.cantidad) {
-      alert('Cantidad no disponible. Debe ser igual o menor a la disponible.');
-      return;
+        llenarSelect('autoriza', responsables, 'alias');
+        llenarSelect('retira', retirantes, 'colaborador');
+      } catch (error) {
+        console.error('Error cargando colaboradores:', error.message);
+      }
     }
 
-    if (!idSalidaActual) {
-      const { data, error } = await supabase.from('salida_articulo_08').select('id_salida').order('id_salida', { ascending: false }).limit(1);
-      if (error || !data.length) {
-        alert('Error obteniendo ID de salida.');
+    // Función para llenar select
+    function llenarSelect(id, datos, campo) {
+      const select = document.getElementById(id);
+      select.innerHTML = '<option value="" disabled selected>-- Seleccione --</option>';
+      datos.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item[campo];
+        opt.textContent = item[campo];
+        select.appendChild(opt);
+      });
+    }
+
+    // Función para abrir modal de búsqueda
+    window.abrirModalBusqueda = function(tipo) {
+      const datos = tipo === 'autoriza' ? responsables : retirantes;
+      const campo = tipo === 'autoriza' ? 'alias' : 'colaborador';
+
+      const modal = new bootstrap.Modal(document.getElementById('modalBusqueda'));
+      document.getElementById('inputBusqueda').value = '';
+      document.getElementById('listaResultados').innerHTML = '';
+      document.getElementById('modalBusqueda').dataset.tipo = tipo;
+      document.getElementById('tituloModalBusqueda').textContent = tipo === 'autoriza' ? 'Buscar Responsable' : 'Buscar Persona que Retira';
+
+      mostrarResultados(datos, campo);
+
+      document.getElementById('inputBusqueda').oninput = () => {
+        const termino = document.getElementById('inputBusqueda').value.toLowerCase();
+        const filtrados = datos.filter(item => item[campo]?.toLowerCase().includes(termino));
+        mostrarResultados(filtrados, campo);
+      };
+
+      modal.show();
+    };
+
+    // Función para mostrar resultados de búsqueda
+    function mostrarResultados(lista, campo) {
+      const contenedor = document.getElementById('listaResultados');
+      contenedor.innerHTML = '';
+      if (lista.length === 0) {
+        contenedor.innerHTML = '<li class="list-group-item text-muted">No se encontraron resultados</li>';
         return;
       }
-      idSalidaActual = data[0].id_salida + 1; // Asignar uno nuevo
+      lista.forEach(item => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item list-group-item-action';
+        li.textContent = item[campo];
+        li.onclick = () => seleccionarItem(item[campo]);
+        contenedor.appendChild(li);
+      });
     }
 
-    const { error: insertError } = await supabase.from('dato_salida_13').insert([{
-      id_salida: idSalidaActual,
-      codigo_articulo: item.codigo_articulo,
-      articulo: item.articulo,
-      cantidad: cantidad
-    }]);
-
-    if (insertError) {
-      console.error('Error insertando en dato_salida_13:', insertError);
-      return;
+    // Función para seleccionar item de búsqueda
+    function seleccionarItem(valor) {
+      const tipo = document.getElementById('modalBusqueda').dataset.tipo;
+      document.getElementById(tipo).value = valor;
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalBusqueda'));
+      modal.hide();
     }
 
-    agregarFilaDetalle(item, cantidad);
-    bootstrap.Modal.getInstance(document.getElementById('modalInventario')).hide();
-  }
+    // Función para cargar inventario
+    async function cargarInventario() {
+      const { data, error } = await supabase
+        .from('inventario_actual')
+        .select('codigo_articulo, nombre_articulo, cantidad_disponible, unidad, imagen_url');
+      
+      if (error) {
+        console.error('Error cargando inventario:', error);
+        return;
+      }
+      inventarioActual = data || [];
+      renderTable(inventarioActual);
+    }
 
-  function agregarFilaDetalle(item, cantidad) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = \`
-      <td><input type="text" class="form-control" value="\${item.articulo}" readonly></td>
-      <td><input type="number" class="form-control text-end" value="\${cantidad}" readonly></td>
-      <td><input type="text" class="form-control" value="\${item.unidad}" readonly></td>
-      <td class="text-center"><button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove()"><i class="fas fa-trash-alt"></i></button></td>
-    \`;
-    tablaDetalle.appendChild(tr);
-  }
-});
-</script>
+    // Función para renderizar tabla de inventario
+    function renderTable(data = inventarioActual) {
+      const tbody = document.querySelector('#tablaInventario tbody');
+      tbody.innerHTML = '';
+      const start = (currentPage - 1) * rowsPerPage;
+      const end = start + rowsPerPage;
+      data.slice(start, end).forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><img src="${item.imagen_url || 'https://via.placeholder.com/50'}" alt="Imagen" style="max-width:50px; max-height:50px;"></td>
+          <td>${item.codigo_articulo || ''}</td>
+          <td>${item.nombre_articulo || ''}</td>
+          <td>${item.cantidad_disponible || ''}</td>
+          <td>${item.unidad || ''}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      updatePageInfo(data.length);
+    }
 
+    // Función para actualizar información de paginación
+    function updatePageInfo(totalItems = inventarioActual.length) {
+      const totalPages = Math.ceil(totalItems / rowsPerPage);
+      document.getElementById('pageInfo').textContent = `Página ${currentPage} de ${totalPages}`;
+      document.getElementById('prevPage').disabled = currentPage === 1;
+      document.getElementById('nextPage').disabled = currentPage === totalPages || totalPages === 0;
+    }
 
+    // Función para mostrar alertas
+    function showAlert(message, type) {
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `alert alert-${type} alert-dismissible fade show animate__animated animate__fadeIn`;
+      alertDiv.role = 'alert';
+      alertDiv.innerHTML = `
+        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      `;
+      
+      const container = document.querySelector('.alert-container');
+      container.innerHTML = '';
+      container.appendChild(alertDiv);
+    }
 
-<script type="module">
-// Paginación Inventario Actual
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-const supabaseInventory = createClient('https://qpccqoeronbcdyejfjod.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ');
-let inventarioActual = [];
-let currentPage = 1;
-const rowsPerPage = 15;
+    // Función para mostrar modal de comentarios
+    window.showComentariosModal = function() {
+      const modal = new bootstrap.Modal(document.getElementById('comentariosModal'));
+      const textarea = document.getElementById('comentarios-text');
+      textarea.value = comentarios;
+      modal.show();
 
-async function cargarInventario() {
-  const { data, error } = await supabaseInventory
-    .from('inventario_actual')
-    .select('codigo_articulo, nombre_articulo, cantidad_disponible, unidad');
-  if (error) {
-    console.error('Error inventario:', error);
-    return;
-  }
-  inventarioActual = data || [];
-  renderTable();
-}
-
-function renderTable() {
-  const tbody = document.querySelector('#tablaInventario tbody');
-  tbody.innerHTML = '';
-  const start = (currentPage - 1) * rowsPerPage;
-  const end = start + rowsPerPage;
-  inventarioActual.slice(start, end).forEach(item => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td><img src="${item.imagen_url}" alt="Imagen" style="max-width:50px; max-height:50px;"></td>
-      <td>${item.codigo_articulo || ''}</td>
-      <td>${item.nombre_articulo || ''}</td>
-      <td>${item.cantidad_disponible || ''}</td>
-      <td>${item.unidad || ''}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-  updatePageInfo();
-}
-
-function updatePageInfo() {
-  const total = Math.ceil(inventarioActual.length / rowsPerPage);
-  document.getElementById('pageInfo').textContent = `Página ${currentPage} de ${total}`;
-  document.getElementById('prevPage').disabled = currentPage === 1;
-  document.getElementById('nextPage').disabled = currentPage === total;
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  cargarInventario();
-  document.getElementById('buscarInventario').addEventListener('input', e => {
-    const term = e.target.value.toLowerCase();
-    inventarioActual = inventarioActual.filter(item =>
-      (item.codigo_articulo || '').toString().toLowerCase().includes(term) ||
-      (item.nombre_articulo || '').toString().toLowerCase().includes(term)
-    );
-    currentPage = 1;
-    renderTable();
-  });
-  document.getElementById('prevPage').addEventListener('click', () => {
-    if (currentPage > 1) { currentPage--; renderTable(); }
-  });
-  document.getElementById('nextPage').addEventListener('click', () => {
-    const totalPages = Math.ceil(inventarioActual.length / rowsPerPage);
-    if (currentPage < totalPages) { currentPage++; renderTable(); }
-  });
-});
-</script>
-
-
+      document.getElementById('save-comentarios').onclick = () => {
+        comentarios = textarea.value;
+        if (comentarios.trim()) {
+          document.getElementById('comentarios-badge').classList.remove('d-none');
+        } else {
+          document.getElementById('comentarios-badge').classList.add('d-none');
+        }
+        modal.hide();
+      };
+    };
+  </script>
 </body>
 </html>
