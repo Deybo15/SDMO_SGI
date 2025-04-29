@@ -783,26 +783,24 @@
         responsables = autorizados || [];
         retirantes = retirados || [];
 
-        llenarSelect('autoriza', responsables, 'alias',          'identificacion');
-        llenarSelect('retira',  retirantes,   'colaborador',    'identificacion');
+        llenarSelect('autoriza', responsables, 'alias', 'identificacion');
+        llenarSelect('retira', retirantes, 'colaborador', 'identificacion');
 
-   } catch (error) {
-    console.error('Error cargando colaboradores:', error.message);
-   }
- }
+      } catch (error) {
+        console.error('Error cargando colaboradores:', error.message);
+      }
+    }
 
-  function llenarSelect(id, datos, textField, valueField) {
-    const select = document.getElementById(id);
-    select.innerHTML = '<option value="" disabled selected>-- Seleccione --</option>';
-    datos.forEach(item => {
-      const opt = document.createElement('option');
-      opt.value       = item[valueField];
-      opt.textContent = item[textField];
-      select.appendChild(opt);
-    });
-  }
-
-
+    function llenarSelect(id, datos, textField, valueField) {
+      const select = document.getElementById(id);
+      select.innerHTML = '<option value="" disabled selected>-- Seleccione --</option>';
+      datos.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item[valueField];
+        opt.textContent = item[textField];
+        select.appendChild(opt);
+      });
+    }
 
     window.abrirModalBusqueda = function(tipo) {
       const datos = tipo === 'autoriza' ? responsables : retirantes;
@@ -836,14 +834,15 @@
         const li = document.createElement('li');
         li.className = 'list-group-item list-group-item-action';
         li.textContent = item[campo];
-        li.onclick = () => seleccionarItem(item[campo]);
+        li.dataset.value = item.identificacion;
+        li.onclick = () => seleccionarItem(item);
         contenedor.appendChild(li);
       });
     }
 
-    function seleccionarItem(valor) {
+    function seleccionarItem(item) {
       const tipo = document.getElementById('modalBusqueda').dataset.tipo;
-      document.getElementById(tipo).value = valor;
+      document.getElementById(tipo).value = item.identificacion;
       const modal = bootstrap.Modal.getInstance(document.getElementById('modalBusqueda'));
       modal.hide();
     }
