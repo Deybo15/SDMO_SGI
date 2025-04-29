@@ -183,6 +183,10 @@
       background-color: #f8f9fa;
       border: 1px solid #ced4da;
     }
+    .load-more-container {
+      text-align: center;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -361,6 +365,17 @@
               </thead>
               <tbody id="listaArticulos"></tbody>
             </table>
+            <div id="loadingArticulos" class="text-center py-3" style="display: none;">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+              </div>
+              <p class="mt-2">Cargando más artículos...</p>
+            </div>
+          </div>
+          <div class="load-more-container">
+            <button id="btnLoadMore" class="btn btn-sm btn-outline-primary" style="display: none;">
+              <i class="fas fa-arrow-down me-1"></i> Cargar más resultados
+            </button>
           </div>
         </div>
       </div>
@@ -377,7 +392,7 @@
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    // Configuración Supabase (única instancia)
+    // Configuración Supabase
     const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -388,6 +403,197 @@
     let inventarioActual = [];
     let comentarios = '';
     let idSalidaActual = null;
+    let currentInventoryPage = 1;
+    const itemsPerPage = 1000; // Máximo permitido por Supabase
+    let totalInventoryItems = 0;
+    let isInventoryLoading = false;
+
+    // Función para cargar inventario con paginación
+    async function cargarInventarioPaginado(page = 1) {
+      isInventoryLoading = true;
+      document.getElementById('loadingArticulos').style.display = 'block';
+      document.getElementById('btnLoadMore').style.display = 'none';
+
+      try {
+        const { data, error, count } = await supabase
+          .from('inventario_actual')
+          .select('codigo_articulo, nombre_articulo, cantidad_disponible, unidad, imagen_url', { count: 'exact' })
+          .order('nombre_articulo', { ascending: true })
+          .range((page - 1) * itemsPerPage, page * itemsPerPage - 1);
+
+        if (error) throw error;
+
+        totalInventoryItems = count || 0;
+        
+        if (page === 1) {
+          inventarioActual = data || [];
+        } else {
+          inventarioActual = [...inventarioActual, ...(data || [])];
+        }
+
+        // Mostrar mensaje de éxito solo en la primera carga
+        if (page === 1 && data && data.length > 0) {
+          showAlert(`Inventario cargado (${data.length} artículos)`, 'success');
+        }
+
+        // Mostrar u ocultar botón "Cargar más"
+        if (inventarioActual.length < totalInventoryItems) {
+          document.getElementById('btnLoadMore').style.display = 'block';
+        }
+
+        return data || [];
+      } catch (error) {
+        console.error('Error cargando inventario:', error);
+        showAlert('Error al cargar el inventario', 'danger');
+        return [];
+      } finally {
+        isInventoryLoading = false;
+        document.getElementById('loadingArticulos').style.display = 'none';
+      }
+    }
+
+    // Función para buscar artículos
+    window.buscarArticulo = async function(btn) {
+      const row = btn.closest('tr');
+      const modal = new bootstrap.Modal(document.getElementById('modalBusquedaArticulos'));
+      const inputBusqueda = document.getElementById('inputBusquedaArticulo');
+      
+      document.getElementById('modalBusquedaArticulos').dataset.currentRow = row.rowIndex;
+      inputBusqueda.value = '';
+      document.getElementById('listaArticulos').innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Cargando artículos...</td></tr>';
+      
+      modal.show();
+      
+      // Cargar primera página si no hay datos
+      if (inventarioActual.length === 0) {
+        await cargarInventarioPaginado(1);
+      }
+      
+      // Mostrar resultados iniciales
+      mostrarArticulosEnModal(inventarioActual);
+      
+      // Configurar búsqueda en tiempo real
+      let searchTimeout;
+      inputBusqueda.oninput = () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          const termino = inputBusqueda.value.toLowerCase();
+          if (termino.length === 0) {
+            mostrarArticulosEnModal(inventarioActual);
+          } else {
+            const filtrados = inventarioActual.filter(item => 
+              item.nombre_articulo.toLowerCase().includes(termino) || 
+              (item.codigo_articulo && item.codigo_articulo.toLowerCase().includes(termino))
+            );
+            mostrarArticulosEnModal(filtrados);
+          }
+        }, 300);
+      };
+    };
+
+    // Función para cargar más artículos
+    window.cargarMasArticulos = async function() {
+      if (isInventoryLoading) return;
+      
+      currentInventoryPage++;
+      await cargarInventarioPaginado(currentInventoryPage);
+      
+      // Volver a aplicar filtro si hay uno activo
+      const inputBusqueda = document.getElementById('inputBusquedaArticulo');
+      if (inputBusqueda.value) {
+        const termino = inputBusqueda.value.toLowerCase();
+        const filtrados = inventarioActual.filter(item => 
+          item.nombre_articulo.toLowerCase().includes(termino) || 
+          (item.codigo_articulo && item.codigo_articulo.toLowerCase().includes(termino))
+        );
+        mostrarArticulosEnModal(filtrados);
+      } else {
+        mostrarArticulosEnModal(inventarioActual);
+      }
+    };
+
+    // Función para mostrar artículos en modal
+    function mostrarArticulosEnModal(articulos) {
+      const tbody = document.getElementById('listaArticulos');
+      tbody.innerHTML = '';
+      
+      if (articulos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No se encontraron artículos</td></tr>';
+        return;
+      }
+      
+      // Limitar a 200 resultados iniciales para mejor rendimiento
+      const itemsToShow = articulos.slice(0, 200);
+      
+      itemsToShow.forEach(articulo => {
+        const tr = document.createElement('tr');
+        tr.className = 'articulo-item';
+        tr.dataset.codigo = articulo.codigo_articulo;
+        tr.dataset.nombre = articulo.nombre_articulo;
+        tr.dataset.unidad = articulo.unidad || 'Unidad';
+        tr.dataset.disponible = articulo.cantidad_disponible || 0;
+        tr.dataset.imagen = articulo.imagen_url || 'https://via.placeholder.com/50';
+        
+        tr.innerHTML = `
+          <td>
+            <img src="${articulo.imagen_url || 'https://via.placeholder.com/50'}" 
+                 alt="${articulo.nombre_articulo}" 
+                 style="width:40px; height:40px; object-fit:cover; border-radius:4px;">
+          </td>
+          <td>
+            <strong>${articulo.nombre_articulo}</strong><br>
+            <small class="text-muted">${articulo.codigo_articulo || 'Sin código'}</small>
+          </td>
+          <td>${articulo.cantidad_disponible || 0} ${articulo.unidad || 'Unidad'}</td>
+          <td><button class="btn btn-sm btn-primary" onclick="seleccionarArticulo(this)">Seleccionar</button></td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+      
+      // Mostrar mensaje si hay más resultados no mostrados
+      if (articulos.length > 200) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td colspan="4" class="text-center text-muted py-2">
+            Mostrando 200 de ${articulos.length} resultados. Refine su búsqueda.
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    // Función para seleccionar artículo
+    window.seleccionarArticulo = function(btn) {
+      const tr = btn.closest('tr');
+      const rowIndex = document.getElementById('modalBusquedaArticulos').dataset.currentRow;
+      const targetRow = document.querySelector(`#detalle-tabla tbody tr:nth-child(${rowIndex})`);
+      
+      if (targetRow) {
+        // Actualizar select
+        const select = targetRow.querySelector('select[name="articulo"]');
+        select.innerHTML = `<option value="${tr.dataset.codigo}" selected>${tr.dataset.nombre}</option>`;
+        select.disabled = false;
+        
+        // Actualizar unidad
+        targetRow.querySelector('input[name="unidad"]').value = tr.dataset.unidad;
+        
+        // Actualizar disponibilidad
+        const disponibilidadText = targetRow.querySelector('.disponibilidad-text');
+        disponibilidadText.textContent = `Máximo: ${tr.dataset.disponible} ${tr.dataset.unidad}`;
+        disponibilidadText.style.display = 'block';
+        
+        // Configurar máximo en cantidad
+        const inputCantidad = targetRow.querySelector('input[name="cantidad"]');
+        inputCantidad.max = tr.dataset.disponible;
+        inputCantidad.placeholder = `Máx. ${tr.dataset.disponible}`;
+        inputCantidad.focus();
+      }
+      
+      // Cerrar modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalBusquedaArticulos'));
+      modal.hide();
+    };
 
     document.addEventListener('DOMContentLoaded', async () => {
       // Inicializar tooltips
@@ -414,7 +620,9 @@
 
       // Cargar datos iniciales
       await cargarColaboradores();
-      await cargarInventario();
+      
+      // Configurar evento para cargar más artículos
+      document.getElementById('btnLoadMore').addEventListener('click', cargarMasArticulos);
 
       // Variables del formulario
       const form = document.getElementById('salida-form');
@@ -647,22 +855,6 @@
       modal.hide();
     }
 
-    // Función para cargar inventario
-    async function cargarInventario() {
-      const { data, error } = await supabase
-        .from('inventario_actual')
-        .select('codigo_articulo, nombre_articulo, cantidad_disponible, unidad, imagen_url')
-        .order('nombre_articulo', { ascending: true });
-      
-      if (error) {
-        console.error('Error cargando inventario:', error);
-        showAlert('Error al cargar el inventario', 'danger');
-        return;
-      }
-      
-      inventarioActual = data || [];
-    }
-
     // Función para mostrar alertas
     function showAlert(message, type) {
       const alertDiv = document.createElement('div');
@@ -695,117 +887,6 @@
         }
         modal.hide();
       };
-    };
-
-    // Función para buscar artículos
-    window.buscarArticulo = async function(btn) {
-      const row = btn.closest('tr');
-      const modal = new bootstrap.Modal(document.getElementById('modalBusquedaArticulos'));
-      const inputBusqueda = document.getElementById('inputBusquedaArticulo');
-      
-      // Guardar referencia a la fila actual
-      document.getElementById('modalBusquedaArticulos').dataset.currentRow = row.rowIndex;
-      
-      // Limpiar búsqueda previa
-      inputBusqueda.value = '';
-      document.getElementById('listaArticulos').innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Cargando artículos...</td></tr>';
-      
-      modal.show();
-      
-      // Cargar todos los artículos al abrir el modal
-      try {
-        const { data: articulos, error } = await supabase
-          .from('inventario_actual')
-          .select('codigo_articulo, nombre_articulo, cantidad_disponible, unidad, imagen_url')
-          .order('nombre_articulo', { ascending: true });
-        
-        if (error) throw error;
-        
-        mostrarArticulosEnModal(articulos);
-        
-        // Configurar búsqueda en tiempo real
-        inputBusqueda.oninput = () => {
-          const termino = inputBusqueda.value.toLowerCase();
-          const filtrados = articulos.filter(item => 
-            item.nombre_articulo.toLowerCase().includes(termino) || 
-            item.codigo_articulo.toLowerCase().includes(termino)
-          );
-          mostrarArticulosEnModal(filtrados);
-        };
-        
-      } catch (error) {
-        console.error('Error cargando artículos:', error);
-        document.getElementById('listaArticulos').innerHTML = '<tr><td colspan="4" class="text-center text-danger py-3">Error al cargar artículos</td></tr>';
-      }
-    };
-
-    // Función para mostrar artículos en modal
-    function mostrarArticulosEnModal(articulos) {
-      const tbody = document.getElementById('listaArticulos');
-      tbody.innerHTML = '';
-      
-      if (articulos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No se encontraron artículos</td></tr>';
-        return;
-      }
-      
-      articulos.forEach(articulo => {
-        const tr = document.createElement('tr');
-        tr.className = 'articulo-item';
-        tr.dataset.codigo = articulo.codigo_articulo;
-        tr.dataset.nombre = articulo.nombre_articulo;
-        tr.dataset.unidad = articulo.unidad || 'Unidad';
-        tr.dataset.disponible = articulo.cantidad_disponible || 0;
-        tr.dataset.imagen = articulo.imagen_url || 'https://via.placeholder.com/50';
-        
-        tr.innerHTML = `
-          <td>
-            <img src="${articulo.imagen_url || 'https://via.placeholder.com/50'}" 
-                 alt="${articulo.nombre_articulo}" 
-                 style="width:40px; height:40px; object-fit:cover; border-radius:4px;">
-          </td>
-          <td>
-            <strong>${articulo.nombre_articulo}</strong><br>
-            <small class="text-muted">${articulo.codigo_articulo}</small>
-          </td>
-          <td>${articulo.cantidad_disponible || 0} ${articulo.unidad || 'Unidad'}</td>
-          <td><button class="btn btn-sm btn-primary" onclick="seleccionarArticulo(this)">Seleccionar</button></td>
-        `;
-        
-        tbody.appendChild(tr);
-      });
-    }
-
-    // Función para seleccionar artículo
-    window.seleccionarArticulo = function(btn) {
-      const tr = btn.closest('tr');
-      const rowIndex = document.getElementById('modalBusquedaArticulos').dataset.currentRow;
-      const targetRow = document.querySelector(`#detalle-tabla tbody tr:nth-child(${rowIndex})`);
-      
-      if (targetRow) {
-        // Actualizar select
-        const select = targetRow.querySelector('select[name="articulo"]');
-        select.innerHTML = `<option value="${tr.dataset.codigo}" selected>${tr.dataset.nombre}</option>`;
-        select.disabled = false;
-        
-        // Actualizar unidad
-        targetRow.querySelector('input[name="unidad"]').value = tr.dataset.unidad;
-        
-        // Actualizar disponibilidad
-        const disponibilidadText = targetRow.querySelector('.disponibilidad-text');
-        disponibilidadText.textContent = `Máximo: ${tr.dataset.disponible} ${tr.dataset.unidad}`;
-        disponibilidadText.style.display = 'block';
-        
-        // Configurar máximo en cantidad
-        const inputCantidad = targetRow.querySelector('input[name="cantidad"]');
-        inputCantidad.max = tr.dataset.disponible;
-        inputCantidad.placeholder = `Máx. ${tr.dataset.disponible}`;
-        inputCantidad.focus();
-      }
-      
-      // Cerrar modal
-      const modal = bootstrap.Modal.getInstance(document.getElementById('modalBusquedaArticulos'));
-      modal.hide();
     };
   </script>
 </body>
