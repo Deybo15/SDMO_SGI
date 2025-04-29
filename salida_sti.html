@@ -776,12 +776,12 @@
         responsables = autorizados || [];
         retirantes = retirados || [];
 
-        llenarSelect('autoriza', responsables, 'alias');
-        llenarSelect('retira', retirantes, 'colaborador');
-      } catch (error) {
-        console.error('Error cargando colaboradores:', error.message);
-      }
-    }
+        llenarSelect('autoriza', responsables, 'alias', 'identificacion');
+     llenarSelect('retira', retirantes, 'colaborador', 'identificacion');
+   } catch (error) {
+    console.error('Error cargando colaboradores:', error.message);
+   }
+ }
 
     function llenarSelect(id, datos, campo) {
       const select = document.getElementById(id);
