@@ -153,7 +153,6 @@
       background-color: #2980b9;
     }
 
-    /* Estilos para el selector de artículos */
     .articulo-select-container {
       display: flex;
     }
@@ -212,7 +211,6 @@
             </div>
             
             <form id="salida-form" class="needs-validation" novalidate>
-              <!-- Sección de Información Básica -->
               <div class="form-section">
                 <h5 class="section-title"><i class="fas fa-user-tie me-2"></i>Información de la Salida</h5>
                 <div class="row">
@@ -238,9 +236,9 @@
                     <label for="numero_solicitud" class="form-label required-field">Número de solicitud</label>
                     <div class="input-group">
                       <span class="input-group-text"><i class="fas fa-hashtag"></i></span>
-                      <input type="number" id="numero_solicitud" name="numero_solicitud" class="form-control" readonly required />
+                      <input type="number" id="numero_solicitud" name="numero_solicitud" class="form-control" required />
                       <div class="invalid-feedback">
-                        Por favor ingrese el número de solicitud
+                        Por favor ingrese un número de solicitud válido
                       </div>
                     </div>
                   </div>
@@ -256,7 +254,6 @@
                 </div>
               </div>
               
-              <!-- Sección de Artículos -->
               <div class="form-section">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                   <h5 class="section-title mb-0"><i class="fas fa-boxes me-2"></i>Artículos a Retirar</h5>
@@ -280,7 +277,6 @@
                 </div>
               </div>
               
-              <!-- Botones de Acción -->
               <div class="d-flex justify-content-between mt-4">
                 <button type="button" id="btn-cancel" class="btn btn-outline-secondary">
                   <i class="fas fa-arrow-left me-2"></i> Regresar
@@ -382,33 +378,27 @@
     </div>
   </div>
 
-  <!-- Botón flotante para ayuda -->
   <button type="button" class="btn btn-primary rounded-circle floating-btn" data-bs-toggle="tooltip" data-bs-placement="left" title="Ayuda">
     <i class="fas fa-question"></i>
   </button>
 
-  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    // Configuración Supabase
     const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Variables globales
     let responsables = [];
     let retirantes = [];
     let inventarioActual = [];
     let comentarios = '';
-    let idSalidaActual = null;
     let currentInventoryPage = 1;
-    const itemsPerPage = 1000; // Máximo permitido por Supabase
+    const itemsPerPage = 1000;
     let totalInventoryItems = 0;
     let isInventoryLoading = false;
 
-    // Función para cargar inventario con paginación
     async function cargarInventarioPaginado(page = 1) {
       isInventoryLoading = true;
       document.getElementById('loadingArticulos').style.display = 'block';
@@ -431,12 +421,10 @@
           inventarioActual = [...inventarioActual, ...(data || [])];
         }
 
-        // Mostrar mensaje de éxito solo en la primera carga
         if (page === 1 && data && data.length > 0) {
           showAlert(`Inventario cargado (${data.length} artículos)`, 'success');
         }
 
-        // Mostrar u ocultar botón "Cargar más"
         if (inventarioActual.length < totalInventoryItems) {
           document.getElementById('btnLoadMore').style.display = 'block';
         }
@@ -452,7 +440,6 @@
       }
     }
 
-    // Función para buscar artículos
     window.buscarArticulo = async function(btn) {
       const row = btn.closest('tr');
       const modal = new bootstrap.Modal(document.getElementById('modalBusquedaArticulos'));
@@ -464,15 +451,12 @@
       
       modal.show();
       
-      // Cargar primera página si no hay datos
       if (inventarioActual.length === 0) {
         await cargarInventarioPaginado(1);
       }
       
-      // Mostrar resultados iniciales
       mostrarArticulosEnModal(inventarioActual);
       
-      // Configurar búsqueda en tiempo real
       let searchTimeout;
       inputBusqueda.oninput = () => {
         clearTimeout(searchTimeout);
@@ -491,14 +475,12 @@
       };
     };
 
-    // Función para cargar más artículos
     window.cargarMasArticulos = async function() {
       if (isInventoryLoading) return;
       
       currentInventoryPage++;
       await cargarInventarioPaginado(currentInventoryPage);
       
-      // Volver a aplicar filtro si hay uno activo
       const inputBusqueda = document.getElementById('inputBusquedaArticulo');
       if (inputBusqueda.value) {
         const termino = inputBusqueda.value.toLowerCase();
@@ -512,7 +494,6 @@
       }
     };
 
-    // Función para mostrar artículos en modal
     function mostrarArticulosEnModal(articulos) {
       const tbody = document.getElementById('listaArticulos');
       tbody.innerHTML = '';
@@ -522,7 +503,6 @@
         return;
       }
       
-      // Limitar a 200 resultados iniciales para mejor rendimiento
       const itemsToShow = articulos.slice(0, 200);
       
       itemsToShow.forEach(articulo => {
@@ -551,7 +531,6 @@
         tbody.appendChild(tr);
       });
       
-      // Mostrar mensaje si hay más resultados no mostrados
       if (articulos.length > 200) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -563,46 +542,70 @@
       }
     }
 
-    // Función para seleccionar artículo
     window.seleccionarArticulo = function(btn) {
       const tr = btn.closest('tr');
       const rowIndex = document.getElementById('modalBusquedaArticulos').dataset.currentRow;
       const targetRow = document.querySelector(`#detalle-tabla tbody tr:nth-child(${rowIndex})`);
       
       if (targetRow) {
-        // Actualizar select
         const select = targetRow.querySelector('select[name="articulo"]');
         select.innerHTML = `<option value="${tr.dataset.codigo}" selected>${tr.dataset.nombre}</option>`;
         select.disabled = false;
         
-        // Actualizar unidad
         targetRow.querySelector('input[name="unidad"]').value = tr.dataset.unidad;
         
-        // Actualizar disponibilidad
         const disponibilidadText = targetRow.querySelector('.disponibilidad-text');
         disponibilidadText.textContent = `Máximo: ${tr.dataset.disponible} ${tr.dataset.unidad}`;
         disponibilidadText.style.display = 'block';
         
-        // Configurar máximo en cantidad
         const inputCantidad = targetRow.querySelector('input[name="cantidad"]');
         inputCantidad.max = tr.dataset.disponible;
         inputCantidad.placeholder = `Máx. ${tr.dataset.disponible}`;
         inputCantidad.focus();
       }
       
-      // Cerrar modal
       const modal = bootstrap.Modal.getInstance(document.getElementById('modalBusquedaArticulos'));
       modal.hide();
     };
 
+    function validarNumeroSolicitud(numero) {
+      const num = parseInt(numero);
+      if (isNaN(num) || num <= 0) {
+        throw new Error('El número de solicitud debe ser un número válido');
+      }
+      return num;
+    }
+
+    function validarDatosFormulario(autoriza, retira, numeroSolicitud, detalles) {
+      if (!autoriza || !retira) {
+        throw new Error('Debe seleccionar tanto el responsable como la persona que retira');
+      }
+      
+      const numSolicitud = validarNumeroSolicitud(numeroSolicitud);
+      
+      if (detalles.length === 0) {
+        throw new Error('Debe agregar al menos un artículo');
+      }
+
+      detalles.forEach((item, index) => {
+        if (!item.codigo_articulo || !item.articulo || !item.cantidad || !item.unidad) {
+          throw new Error(`El artículo en la fila ${index + 1} está incompleto`);
+        }
+        
+        if (isNaN(item.cantidad) || item.cantidad <= 0) {
+          throw new Error(`La cantidad en la fila ${index + 1} debe ser un número válido`);
+        }
+      });
+
+      return numSolicitud;
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
-      // Inicializar tooltips
       const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
       tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
       });
 
-      // Configurar fecha actual
       const now = new Date();
       document.getElementById('fecha-actual').textContent = now.toLocaleDateString('es-ES', {
         weekday: 'long',
@@ -611,25 +614,20 @@
         day: 'numeric'
       });
 
-      // Cargar número de solicitud desde URL
       const params = new URLSearchParams(window.location.search);
       const numeroSolicitud = params.get('numero');
       if (numeroSolicitud) {
         document.getElementById('numero_solicitud').value = numeroSolicitud;
       }
 
-      // Cargar datos iniciales
       await cargarColaboradores();
       
-      // Configurar evento para cargar más artículos
       document.getElementById('btnLoadMore').addEventListener('click', cargarMasArticulos);
 
-      // Variables del formulario
       const form = document.getElementById('salida-form');
       const addRowBtn = document.getElementById('add-row');
       const tbody = document.querySelector('#detalle-tabla tbody');
 
-      // Función para agregar fila de artículo
       function agregarFila() {
         const tr = document.createElement('tr');
         tr.className = 'animate__animated animate__fadeIn';
@@ -658,7 +656,6 @@
           </td>
         `;
 
-        // Eliminar fila con animación
         tr.querySelector('.btn-remove').addEventListener('click', () => {
           tr.classList.add('animate__fadeOut');
           setTimeout(() => tr.remove(), 300);
@@ -667,10 +664,8 @@
         tbody.appendChild(tr);
       }
 
-      // Evento para agregar fila
       addRowBtn.addEventListener('click', agregarFila);
 
-      // Validación del formulario
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -680,14 +675,6 @@
           return;
         }
         
-        // Validar al menos un artículo
-        const filas = Array.from(document.querySelectorAll('#detalle-tabla tbody tr'));
-        if (filas.length === 0) {
-          showAlert('Debe agregar al menos un artículo', 'danger');
-          return;
-        }
-        
-        // Mostrar loading
         const submitBtn = document.querySelector('button[type="submit"]');
         const originalBtnText = submitBtn.innerHTML;
         submitBtn.innerHTML = `
@@ -697,12 +684,25 @@
         submitBtn.disabled = true;
         
         try {
-          // Obtener datos del formulario
           const autoriza = document.getElementById('autoriza').value.trim();
           const retira = document.getElementById('retira').value.trim();
           const numeroSolicitud = document.getElementById('numero_solicitud').value;
           
-          // Obtener siguiente ID
+          const filas = Array.from(document.querySelectorAll('#detalle-tabla tbody tr'));
+          const detalles = filas.map(tr => {
+            const selectArticulo = tr.querySelector('select[name="articulo"]');
+            const inputCantidad = tr.querySelector('input[name="cantidad"]');
+            
+            return {
+              codigo_articulo: selectArticulo.value.trim(),
+              articulo: selectArticulo.options[selectArticulo.selectedIndex].text.split('(')[0].trim(),
+              cantidad: parseFloat(inputCantidad.value),
+              unidad: tr.querySelector('input[name="unidad"]').value
+            };
+          });
+
+          const numSolicitudValidado = validarDatosFormulario(autoriza, retira, numeroSolicitud, detalles);
+          
           const { data: last, error: errMax } = await supabase
             .from('salida_articulo_08')
             .select('id_salida')
@@ -710,13 +710,12 @@
             .limit(1);
           
           if (errMax) throw errMax;
-          const maxId = last.length ? last[0].id_salida : 0;
+          
+          const maxId = last.length ? parseInt(last[0].id_salida) : 0;
+          if (isNaN(maxId)) throw new Error('Error al obtener el último ID');
+          
           const newId = maxId + 1;
-          
-          // Actualizar folio en pantalla
-          document.getElementById('folio-text').textContent = `Folio: SA-${newId.toString().padStart(4, '0')}`;
-          
-          // Insertar encabezado
+
           const { error: errEnc } = await supabase
             .from('salida_articulo_08')
             .insert([{ 
@@ -724,62 +723,50 @@
               fecha_salida: new Date().toISOString(), 
               autoriza, 
               retira, 
-              numero_solicitud,
+              numero_solicitud: numSolicitudValidado,
               comentarios 
             }]);
           
           if (errEnc) throw errEnc;
           
-          // Recopilar datos detalle
-          const detalles = filas.map(tr => {
-            const selectArticulo = tr.querySelector('select[name="articulo"]');
-            const selectedOption = selectArticulo.options[selectArticulo.selectedIndex];
-            
-            return {
-              id_salida: newId,
-              codigo_articulo: selectArticulo.value.trim(),
-              articulo: selectedOption.textContent.split('(')[0].trim(),
-              cantidad: parseFloat(tr.querySelector('input[name="cantidad"]').value),
-              unidad: tr.querySelector('input[name="unidad"]').value
-            };
-          });
-          
-          // Insertar detalle
+          const detallesParaInsertar = detalles.map(d => ({
+            id_salida: newId,
+            codigo_articulo: d.codigo_articulo,
+            articulo: d.articulo,
+            cantidad: d.cantidad,
+            unidad: d.unidad
+          }));
+
           const { error: errDet } = await supabase
             .from('dato_salida_13')
-            .insert(detalles);
+            .insert(detallesParaInsertar);
           
           if (errDet) throw errDet;
           
-          // Mostrar éxito
           showAlert(`Salida registrada exitosamente con folio SA-${newId.toString().padStart(4, '0')}`, 'success');
           
-          // Redirigir después de 3 segundos
           setTimeout(() => {
             window.location.href = 'lista_salidas.html';
           }, 3000);
           
         } catch (err) {
-          console.error(err);
-          showAlert('Error al guardar: ' + err.message, 'danger');
+          console.error('Error detallado:', err);
+          showAlert(`Error al guardar: ${err.message}`, 'danger');
         } finally {
           submitBtn.innerHTML = originalBtnText;
           submitBtn.disabled = false;
         }
       });
-      
-      // Cancelar formulario
+
       document.getElementById('btn-cancel').addEventListener('click', () => {
         if (confirm('¿Está seguro que desea cancelar? Todos los datos no guardados se perderán.')) {
           window.history.back();
         }
       });
 
-      // Inicializar con una fila
       agregarFila();
     });
 
-    // Función para cargar colaboradores
     async function cargarColaboradores() {
       try {
         const [{ data: autorizados }, { data: retirados }] = await Promise.all([
@@ -796,7 +783,6 @@
       }
     }
 
-    // Función para llenar select
     function llenarSelect(id, datos, campo) {
       const select = document.getElementById(id);
       select.innerHTML = '<option value="" disabled selected>-- Seleccione --</option>';
@@ -808,7 +794,6 @@
       });
     }
 
-    // Función para abrir modal de búsqueda
     window.abrirModalBusqueda = function(tipo) {
       const datos = tipo === 'autoriza' ? responsables : retirantes;
       const campo = tipo === 'autoriza' ? 'alias' : 'colaborador';
@@ -830,7 +815,6 @@
       modal.show();
     };
 
-    // Función para mostrar resultados de búsqueda
     function mostrarResultados(lista, campo) {
       const contenedor = document.getElementById('listaResultados');
       contenedor.innerHTML = '';
@@ -847,7 +831,6 @@
       });
     }
 
-    // Función para seleccionar item de búsqueda
     function seleccionarItem(valor) {
       const tipo = document.getElementById('modalBusqueda').dataset.tipo;
       document.getElementById(tipo).value = valor;
@@ -855,7 +838,6 @@
       modal.hide();
     }
 
-    // Función para mostrar alertas
     function showAlert(message, type) {
       const alertDiv = document.createElement('div');
       alertDiv.className = `alert alert-${type} alert-dismissible fade show animate__animated animate__fadeIn`;
@@ -871,7 +853,6 @@
       container.appendChild(alertDiv);
     }
 
-    // Función para mostrar modal de comentarios
     window.showComentariosModal = function() {
       const modal = new bootstrap.Modal(document.getElementById('comentariosModal'));
       const textarea = document.getElementById('comentarios-text');
