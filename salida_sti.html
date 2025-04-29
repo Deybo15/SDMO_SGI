@@ -740,8 +740,7 @@
             id_salida: newId,
             articulo: d.codigo_articulo,
             cantidad: d.cantidad,
-            unidad: d.unidad
-          }));
+           }));
 
           const { error: errDet } = await supabase
             .from('dato_salida_13')
