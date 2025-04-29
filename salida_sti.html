@@ -783,23 +783,25 @@
         responsables = autorizados || [];
         retirantes = retirados || [];
 
-        llenarSelect('autoriza', responsables, 'alias', 'identificacion');
-        llenarSelect('retira', retirantes, 'colaborador', 'identificacion');
+        llenarSelect('autoriza', responsables, 'alias',          'identificacion');
+        llenarSelect('retira',  retirantes,   'colaborador',    'identificacion');
+
    } catch (error) {
     console.error('Error cargando colaboradores:', error.message);
    }
  }
 
-    function llenarSelect(id, datos, textField, valueField) {
-      const select = document.getElementById(id);
-      select.innerHTML = '<option value="" disabled selected>-- Seleccione --</option>';
-      datos.forEach(item => {
-        const opt = document.createElement('option');
-        opt.value     = item[valueField];   // aquí la identificacion
-        opt.textContent = item[textField];  // aquí alias o colaborador
-        select.appendChild(opt);
+  function llenarSelect(id, datos, textField, valueField) {
+    const select = document.getElementById(id);
+    select.innerHTML = '<option value="" disabled selected>-- Seleccione --</option>';
+    datos.forEach(item => {
+      const opt = document.createElement('option');
+      opt.value       = item[valueField];
+      opt.textContent = item[textField];
+      select.appendChild(opt);
     });
   }
+
 
 
     window.abrirModalBusqueda = function(tipo) {
