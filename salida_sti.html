@@ -565,10 +565,33 @@
         disponibilidadText.textContent = `Máximo: ${tr.dataset.disponible} ${tr.dataset.unidad}`;
         disponibilidadText.style.display = 'block';
         
-        const inputCantidad = targetRow.querySelector('input[name="cantidad"]');
-        inputCantidad.max = tr.dataset.disponible;
-        inputCantidad.placeholder = `Máx. ${tr.dataset.disponible}`;
-        inputCantidad.focus();
+       const inputCantidad = targetRow.querySelector('input[name="cantidad"]');
+inputCantidad.max = tr.dataset.disponible;
+inputCantidad.placeholder = `Máx. ${tr.dataset.disponible}`;
+
+// ——— Aquí añades el bloque de validación en tiempo real ———
+inputCantidad.addEventListener('input', () => {
+  const max = parseFloat(inputCantidad.max) || Infinity;
+  const val = inputCantidad.valueAsNumber || 0;
+
+  if (val > max) {
+    inputCantidad.setCustomValidity(`La cantidad no puede superar ${max}`);
+  } else {
+    inputCantidad.setCustomValidity('');
+  }
+
+  inputCantidad.reportValidity();
+});
+// ————————————————————————————————————————————
+
+inputCantidad.focus();
+
+
+
+
+
+
+        
       }
       
       const modal = bootstrap.Modal.getInstance(document.getElementById('modalBusquedaArticulos'));
