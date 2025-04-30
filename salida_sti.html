@@ -710,31 +710,23 @@
 
           const numSolicitudValidado = validarDatosFormulario(autoriza, retira, numeroSolicitud, detalles);
           
-          const { data: last, error: errMax } = await supabase
-            .from('salida_articulo_08')
-            .select('id_salida')
-            .order('id_salida', { ascending: false })
-            .limit(1);
-          
-          if (errMax) throw errMax;
-          
-          const maxId = last.length ? parseInt(last[0].id_salida) : 0;
-          if (isNaN(maxId)) throw new Error('Error al obtener el último ID');
-          
-          const newId = maxId + 1;
+         // inserta sin id_salida — Postgres lo genera
+const { data: insertedEnc, error: errEnc } = await supabase
+  .from('salida_articulo_08')
+  .insert([{
+    fecha_salida:    new Date().toISOString(),
+    autoriza,
+    retira,
+    numero_solicitud: numSolicitudValidado,
+    comentarios
+  }], { returning: 'representation' })
+  .select('id_salida');
 
-          const { error: errEnc } = await supabase
-            .from('salida_articulo_08')
-            .insert([{ 
-              id_salida: newId, 
-              fecha_salida: new Date().toISOString(), 
-              autoriza, 
-              retira, 
-              numero_solicitud: numSolicitudValidado,
-              comentarios 
-            }]);
-          
-          if (errEnc) throw errEnc;
+if (errEnc) throw errEnc;
+
+// ahora newId lo tomas del primer registro insertado:
+const newId = insertedEnc[0].id_salida;
+
           
           // 1) Construye el array SIN registro_salida
 const detallesParaInsertar = detalles.map(d => ({
