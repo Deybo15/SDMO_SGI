@@ -736,17 +736,25 @@
           
           if (errEnc) throw errEnc;
           
-          const detallesParaInsertar = detalles.map(d => ({
-            id_salida: newId,
-            articulo: d.codigo_articulo,
-            cantidad: d.cantidad,
-           }));
+          // 1) Construye el array SIN registro_salida
+const detallesParaInsertar = detalles.map(d => ({
+  id_salida: newId,
+  articulo:  d.codigo_articulo,
+  cantidad:  d.cantidad,
+}));
 
-          const { error: errDet } = await supabase
-            .from('dato_salida_13')
-            .insert(detallesParaInsertar);
-          
-          if (errDet) throw errDet;
+// 2) Inserta y pide que te devuelva el registro_salida generado por la BD
+const { data: insertedDetails, error: errDet } = await supabase
+  .from('dato_salida_13')
+  .insert(detallesParaInsertar, { returning: 'representation' })
+  .select('registro_salida, id_salida, articulo, cantidad');
+
+if (errDet) throw errDet;
+
+// insertedDetails es un array con cada fila insertada,
+// incluyendo el registro_salida que PostgreSQL asignó automáticamente.
+console.log('Detalles guardados:', insertedDetails);
+
           
           showAlert(`Salida registrada exitosamente con folio SA-${newId.toString().padStart(4, '0')}`, 'success');
           
