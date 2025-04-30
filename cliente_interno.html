@@ -39,23 +39,7 @@
       }) || [];
     };
 
-    async function obtenerProximoNumero() {
-      try {
-        const { data, error } = await supabase
-          .from("solicitud_17")
-          .select('numero_solicitud')
-          .order('numero_solicitud', { ascending: false })
-          .limit(1);
-        
-        if (error) throw error;
-        
-        return data.length > 0 ? data[0].numero_solicitud + 1 : 1;
-      } catch (error) {
-        console.error("Error obteniendo número de solicitud:", error);
-        throw error;
-      }
-    }
-
+  
     async function cargarDesplegables() {
       try {
         const [areas, instalaciones, supervisores, profesionales, clientes] = await Promise.all([
@@ -254,13 +238,14 @@
         `;
         submitBtn.disabled = true;
 
-        const proximoNumero = await obtenerProximoNumero();
+      
 
-        const { data, error } = await supabase.from("solicitud_17").insert([{
-          numero_solicitud: proximoNumero,
-          id_solicitud_sa: null,
-          tipo_solicitud: "STI",
-          fecha_solicitud: new Date().toISOString().split("T")[0],
+      const { data: insertedRows, error } = await supabase
+        .from('solicitud_17')
+        .insert([{
+          id_solicitud_sa:    null,
+          tipo_solicitud:     "STI",
+          fecha_solicitud:    new Date().toISOString().split("T")[0],
           area_mantenimiento,
           tipologia_trabajo: null,
           descripcion_solicitud: escapeHtml(descripcion),
@@ -277,11 +262,13 @@
           cliente_externo: null,
           numero_activo: null,
           dependencia_municipal: null
-        }]).select();
+        }], { returning: 'representation' })   // <-- aquí pides la fila completa
+        .select('numero_solicitud');           // <-- y aquí sólo ese campo
 
-        if (error) throw error;
-
-        showNotification(`Solicitud #${proximoNumero} guardada exitosamente`, "success");
+      if (error) throw error;
+        const numeroGenerado = insertedRows[0].numero_solicitud;
+        
+        showNotification(`Solicitud #${numeroGenerado} guardada exitosamente`, 'success');
         resetForm();
         document.getElementById("descripcion_solicitud").focus();
         
