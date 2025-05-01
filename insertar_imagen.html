@@ -75,6 +75,11 @@
     @keyframes rotate {
       100% { transform: rotate(360deg); }
     }
+    
+    .btn-regresar {
+      background: #7f8c8d;
+      margin-top: 1rem;
+    }
   </style>
 </head>
 <body>
@@ -90,6 +95,8 @@
     </button>
     <div id="mensaje" class="mensaje"></div>
   </div>
+  
+  <button id="btnRegresar" class="btn-regresar">Regresar a la pantalla anterior</button>
 
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
@@ -108,12 +115,14 @@
       mensaje: document.getElementById('mensaje'),
       preview: document.getElementById('preview'),
       spinner: document.querySelector('.spinner'),
-      btnText: document.querySelector('.btn-text')
+      btnText: document.querySelector('.btn-text'),
+      btnRegresar: document.getElementById('btnRegresar')
     };
 
     elements.imagen.addEventListener('change', handleImageSelect);
     elements.codigo.addEventListener('input', validateForm);
     elements.btnSubir.addEventListener('click', handleUpload);
+    elements.btnRegresar.addEventListener('click', handleRegresar);
 
     function handleImageSelect() {
       const file = elements.imagen.files[0];
@@ -256,6 +265,13 @@
       elements.btnText.textContent = loading ? 'Procesando...' : 'Subir imagen y asociar';
       elements.btnSubir.disabled = loading;
     }
+    
+    function handleRegresar() {
+      window.history.back();
+    }
+  </script>
+</body>
+</html>
   </script>
 </body>
 </html>
