@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sistema de Desarrollo y Mantenimiento de Obras - Página Principal">
+  <meta name="theme-color" content="#2c3e50">
   <title>Sistema SDMO - Página Principal</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -19,16 +21,22 @@
       try {
         showLoading(true);
         
+        // Verificar autenticación del usuario
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         
         if (authError) throw authError;
         if (!user) {
+          // Redirigir a login si no hay usuario autenticado
           window.location.href = "index.html";
           return;
         }
 
+        // Mostrar email del usuario
         document.getElementById("usuario").textContent = user.email;
         setupEventListeners();
+        
+        // Mostrar notificación de bienvenida
+        showNotification("Sesión iniciada correctamente", "success");
         
       } catch (error) {
         console.error("Error de autenticación:", error);
@@ -43,7 +51,18 @@
     function setupEventListeners() {
       document.getElementById("btnLogout").addEventListener("click", logout);
       
-      // Configurar tooltips
+      // Hover efecto en tarjetas
+      const cards = document.querySelectorAll('.menu-card');
+      cards.forEach(card => {
+        card.addEventListener('mouseenter', (e) => {
+          e.currentTarget.classList.add('hover-effect');
+        });
+        card.addEventListener('mouseleave', (e) => {
+          e.currentTarget.classList.remove('hover-effect');
+        });
+      });
+      
+      // Tooltips de Bootstrap
       const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
       tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
@@ -54,13 +73,16 @@
     async function logout() {
       try {
         showLoading(true);
+        showNotification("Cerrando sesión...", "info");
+        
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
+        
+        // Redirigir a login
         window.location.href = "index.html";
       } catch (error) {
         console.error("Error al cerrar sesión:", error);
         showNotification("Error al cerrar sesión", "error");
-      } finally {
         showLoading(false);
       }
     }
@@ -75,7 +97,7 @@
       notification.innerHTML = `
         <div class="d-flex">
           <div class="toast-body">
-            <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-2"></i>
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-triangle' : 'fa-info-circle'} me-2"></i>
             ${message}
           </div>
           <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
@@ -84,7 +106,7 @@
       
       const toastContainer = document.getElementById('toastContainer');
       toastContainer.appendChild(notification);
-      const toast = new bootstrap.Toast(notification);
+      const toast = new bootstrap.Toast(notification, { delay: 3000 });
       toast.show();
       
       // Eliminar el toast después de ocultarse
@@ -110,12 +132,20 @@
       --accent-color: #e74c3c;
       --light-bg: #f8f9fa;
       --dark-text: #343a40;
+      --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      --header-height: 120px;
+      --border-radius: 8px;
     }
     
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: var(--light-bg);
       color: var(--dark-text);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
     
     .main-header {
@@ -123,12 +153,23 @@
       color: white;
       padding: 1.5rem 0;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      border-bottom: 3px solid var(--secondary-color);
+      text-align: center;
+      height: var(--header-height);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .header-logo {
+      width: 40px;
+      height: 40px;
+      margin-right: 12px;
     }
     
     .header-title {
       font-weight: 600;
-      margin-bottom: 0.5rem;
+      font-size: 2rem;
+      margin-bottom: 0.25rem;
     }
     
     .header-subtitle {
@@ -140,70 +181,135 @@
       max-width: 1200px;
       margin: 0 auto;
       padding: 2rem 1rem;
+      flex: 1;
     }
     
     .user-card {
       background: white;
-      border-radius: 10px;
+      border-radius: var(--border-radius);
       padding: 1.5rem;
-      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
-      margin-bottom: 2rem;
+      box-shadow: var(--card-shadow);
+      margin-bottom: 2.5rem;
       text-align: center;
       border-left: 4px solid var(--secondary-color);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .user-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background-color: var(--secondary-color);
     }
     
     .user-email {
       color: var(--secondary-color);
       font-weight: 500;
+      font-size: 1.5rem;
+      margin-top: 0.5rem;
     }
     
     .menu-options {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1.5rem;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 2rem;
       margin-top: 2rem;
     }
     
     .menu-card {
       background: white;
-      border-radius: 10px;
+      border-radius: var(--border-radius);
       overflow: hidden;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--card-shadow);
       transition: all 0.3s ease;
       border: none;
       text-align: center;
       height: 100%;
+      display: flex;
+      flex-direction: column;
     }
     
-    .menu-card:hover {
+    .menu-card.hover-effect {
       transform: translateY(-5px);
-      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     }
     
     .menu-card .card-body {
       padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
     }
     
     .menu-card .card-icon {
       font-size: 2.5rem;
       color: var(--secondary-color);
       margin-bottom: 1.5rem;
+      padding: 12px;
+      background-color: rgba(52, 152, 219, 0.1);
+      border-radius: 50%;
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
     }
     
     .menu-card .card-title {
-      font-size: 1.25rem;
+      font-size: 1.35rem;
       color: var(--primary-color);
       margin-bottom: 1rem;
+      font-weight: 600;
+    }
+    
+    .menu-card .text-muted {
+      margin-bottom: 1.5rem;
+      flex-grow: 1;
     }
     
     .menu-card .btn {
-      width: 100%;
-      margin-top: 1rem;
+      padding: 0.75rem;
+      font-weight: 500;
+      border-radius: var(--border-radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+    }
+    
+    .logout-container {
+      text-align: center;
+      margin-top: 2.5rem;
     }
     
     .logout-btn {
-      margin-top: 2rem;
-      max-width: 300px;
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 0.75rem 2rem;
+      font-weight: 500;
+      border-radius: var(--border-radius);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      font-size: 0.9rem;
+      letter-spacing: 0.5px;
+    }
+    
+    .logout-btn:hover {
+      background-color: #c0392b;
+      transform: translateY(-2px);
+    }
+    
+    .logout-btn:active {
+      transform: translateY(0);
     }
     
     #loader {
@@ -251,6 +357,14 @@
       .menu-card .card-body {
         padding: 1.5rem;
       }
+      
+      .header-title {
+        font-size: 1.6rem;
+      }
+      
+      .header-subtitle {
+        font-size: 0.9rem;
+      }
     }
   </style>
 </head>
@@ -265,9 +379,17 @@
   
   <!-- Encabezado -->
   <header class="main-header">
-    <div class="container text-center">
-      <h1 class="header-title"><i class="fas fa-tools me-2"></i>Sistema de Gestión SDMO</h1>
-      <p class="header-subtitle">Desarrollo y Mantenimiento de Obras</p>
+    <div class="container">
+      <div class="d-flex align-items-center justify-content-center">
+        <!-- Ícono de herramientas como logo -->
+        <svg class="header-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+        </svg>
+        <div>
+          <h1 class="header-title">Sistema de Gestión SDMO</h1>
+          <p class="header-subtitle">Desarrollo y Mantenimiento de Obras</p>
+        </div>
+      </div>
     </div>
   </header>
   
@@ -275,14 +397,14 @@
   <main class="main-container">
     <!-- Información del usuario -->
     <div class="user-card">
-      <p>Bienvenido, usted ha iniciado sesión como:</p>
-      <h3 class="user-email" id="usuario"></h3>
+      <p class="mb-1">Bienvenido, usted ha iniciado sesión como:</p>
+      <h3 class="user-email" id="usuario">dgamboa@msj.go.cr</h3>
     </div>
     
     <!-- Menú de opciones -->
     <div class="menu-options">
       <!-- Tarjeta de Artículos -->
-      <div class="card menu-card">
+      <div class="menu-card">
         <div class="card-body">
           <div class="card-icon">
             <i class="fas fa-boxes"></i>
@@ -296,7 +418,7 @@
       </div>
       
       <!-- Tarjeta de Cliente Interno -->
-      <div class="card menu-card">
+      <div class="menu-card">
         <div class="card-body">
           <div class="card-icon">
             <i class="fas fa-users"></i>
@@ -308,13 +430,11 @@
           </a>
         </div>
       </div>
-      
-      <!-- Puedes agregar más tarjetas según necesites -->
     </div>
     
     <!-- Botón de cierre de sesión -->
-    <div class="text-center">
-      <button id="btnLogout" class="btn btn-danger logout-btn" data-bs-toggle="tooltip" title="Cerrar la sesión actual">
+    <div class="logout-container">
+      <button id="btnLogout" class="logout-btn" data-bs-toggle="tooltip" title="Cerrar la sesión actual">
         <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
       </button>
     </div>
