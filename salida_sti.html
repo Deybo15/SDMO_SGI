@@ -414,7 +414,7 @@
       try {
         const { data, error, count } = await supabase
           .from('inventario_actual')
-          .select('codigo_articulo, nombre_articulo, cantidad_disponible, unidad, imagen_url', { count: 'exact' })
+          .select('codigo_articulo, nombre_articulo, cantidad_disponible, unidad, imagen_url, precio_unitario', { count: 'exact' })
           .order('nombre_articulo', { ascending: true })
           .range((page - 1) * itemsPerPage, page * itemsPerPage - 1);
 
@@ -520,6 +520,7 @@
         tr.dataset.unidad = articulo.unidad || 'Unidad';
         tr.dataset.disponible = articulo.cantidad_disponible || 0;
         tr.dataset.imagen = articulo.imagen_url || 'https://via.placeholder.com/50';
+        tr.dataset.precio = articulo.precio_unitario || 0;
         
         tr.innerHTML = `
           <td>
@@ -558,6 +559,7 @@
         const select = targetRow.querySelector('select[name="articulo"]');
         select.innerHTML = `<option value="${tr.dataset.codigo}" selected>${tr.dataset.nombre}</option>`;
         select.disabled = false;
+        targetRow.dataset.precio = tr.dataset.precio;
         
         targetRow.querySelector('input[name="unidad"]').value = tr.dataset.unidad;
         
@@ -762,11 +764,17 @@ const newId = insertedEnc[0].id_salida;
 
           
           // 1) Construye el array SIN registro_salida
-const detallesParaInsertar = detalles.map(d => ({
-  id_salida: newId,
-  articulo:  d.codigo_articulo,
-  cantidad:  d.cantidad,
-}));
+const detallesParaInsertar = filas.map(tr => {
+  const selectArticulo = tr.querySelector('select[name="articulo"]');
+  const inputCantidad = tr.querySelector('input[name="cantidad"]');
+  const precioUnitario = parseFloat(tr.dataset.precio || 0);
+  return {
+    id_salida: newId,
+    articulo:  selectArticulo.value.trim(),
+    cantidad:  parseFloat(inputCantidad.value),
+    precio_unitario: precioUnitario,
+  };
+});
 
 // 2) Inserta y pide que te devuelva el registro_salida generado por la BD
 const { data: insertedDetails, error: errDet } = await supabase
