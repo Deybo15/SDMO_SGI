@@ -276,6 +276,7 @@
                         <th width="50%">Artículo</th>
                         <th width="20%">Cantidad</th>
                         <th width="20%">Unidad</th>
+<th width="15%">Precio Unitario</th>
                         <th width="10%">Acción</th>
                       </tr>
                     </thead>
@@ -414,7 +415,7 @@
       try {
         const { data, error, count } = await supabase
           .from('inventario_actual')
-          .select('codigo_articulo, nombre_articulo, cantidad_disponible, unidad, imagen_url', { count: 'exact' })
+          .select('codigo_articulo, nombre_articulo, cantidad_disponible, unidad, imagen_url, precio_unitario', { count: 'exact' })
           .order('nombre_articulo', { ascending: true })
           .range((page - 1) * itemsPerPage, page * itemsPerPage - 1);
 
@@ -520,6 +521,7 @@
         tr.dataset.unidad = articulo.unidad || 'Unidad';
         tr.dataset.disponible = articulo.cantidad_disponible || 0;
         tr.dataset.imagen = articulo.imagen_url || 'https://via.placeholder.com/50';
+        tr.dataset.precio_unitario = articulo.precio_unitario;
         
         tr.innerHTML = `
           <td>
@@ -561,6 +563,9 @@
         
         targetRow.querySelector('input[name="unidad"]').value = tr.dataset.unidad;
         
+        const inputPrecioUnitario = targetRow.querySelector('input[name="precio_unitario"]');
+        inputPrecioUnitario.value = tr.dataset.precio_unitario;
+
         const disponibilidadText = targetRow.querySelector('.disponibilidad-text');
         disponibilidadText.textContent = `Máximo: ${tr.dataset.disponible} ${tr.dataset.unidad}`;
         disponibilidadText.style.display = 'block';
@@ -689,8 +694,11 @@ inputCantidad.focus();
           <td>
             <input type="text" name="unidad" class="form-control" readonly>
           </td>
-          <td class="text-center">
-            <button type="button" class="btn btn-sm btn-danger btn-remove">
+          <td>
+<input type="number" name="precio_unitario" class="form-control" min="0" step="any" required placeholder="₡">
+</td>
+<td class="text-center">
+<button type="button" class="btn btn-sm btn-danger btn-remove">
               <i class="fas fa-trash-alt"></i>
             </button>
           </td>
@@ -732,11 +740,13 @@ inputCantidad.focus();
           const detalles = filas.map(tr => {
             const selectArticulo = tr.querySelector('select[name="articulo"]');
             const inputCantidad = tr.querySelector('input[name="cantidad"]');
+  const inputPrecio = tr.querySelector('input[name="precio_unitario"]');
             
             return {
               codigo_articulo: selectArticulo.value.trim(),
               articulo: selectArticulo.options[selectArticulo.selectedIndex].text.split('(')[0].trim(),
               cantidad: parseFloat(inputCantidad.value),
+    precio_unitario: parseFloat(inputPrecio.value)
               unidad: tr.querySelector('input[name="unidad"]').value
             };
           });
@@ -766,6 +776,7 @@ const detallesParaInsertar = detalles.map(d => ({
   id_salida: newId,
   articulo:  d.codigo_articulo,
   cantidad:  d.cantidad,
+  precio_unitario: d.precio_unitario
 }));
 
 // 2) Inserta y pide que te devuelva el registro_salida generado por la BD
