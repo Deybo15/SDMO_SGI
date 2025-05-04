@@ -400,35 +400,11 @@
     let responsables = [];
     let retirantes = [];
     let inventarioActual = [];
-    let preciosArticulos = {}; // Objeto para almacenar los precios unitarios de los artículos
     let comentarios = '';
     let currentInventoryPage = 1;
     const itemsPerPage = 1000;
     let totalInventoryItems = 0;
     let isInventoryLoading = false;
-
-    // Cargar precios de artículos
-    async function cargarPreciosArticulos() {
-      try {
-        const { data, error } = await supabase
-          .from('articulo_01')
-          .select('codigo_articulo, precio_unitario');
-        
-        if (error) throw error;
-        
-        // Crear un mapa de código_articulo -> precio_unitario
-        if (data && data.length > 0) {
-          data.forEach(item => {
-            preciosArticulos[item.codigo_articulo] = item.precio_unitario || 0;
-          });
-        }
-        
-        console.log('Precios de artículos cargados:', Object.keys(preciosArticulos).length);
-      } catch (error) {
-        console.error('Error cargando precios de artículos:', error);
-        showAlert('Error al cargar los precios de artículos', 'danger');
-      }
-    }
 
     async function cargarInventarioPaginado(page = 1) {
       isInventoryLoading = true;
@@ -544,7 +520,6 @@
         tr.dataset.unidad = articulo.unidad || 'Unidad';
         tr.dataset.disponible = articulo.cantidad_disponible || 0;
         tr.dataset.imagen = articulo.imagen_url || 'https://via.placeholder.com/50';
-        tr.dataset.precio = preciosArticulos[articulo.codigo_articulo] || 0; // Añadir el precio al dataset
         
         tr.innerHTML = `
           <td>
@@ -586,32 +561,37 @@
         
         targetRow.querySelector('input[name="unidad"]').value = tr.dataset.unidad;
         
-        // Guardar el precio unitario en un atributo data para usarlo después
-        select.dataset.precioUnitario = tr.dataset.precio;
-        
         const disponibilidadText = targetRow.querySelector('.disponibilidad-text');
         disponibilidadText.textContent = `Máximo: ${tr.dataset.disponible} ${tr.dataset.unidad}`;
         disponibilidadText.style.display = 'block';
         
-        const inputCantidad = targetRow.querySelector('input[name="cantidad"]');
-        inputCantidad.max = tr.dataset.disponible;
-        inputCantidad.placeholder = `Máx. ${tr.dataset.disponible}`;
+       const inputCantidad = targetRow.querySelector('input[name="cantidad"]');
+inputCantidad.max = tr.dataset.disponible;
+inputCantidad.placeholder = `Máx. ${tr.dataset.disponible}`;
 
-        // Validación en tiempo real
-        inputCantidad.addEventListener('input', () => {
-          const max = parseFloat(inputCantidad.max) || Infinity;
-          const val = inputCantidad.valueAsNumber || 0;
+// ——— Aquí añades el bloque de validación en tiempo real ———
+inputCantidad.addEventListener('input', () => {
+  const max = parseFloat(inputCantidad.max) || Infinity;
+  const val = inputCantidad.valueAsNumber || 0;
 
-          if (val > max) {
-            inputCantidad.setCustomValidity(`La cantidad no puede superar ${max}`);
-          } else {
-            inputCantidad.setCustomValidity('');
-          }
+  if (val > max) {
+    inputCantidad.setCustomValidity(`La cantidad no puede superar ${max}`);
+  } else {
+    inputCantidad.setCustomValidity('');
+  }
 
-          inputCantidad.reportValidity();
-        });
+  inputCantidad.reportValidity();
+});
+// ————————————————————————————————————————————
 
-        inputCantidad.focus();
+inputCantidad.focus();
+
+
+
+
+
+
+        
       }
       
       const modal = bootstrap.Modal.getInstance(document.getElementById('modalBusquedaArticulos'));
@@ -670,8 +650,6 @@
         document.getElementById('numero_solicitud').value = numeroSolicitud;
       }
 
-      // Cargamos los precios de los artículos
-      await cargarPreciosArticulos();
       await cargarColaboradores();
       
       document.getElementById('btnLoadMore').addEventListener('click', cargarMasArticulos);
@@ -687,4 +665,250 @@
           <td>
             <div class="input-group">
               <select name="articulo" class="form-select articulo-select" required disabled>
-                <option value="" selected>-- Seleccione --
+                <option value="" selected>-- Seleccione --</option>
+              </select>
+              <button type="button" class="btn btn-outline-secondary btn-buscar-articulo" onclick="buscarArticulo(this)">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
+          </td>
+          <td>
+           <input 
+  type="number" 
+  name="cantidad" 
+  class="form-control" 
+  min="0" 
+  step="any" 
+  required
+>
+<div class="invalid-feedback">
+    Por favor ingrese una cantidad válida (no mayor al máximo disponible).
+  </div>
+            <small class="text-muted disponibilidad-text" style="display:none;"></small>
+          </td>
+          <td>
+            <input type="text" name="unidad" class="form-control" readonly>
+          </td>
+          <td class="text-center">
+            <button type="button" class="btn btn-sm btn-danger btn-remove">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </td>
+        `;
+
+        tr.querySelector('.btn-remove').addEventListener('click', () => {
+          tr.classList.add('animate__fadeOut');
+          setTimeout(() => tr.remove(), 300);
+        });
+        
+        tbody.appendChild(tr);
+      }
+
+      addRowBtn.addEventListener('click', agregarFila);
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!form.checkValidity()) {
+          form.classList.add('was-validated');
+          return;
+        }
+        
+        const submitBtn = document.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.innerHTML = `
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          Guardando...
+        `;
+        submitBtn.disabled = true;
+        
+        try {
+          const autoriza = document.getElementById('autoriza').value.trim();
+          const retira = document.getElementById('retira').value.trim();
+          const numeroSolicitud = document.getElementById('numero_solicitud').value;
+          
+          const filas = Array.from(document.querySelectorAll('#detalle-tabla tbody tr'));
+          const detalles = filas.map(tr => {
+            const selectArticulo = tr.querySelector('select[name="articulo"]');
+            const inputCantidad = tr.querySelector('input[name="cantidad"]');
+            
+            return {
+              codigo_articulo: selectArticulo.value.trim(),
+              articulo: selectArticulo.options[selectArticulo.selectedIndex].text.split('(')[0].trim(),
+              cantidad: parseFloat(inputCantidad.value),
+              unidad: tr.querySelector('input[name="unidad"]').value
+            };
+          });
+
+          const numSolicitudValidado = validarDatosFormulario(autoriza, retira, numeroSolicitud, detalles);
+          
+         // inserta sin id_salida — Postgres lo genera
+const { data: insertedEnc, error: errEnc } = await supabase
+  .from('salida_articulo_08')
+  .insert([{
+    fecha_salida:    new Date().toISOString(),
+    autoriza,
+    retira,
+    numero_solicitud: numSolicitudValidado,
+    comentarios
+  }], { returning: 'representation' })
+  .select('id_salida');
+
+if (errEnc) throw errEnc;
+
+// ahora newId lo tomas del primer registro insertado:
+const newId = insertedEnc[0].id_salida;
+
+          
+          // 1) Construye el array SIN registro_salida
+const detallesParaInsertar = detalles.map(d => ({
+  id_salida: newId,
+  articulo:  d.codigo_articulo,
+  cantidad:  d.cantidad,
+}));
+
+// 2) Inserta y pide que te devuelva el registro_salida generado por la BD
+const { data: insertedDetails, error: errDet } = await supabase
+  .from('dato_salida_13')
+  .insert(detallesParaInsertar, { returning: 'representation' })
+  .select('registro_salida, id_salida, articulo, cantidad');
+
+if (errDet) throw errDet;
+
+// insertedDetails es un array con cada fila insertada,
+// incluyendo el registro_salida que PostgreSQL asignó automáticamente.
+console.log('Detalles guardados:', insertedDetails);
+
+          
+          showAlert(`Salida registrada exitosamente con folio SA-${newId.toString().padStart(4, '0')}`, 'success');
+          
+          setTimeout(() => {
+            window.location.href = 'lista_salidas.html';
+          }, 3000);
+          
+        } catch (err) {
+          console.error('Error detallado:', err);
+          showAlert(`Error al guardar: ${err.message}`, 'danger');
+        } finally {
+          submitBtn.innerHTML = originalBtnText;
+          submitBtn.disabled = false;
+        }
+      });
+
+      document.getElementById('btn-cancel').addEventListener('click', () => {
+        if (confirm('¿Está seguro que desea cancelar? Todos los datos no guardados se perderán.')) {
+          window.history.back();
+        }
+      });
+
+      agregarFila();
+    });
+
+    async function cargarColaboradores() {
+      try {
+        const [{ data: autorizados }, { data: retirados }] = await Promise.all([
+          supabase.from('colaboradores_06').select('identificacion, alias').eq('autorizado', true),
+          supabase.from('colaboradores_06').select('identificacion, colaborador').eq('condicion_laboral', false)
+        ]);
+        responsables = autorizados || [];
+        retirantes = retirados || [];
+
+        llenarSelect('autoriza', responsables, 'alias', 'identificacion');
+        llenarSelect('retira', retirantes, 'colaborador', 'identificacion');
+
+      } catch (error) {
+        console.error('Error cargando colaboradores:', error.message);
+      }
+    }
+
+    function llenarSelect(id, datos, textField, valueField) {
+      const select = document.getElementById(id);
+      select.innerHTML = '<option value="" disabled selected>-- Seleccione --</option>';
+      datos.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item[valueField];
+        opt.textContent = item[textField];
+        select.appendChild(opt);
+      });
+    }
+
+    window.abrirModalBusqueda = function(tipo) {
+      const datos = tipo === 'autoriza' ? responsables : retirantes;
+      const campo = tipo === 'autoriza' ? 'alias' : 'colaborador';
+
+      const modal = new bootstrap.Modal(document.getElementById('modalBusqueda'));
+      document.getElementById('inputBusqueda').value = '';
+      document.getElementById('listaResultados').innerHTML = '';
+      document.getElementById('modalBusqueda').dataset.tipo = tipo;
+      document.getElementById('tituloModalBusqueda').textContent = tipo === 'autoriza' ? 'Buscar Responsable' : 'Buscar Persona que Retira';
+
+      mostrarResultados(datos, campo);
+
+      document.getElementById('inputBusqueda').oninput = () => {
+        const termino = document.getElementById('inputBusqueda').value.toLowerCase();
+        const filtrados = datos.filter(item => item[campo]?.toLowerCase().includes(termino));
+        mostrarResultados(filtrados, campo);
+      };
+
+      modal.show();
+    };
+
+    function mostrarResultados(lista, campo) {
+      const contenedor = document.getElementById('listaResultados');
+      contenedor.innerHTML = '';
+      if (lista.length === 0) {
+        contenedor.innerHTML = '<li class="list-group-item text-muted">No se encontraron resultados</li>';
+        return;
+      }
+      lista.forEach(item => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item list-group-item-action';
+        li.textContent = item[campo];
+        li.dataset.value = item.identificacion;
+        li.onclick = () => seleccionarItem(item);
+        contenedor.appendChild(li);
+      });
+    }
+
+    function seleccionarItem(item) {
+      const tipo = document.getElementById('modalBusqueda').dataset.tipo;
+      document.getElementById(tipo).value = item.identificacion;
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalBusqueda'));
+      modal.hide();
+    }
+
+    function showAlert(message, type) {
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `alert alert-${type} alert-dismissible fade show animate__animated animate__fadeIn`;
+      alertDiv.role = 'alert';
+      alertDiv.innerHTML = `
+        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      `;
+      
+      const container = document.querySelector('.alert-container');
+      container.innerHTML = '';
+      container.appendChild(alertDiv);
+    }
+
+    window.showComentariosModal = function() {
+      const modal = new bootstrap.Modal(document.getElementById('comentariosModal'));
+      const textarea = document.getElementById('comentarios-text');
+      textarea.value = comentarios;
+      modal.show();
+
+      document.getElementById('save-comentarios').onclick = () => {
+        comentarios = textarea.value;
+        if (comentarios.trim()) {
+          document.getElementById('comentarios-badge').classList.remove('d-none');
+        } else {
+          document.getElementById('comentarios-badge').classList.add('d-none');
+        }
+        modal.hide();
+      };
+    };
+  </script>
+</body>
+</html>
