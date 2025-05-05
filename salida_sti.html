@@ -1,4 +1,4 @@
-ario_actual<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -414,7 +414,7 @@ ario_actual<!DOCTYPE html>
       try {
         const { data, error, count } = await supabase
           .from('inventario_actual')
-          .select('codigo_articulo, nombre_articulo, cantidad_disponible, unidad, imagen_url', { count: 'exact' })
+          .select('codigo_articulo, nombre_articulo, cantidad_disponible, unidad, imagen_url, precio_unitario', { count: 'exact' })
           .order('nombre_articulo', { ascending: true })
           .range((page - 1) * itemsPerPage, page * itemsPerPage - 1);
 
@@ -519,6 +519,7 @@ ario_actual<!DOCTYPE html>
         tr.dataset.nombre = articulo.nombre_articulo;
         tr.dataset.unidad = articulo.unidad || 'Unidad';
         tr.dataset.disponible = articulo.cantidad_disponible || 0;
+	tr.dataset.precio = articulo.precio_unitario || 0;
         tr.dataset.imagen = articulo.imagen_url || 'https://via.placeholder.com/50';
         
         tr.innerHTML = `
@@ -559,7 +560,9 @@ ario_actual<!DOCTYPE html>
         select.innerHTML = `<option value="${tr.dataset.codigo}" selected>${tr.dataset.nombre}</option>`;
         select.disabled = false;
         
-        targetRow.querySelector('input[name="unidad"]').value = tr.dataset.unidad;
+        targetRow.dataset.precio = tr.dataset.precio;
+
+	targetRow.querySelector('input[name="unidad"]').value = tr.dataset.unidad;
         
         const disponibilidadText = targetRow.querySelector('.disponibilidad-text');
         disponibilidadText.textContent = `Máximo: ${tr.dataset.disponible} ${tr.dataset.unidad}`;
@@ -729,17 +732,21 @@ inputCantidad.focus();
           const numeroSolicitud = document.getElementById('numero_solicitud').value;
           
           const filas = Array.from(document.querySelectorAll('#detalle-tabla tbody tr'));
-          const detalles = filas.map(tr => {
-            const selectArticulo = tr.querySelector('select[name="articulo"]');
-            const inputCantidad = tr.querySelector('input[name="cantidad"]');
-            
-            return {
-              codigo_articulo: selectArticulo.value.trim(),
-              articulo: selectArticulo.options[selectArticulo.selectedIndex].text.split('(')[0].trim(),
-              cantidad: parseFloat(inputCantidad.value),
-              unidad: tr.querySelector('input[name="unidad"]').value
-            };
-          });
+          
+
+	  const detalles = filas.map(tr => {
+  		const selectArticulo = tr.querySelector('select[name="articulo"]');
+  		const inputCantidad = tr.querySelector('input[name="cantidad"]');
+
+  		return {
+    		codigo_articulo: selectArticulo.value.trim(),
+    		articulo: selectArticulo.options[selectArticulo.selectedIndex].text.split('(')[0].trim(),
+    		cantidad: parseFloat(inputCantidad.value),
+    		unidad: tr.querySelector('input[name="unidad"]').value,
+    		precio_unitario: parseFloat(tr.dataset.precio || 0)
+  	  };
+	});
+
 
           const numSolicitudValidado = validarDatosFormulario(autoriza, retira, numeroSolicitud, detalles);
           
@@ -766,6 +773,7 @@ const detallesParaInsertar = detalles.map(d => ({
   id_salida: newId,
   articulo:  d.codigo_articulo,
   cantidad:  d.cantidad,
+  precio_unitario: d.precio_unitario
 }));
 
 // 2) Inserta y pide que te devuelva el registro_salida generado por la BD
