@@ -8,133 +8,18 @@
   <title>Sistema SDMO - Página Principal</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-    // Configuración Supabase
-    const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Cuando el DOM esté listo
-    window.addEventListener('DOMContentLoaded', async () => {
-      try {
-        showLoading(true);
-        
-        // Verificar autenticación del usuario
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
-        if (authError) throw authError;
-        if (!user) {
-          // Redirigir a login si no hay usuario autenticado
-          window.location.href = "index.html";
-          return;
-        }
-
-        // Mostrar email del usuario
-        document.getElementById("usuario").textContent = user.email;
-        setupEventListeners();
-        
-        // Mostrar notificación de bienvenida
-        showNotification("Sesión iniciada correctamente", "success");
-        
-      } catch (error) {
-        console.error("Error de autenticación:", error);
-        showNotification("Error al verificar la sesión", "error");
-        setTimeout(() => window.location.href = "index.html", 2000);
-      } finally {
-        showLoading(false);
-      }
-    });
-
-    // Configurar event listeners
-    function setupEventListeners() {
-      document.getElementById("btnLogout").addEventListener("click", logout);
-      
-      // Hover efecto en tarjetas
-      const cards = document.querySelectorAll('.menu-card');
-      cards.forEach(card => {
-        card.addEventListener('mouseenter', (e) => {
-          e.currentTarget.classList.add('hover-effect');
-        });
-        card.addEventListener('mouseleave', (e) => {
-          e.currentTarget.classList.remove('hover-effect');
-        });
-      });
-      
-      // Tooltips de Bootstrap
-      const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-      tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-      });
-    }
-
-    // Cerrar sesión
-    async function logout() {
-      try {
-        showLoading(true);
-        showNotification("Cerrando sesión...", "info");
-        
-        const { error } = await supabase.auth.signOut();
-        if (error) throw error;
-        
-        // Redirigir a login
-        window.location.href = "index.html";
-      } catch (error) {
-        console.error("Error al cerrar sesión:", error);
-        showNotification("Error al cerrar sesión", "error");
-        showLoading(false);
-      }
-    }
-
-    // Mostrar notificación
-    function showNotification(message, type = "info") {
-      const notification = document.createElement("div");
-      notification.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'primary'} border-0`;
-      notification.setAttribute('role', 'alert');
-      notification.setAttribute('aria-live', 'assertive');
-      notification.setAttribute('aria-atomic', 'true');
-      notification.innerHTML = `
-        <div class="d-flex">
-          <div class="toast-body">
-            <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-triangle' : 'fa-info-circle'} me-2"></i>
-            ${message}
-          </div>
-          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-      `;
-      
-      const toastContainer = document.getElementById('toastContainer');
-      toastContainer.appendChild(notification);
-      const toast = new bootstrap.Toast(notification, { delay: 3000 });
-      toast.show();
-      
-      // Eliminar el toast después de ocultarse
-      notification.addEventListener('hidden.bs.toast', () => {
-        notification.remove();
-      });
-    }
-
-    // Mostrar/ocultar loading
-    function showLoading(show) {
-      const loader = document.getElementById("loader");
-      if (show) {
-        loader.style.display = "flex";
-      } else {
-        loader.style.display = "none";
-      }
-    }
-  </script>
   <style>
     :root {
       --primary-color: #2c3e50;
       --secondary-color: #3498db;
       --accent-color: #e74c3c;
+      --success-color: #2ecc71;
       --light-bg: #f8f9fa;
       --dark-text: #343a40;
       --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
       --header-height: 120px;
       --border-radius: 8px;
+      --transition-speed: 0.3s;
     }
     
     body {
@@ -149,7 +34,7 @@
     }
     
     .main-header {
-      background-color: var(--primary-color);
+      background: linear-gradient(135deg, var(--primary-color) 0%, #34495e 100%);
       color: white;
       padding: 1.5rem 0;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -164,6 +49,13 @@
       width: 40px;
       height: 40px;
       margin-right: 12px;
+      animation: pulse 2s infinite ease-in-out;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
     }
     
     .header-title {
@@ -194,6 +86,12 @@
       border-left: 4px solid var(--secondary-color);
       position: relative;
       overflow: hidden;
+      transition: all var(--transition-speed);
+    }
+    
+    .user-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     }
     
     .user-card::before {
@@ -215,7 +113,7 @@
     
     .menu-options {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: 2rem;
       margin-top: 2rem;
     }
@@ -225,7 +123,7 @@
       border-radius: var(--border-radius);
       overflow: hidden;
       box-shadow: var(--card-shadow);
-      transition: all 0.3s ease;
+      transition: all var(--transition-speed);
       border: none;
       text-align: center;
       height: 100%;
@@ -258,6 +156,21 @@
       align-items: center;
       justify-content: center;
       margin: 0 auto 1.5rem;
+      transition: all var(--transition-speed);
+    }
+    
+    .menu-card:nth-child(2) .card-icon {
+      color: var(--accent-color);
+      background-color: rgba(231, 76, 60, 0.1);
+    }
+    
+    .menu-card:nth-child(3) .card-icon {
+      color: var(--success-color);
+      background-color: rgba(46, 204, 113, 0.1);
+    }
+    
+    .menu-card:hover .card-icon {
+      transform: scale(1.1);
     }
     
     .menu-card .card-title {
@@ -279,7 +192,21 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.3s;
+      transition: all var(--transition-speed);
+    }
+    
+    .menu-card:nth-child(2) .btn {
+      background-color: var(--accent-color);
+      border-color: var(--accent-color);
+    }
+    
+    .menu-card:nth-child(3) .btn {
+      background-color: var(--success-color);
+      border-color: var(--success-color);
+    }
+    
+    .menu-card .btn:hover {
+      transform: translateY(-2px);
     }
     
     .logout-container {
@@ -297,7 +224,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.3s;
+      transition: all var(--transition-speed);
       text-transform: uppercase;
       font-size: 0.9rem;
       letter-spacing: 0.5px;
@@ -306,6 +233,7 @@
     .logout-btn:hover {
       background-color: #c0392b;
       transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     }
     
     .logout-btn:active {
@@ -343,6 +271,15 @@
     
     @keyframes spin {
       to { transform: rotate(360deg); }
+    }
+    
+    .footer {
+      background-color: var(--primary-color);
+      color: white;
+      text-align: center;
+      padding: 1rem 0;
+      margin-top: 2rem;
+      font-size: 0.9rem;
     }
     
     @media (max-width: 768px) {
@@ -430,6 +367,20 @@
           </a>
         </div>
       </div>
+      
+      <!-- Nueva Tarjeta de Otras Solicitudes -->
+      <div class="menu-card">
+        <div class="card-body">
+          <div class="card-icon">
+            <i class="fas fa-clipboard-list"></i>
+          </div>
+          <h3 class="card-title">Gestión de Otras Solicitudes</h3>
+          <p class="text-muted">Administración de solicitudes especiales y casos particulares</p>
+          <a href="otras_solicitudes.html" class="btn btn-primary">
+            <i class="fas fa-arrow-right me-2"></i> Acceder
+          </a>
+        </div>
+      </div>
     </div>
     
     <!-- Botón de cierre de sesión -->
@@ -439,8 +390,145 @@
       </button>
     </div>
   </main>
+  
+  <!-- Pie de página -->
+  <footer class="footer">
+    <div class="container">
+      <p class="mb-0">© 2025 Sistema SDMO - Municipalidad de San José</p>
+    </div>
+  </footer>
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    // Configuración Supabase
+    const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Inicializar la aplicación cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', initApp);
+
+    // Función principal de inicialización
+    async function initApp() {
+      try {
+        showLoading(true);
+        await checkAuthentication();
+        setupEventListeners();
+        showNotification("Sesión iniciada correctamente", "success");
+      } catch (error) {
+        console.error("Error de inicialización:", error);
+        showNotification("Error al verificar la sesión", "error");
+        setTimeout(() => window.location.href = "index.html", 2000);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    // Verificar autenticación del usuario
+    async function checkAuthentication() {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) throw authError;
+      if (!user) {
+        window.location.href = "index.html";
+        throw new Error("No hay usuario autenticado");
+      }
+
+      // Mostrar email del usuario
+      document.getElementById("usuario").textContent = user.email;
+      return user;
+    }
+
+    // Configurar event listeners
+    function setupEventListeners() {
+      document.getElementById("btnLogout").addEventListener("click", logout);
+      
+      // Hover efecto en tarjetas
+      const cards = document.querySelectorAll('.menu-card');
+      cards.forEach(card => {
+        card.addEventListener('mouseenter', (e) => {
+          e.currentTarget.classList.add('hover-effect');
+        });
+        card.addEventListener('mouseleave', (e) => {
+          e.currentTarget.classList.remove('hover-effect');
+        });
+      });
+      
+      // Inicializar tooltips de Bootstrap
+      initializeTooltips();
+    }
+    
+    // Inicializar tooltips de Bootstrap
+    function initializeTooltips() {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+      [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    }
+
+    // Cerrar sesión
+    async function logout() {
+      try {
+        showLoading(true);
+        showNotification("Cerrando sesión...", "info");
+        
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
+        
+        // Redirigir a login
+        window.location.href = "index.html";
+      } catch (error) {
+        console.error("Error al cerrar sesión:", error);
+        showNotification("Error al cerrar sesión", "error");
+        showLoading(false);
+      }
+    }
+
+    // Mostrar notificación
+    function showNotification(message, type = "info") {
+      const toast = createToastElement(message, type);
+      const toastContainer = document.getElementById('toastContainer');
+      toastContainer.appendChild(toast);
+      
+      const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
+      bsToast.show();
+      
+      // Eliminar el toast después de ocultarse
+      toast.addEventListener('hidden.bs.toast', () => {
+        toast.remove();
+      });
+    }
+    
+    // Crear elemento toast
+    function createToastElement(message, type) {
+      const notification = document.createElement("div");
+      notification.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'primary'} border-0`;
+      notification.setAttribute('role', 'alert');
+      notification.setAttribute('aria-live', 'assertive');
+      notification.setAttribute('aria-atomic', 'true');
+      
+      const iconClass = type === 'success' ? 'fa-check-circle' : 
+                        type === 'error' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+      
+      notification.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body">
+            <i class="fas ${iconClass} me-2"></i>
+            ${message}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      `;
+      
+      return notification;
+    }
+
+    // Mostrar/ocultar loading
+    function showLoading(show) {
+      const loader = document.getElementById("loader");
+      loader.style.display = show ? "flex" : "none";
+    }
+  </script>
 </body>
 </html>
