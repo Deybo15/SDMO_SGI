@@ -282,9 +282,15 @@
             <i class="fas fa-arrow-left"></i> Regresar
           </button>
           
-          <button type="button" id="btnGuardar" class="btn btn-primary btn-action">
-            <i class="fas fa-save"></i> Guardar Solicitud
-          </button>
+          <div>
+            <button type="button" id="btnAbrirSalida" class="btn btn-primary btn-action me-2">
+              <i class="fas fa-external-link-alt"></i> Abrir Salida
+            </button>
+            
+            <button type="button" id="btnGuardar" class="btn btn-primary btn-action">
+              <i class="fas fa-save"></i> Guardar Solicitud
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -497,6 +503,9 @@
     function setupEventListeners() {
       document.getElementById("btnGuardar").addEventListener("click", guardarSolicitud);
       document.getElementById("btnRegresar").addEventListener("click", volverPaginaAnterior);
+      document.getElementById("btnAbrirSalida").addEventListener("click", function() {
+        window.location.href = "salida_otras.html";
+      });
       
       // Añadir validación en tiempo real
       const campos = ["tipo_solicitud", "profesional_responsable"];
