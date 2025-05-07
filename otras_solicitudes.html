@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Formulario de Solicitud</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const supabase = createClient(
+      'https://qpccqoeronbcdyejfjod.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'
+    );
+
+    let tipoSolicitudes = [];
+
+    async function cargarTipoSolicitudes() {
+      const { data, error } = await supabase
+        .from("tipo_solicitud_75")
+        .select("tipo_solicitud, descripcion_tipo_solicitud")
+        .not("tipo_solicitud", "in", ["STI", "STE", "P"]);
+
+      if (error) {
+        console.error("Error al cargar tipos de solicitud:", JSON.stringify(error, null, 2));
+        return;
+      }
+
+      tipoSolicitudes = data;
+      const select = document.getElementById("tipo_solicitud");
+      select.innerHTML = '<option value="" disabled selected>-- Seleccione una opción --</option>';
+      data.forEach(item => {
+        const option = document.createElement("option");
+        option.value = item.tipo_solicitud;
+        option.textContent = item.descripcion_tipo_solicitud;
+        select.appendChild(option);
+      });
+    }
+
+    async function guardarSolicitud() {
+      const tipo = document.getElementById("tipo_solicitud").value;
+      const profesional = document.getElementById("profesional_responsable").value;
+
+      if (!tipo || !profesional) {
+        alert("Complete los campos requeridos");
+        return;
+      }
+
+      const descripcion = tipoSolicitudes.find(t => t.tipo_solicitud === tipo)?.descripcion_tipo_solicitud || "";
+
+      const { data, error } = await supabase.from("solicitud_17").insert([{
+        tipo_solicitud: tipo,
+        descripcion_solicitud: descripcion,
+        fecha_solicitud: new Date().toISOString().split("T")[0],
+        profesional_responsable: profesional
+      }]).select("numero_solicitud");
+
+      if (error) {
+        alert("Error al guardar: " + (error.message || JSON.stringify(error)));
+        console.error("Detalle del error:", JSON.stringify(error, null, 2));
+      } else {
+        alert("Guardado con #" + data[0].numero_solicitud);
+        document.getElementById("formulario").reset();
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      await cargarTipoSolicitudes();
+    });
+  </script>
+</head>
+<body class="container py-5">
+  <h2 class="mb-4">Registrar Solicitud</h2>
+  <form id="formulario">
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label for="tipo_solicitud" class="form-label fw-semibold">Tipo de Solicitud <span class="text-danger">*</span></label>
+        <select id="tipo_solicitud" class="form-select" required></select>
+      </div>
+
+      <div class="col-md-6 mb-3">
+        <label for="profesional_responsable" class="form-label fw-semibold">Profesional Responsable <span class="text-danger">*</span></label>
+        <select id="profesional_responsable" class="form-select" required>
+          <option value="108270051" selected>108270051</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end mt-4">
+      <button type="button" class="btn btn-primary px-4" onclick="guardarSolicitud()">
+        <i class="fas fa-save me-2"></i>Guardar Solicitud
+      </button>
+    </div>
+  </form>
+  <script src="https://kit.fontawesome.com/a2d2706c74.js" crossorigin="anonymous"></script>
+</body>
+</html>
