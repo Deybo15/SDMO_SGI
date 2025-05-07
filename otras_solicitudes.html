@@ -283,7 +283,7 @@
           </button>
           
           <div>
-            <button type="button" id="btnAbrirSalida" class="btn btn-primary btn-action me-2">
+            <button type="button" id="btnAbrirSalida" class="btn btn-primary btn-action me-2" disabled>
               <i class="fas fa-external-link-alt"></i> Generar Salida
             </button>
             
@@ -316,6 +316,7 @@
     // Variables globales para almacenar datos cargados
     let tipoSolicitudes = [];
     let profesionalesData = [];
+    let ultimaSolicitudGuardada = null; // Variable para almacenar el número de la última solicitud guardada
 
     // Inicializar la aplicación cuando el DOM esté cargado
     document.addEventListener("DOMContentLoaded", initApp);
@@ -483,8 +484,14 @@
           return;
         }
         
+        // Almacenar el número de solicitud guardada
+        ultimaSolicitudGuardada = data[0].numero_solicitud;
+        
+        // Habilitar el botón de Generar Salida
+        document.getElementById("btnAbrirSalida").disabled = false;
+        
         // Mostrar mensaje de éxito
-        showNotification("Solicitud guardada exitosamente con número: " + data[0].numero_solicitud, "success");
+        showNotification("Solicitud guardada exitosamente con número: " + ultimaSolicitudGuardada, "success");
         
         // Resetear formulario
         document.getElementById("formulario").reset();
@@ -503,8 +510,14 @@
     function setupEventListeners() {
       document.getElementById("btnGuardar").addEventListener("click", guardarSolicitud);
       document.getElementById("btnRegresar").addEventListener("click", volverPaginaAnterior);
+      
+      // Modificado para pasar el número de solicitud como parámetro
       document.getElementById("btnAbrirSalida").addEventListener("click", function() {
-        window.location.href = "salida_otras.html";
+        if (ultimaSolicitudGuardada) {
+          window.location.href = `salida_otras.html?solicitud=${ultimaSolicitudGuardada}`;
+        } else {
+          showNotification("No hay una solicitud guardada recientemente", "error");
+        }
       });
       
       // Añadir validación en tiempo real
