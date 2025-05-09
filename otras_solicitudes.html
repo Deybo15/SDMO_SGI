@@ -389,7 +389,7 @@
 
         // Filtrar tipos de solicitud excluyendo ciertos valores
         tipoSolicitudes = (data || []).filter(
-          t => !["STI", "STE"].includes(t.tipo_solicitud)
+          t => !["STI", "STE", "P"].includes(t.tipo_solicitud)
         );
 
         if (tipoSolicitudes.length === 0) {
