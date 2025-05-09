@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solicitudes Cliente Externo</title>
+  
+  <script type="importmap">
+  {
+    "imports": {
+      "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
+    }
+  }
+  </script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #ecf0f3;
+      margin: 0;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+    
+    .filters {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .filters input {
+      flex: 1;
+      padding: 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    
+    .buttons {
+      margin-bottom: 1.5rem;
+      display: flex;
+      gap: 1rem;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    
+    th, td {
+      border: 1px solid #dee2e6;
+      padding: 0.75rem;
+      text-align: center;
+      vertical-align: middle;
+    }
+    
+    th {
+      background: #3498db;
+      color: #fff;
+      font-weight: bold;
+    }
+    
+    tr:nth-child(even) {
+      background-color: #f8f9fa;
+    }
+    
+    .pagination-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1rem;
+    }
+    
+    .btn {
+      padding: 0.5rem 1.2rem;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.3s ease;
+    }
+    
+    .btn-primary {
+      background: #3498db;
+    }
+    
+    .btn-primary:hover {
+      background: #2980b9;
+    }
+    
+    .btn-secondary {
+      background: #95a5a6;
+    }
+    
+    .btn-secondary:hover {
+      background: #7f8c8d;
+    }
+    
+    .btn-action {
+      padding: 0.4rem 0.8rem;
+      background: #28a745;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+    
+    .btn-action:hover {
+      background: #218838;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="filters">
+      <input id="filtro-numero" type="text" placeholder="Buscar por número de solicitud">
+      <input id="filtro-descripcion" type="text" placeholder="Buscar por descripción">
+    </div>
+
+    <div class="buttons">
+      <button class="btn btn-secondary" onclick="window.history.back()">← Regresar</button>
+      <button class="btn btn-primary" onclick="exportToExcel()">Exportar a Excel</button>
+      <button class="btn btn-primary" onclick="exportToPDF()">Exportar a PDF</button>
+    </div>
+
+    <table id="tabla-solicitudes">
+      <thead>
+        <tr>
+          <th>Número de Solicitud</th>
+          <th>Descripción</th>
+          <th>Fecha de Solicitud</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="pagination-controls">
+      <button class="btn btn-primary" onclick="prevPage()">Anterior</button>
+      <span id="page-info"></span>
+      <button class="btn btn-primary" onclick="nextPage()">Siguiente</button>
+    </div>
+  </div>
+
+<script type="module">
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  'https://qpccqoeronbcdyejfjod.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ'
+);
+
+let currentPage = 1;
+const itemsPerPage = 10;
+let totalItems = 0;
+
+document.querySelectorAll('.filters input').forEach(input => {
+  input.addEventListener('input', () => {
+    currentPage = 1;
+    cargarDatos();
+  });
+});
+
+async function cargarDatos() {
+  const numero = document.getElementById('filtro-numero').value.trim();
+  const descripcion = document.getElementById('filtro-descripcion').value.trim();
+
+  let query = supabase.from('solicitud_cliente_externo').select('*', { count: 'exact' });
+  
+  if (numero && !isNaN(numero)) {
+    query = query.eq('numero_solicitud', parseInt(numero));
+  }
+  if (descripcion) {
+    query = query.ilike('descripcion_solicitud', `%${descripcion}%`);
+  }
+
+  const { data, count, error } = await query
+    .order('numero_solicitud', { ascending: false })
+    .range((currentPage - 1) * itemsPerPage, (currentPage * itemsPerPage) - 1);
+
+  if (error) return console.error('Error Supabase:', error);
+
+  totalItems = count;
+  renderizarTabla(data || []);
+  actualizarPaginacion();
+}
+
+function renderizarTabla(rows) {
+  const tbody = document.querySelector('#tabla-solicitudes tbody');
+  tbody.innerHTML = '';
+  
+  rows.forEach(r => {
+    tbody.insertAdjacentHTML('beforeend', `
+      <tr>
+        <td>${r.numero_solicitud}</td>
+        <td>${r.descripcion_solicitud}</td>
+        <td>${r.fecha_solicitud ? new Date(r.fecha_solicitud).toLocaleDateString('es-CR') : 'Sin fecha'}</td>
+        <td><button class="btn-action" onclick="abrirSalida(${r.numero_solicitud})">Salida</button></td>
+      </tr>
+    `);
+  });
+}
+
+function actualizarPaginacion() {
+  document.getElementById('page-info').textContent = 
+    `Página ${currentPage} de ${Math.ceil(totalItems / itemsPerPage)}`;
+}
+
+window.abrirSalida = (numero) => {
+  window.location.href = `salida_sti.html?numero=${numero}`;
+};
+
+window.prevPage = () => {
+  if (currentPage > 1) {
+    currentPage--;
+    cargarDatos();
+  }
+};
+
+window.nextPage = () => {
+  if ((currentPage * itemsPerPage) < totalItems) {
+    currentPage++;
+    cargarDatos();
+  }
+};
+
+window.exportToExcel = () => {
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.table_to_sheet(document.getElementById('tabla-solicitudes'));
+  XLSX.utils.book_append_sheet(wb, ws, 'Solicitudes');
+  XLSX.writeFile(wb, 'Solicitudes_Cliente_Externo.xlsx');
+};
+
+window.exportToPDF = () => {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.text('Solicitudes Cliente Externo', 10, 10);
+  doc.autoTable({ html: '#tabla-solicitudes', startY: 20 });
+  doc.save('Solicitudes_Cliente_Externo.pdf');
+};
+
+cargarDatos();
+</script>
+
+</body>
+</html>
