@@ -181,7 +181,9 @@
                   <div class="col-md-6 mb-3">
                     <label for="autoriza" class="form-label required-field">Responsable que autoriza</label>
                     <div class="select-container">
-                      <select id="autoriza" name="autoriza" class="form-select" required></select>
+                      <select id="autoriza" name="autoriza" class="form-select" required>
+                        <option value="" disabled selected>-- Seleccione --</option>
+                      </select>
                       <button type="button" class="btn-search" onclick="abrirModalBusqueda('autoriza')">
                         <i class="fas fa-search"></i>
                       </button>
@@ -191,7 +193,9 @@
                   <div class="col-md-6 mb-3">
                     <label for="retira" class="form-label required-field">Persona que retira</label>
                     <div class="select-container">
-                      <select id="retira" name="retira" class="form-select" required></select>
+                      <select id="retira" name="retira" class="form-select" required>
+                        <option value="" disabled selected>-- Seleccione --</option>
+                      </select>
                       <button type="button" class="btn-search" onclick="abrirModalBusqueda('retira')">
                         <i class="fas fa-search"></i>
                       </button>
@@ -202,8 +206,9 @@
                     <label for="numero_solicitud" class="form-label required-field">Número de solicitud</label>
                     <div class="input-group">
                       <span class="input-group-text"><i class="fas fa-hashtag"></i></span>
-                      <input type="number" id="numero_solicitud" name="numero_solicitud" class="form-control" readonly required>
+                      <input type="number" id="numero_solicitud" name="numero_solicitud" class="form-control" required>
                     </div>
+                    <div class="invalid-feedback">El número de solicitud es requerido.</div>
                   </div>
                 </div>
                 <div class="d-flex align-items-center mb-3">
@@ -331,198 +336,333 @@
 
   <!-- Bootstrap Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <!-- Tu script de Supabase y lógica -->
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
+  <script>
+    // Configuración de Supabase
     const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';  // <- pon aquí tu clave
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
+    // Variables globales
     let responsables = [], retirantes = [], inventarioActual = [];
     let comentarios = '', currentInventoryPage = 1, isInventoryLoading = false;
-    const itemsPerPage = 1000, totalInventoryItems = 0;
+    const itemsPerPage = 100;
 
-    // Carga colaboradores que autoriza y retira
+    // Cargar colaboradores que autoriza y retira
     async function cargarColaboradores() {
-      const { data, error } = await supabase
-        .from('colaboradores_06')
-        .select('identificacion, alias, profesional_responsable, autoriza')
-        .order('alias');
-      if (error) throw error;
-      responsables = data.filter(c => c.autoriza);
-      retirantes   = data.filter(c => c.profesional_responsable);
-      llenarSelect('autoriza', responsables, 'alias', 'identificacion');
-      llenarSelect('retira', retirantes,   'alias', 'identificacion');
+      try {
+        const { data, error } = await supabase
+          .from('colaboradores_06')
+          .select('identificacion, alias, profesional_responsable, autoriza')
+          .order('alias');
+          
+        if (error) {
+          console.error("Error cargando colaboradores:", error);
+          showAlert('Error al cargar lista de colaboradores. Intente nuevamente.', 'danger');
+          return;
+        }
+        
+        responsables = data.filter(c => c.autoriza === true);
+        retirantes = data.filter(c => c.profesional_responsable === true);
+        
+        llenarSelect('autoriza', responsables, 'alias', 'identificacion');
+        llenarSelect('retira', retirantes, 'alias', 'identificacion');
+      } catch (err) {
+        console.error("Error en cargarColaboradores:", err);
+        showAlert('Error al cargar colaboradores. Intente nuevamente.', 'danger');
+      }
     }
 
     // Llena un <select>
     function llenarSelect(id, lista, textField, valueField) {
-      const s = document.getElementById(id);
-      s.innerHTML = '<option value="" disabled selected>-- Seleccione --</option>';
-      lista.forEach(item => {
-        const o = document.createElement('option');
-        o.value = item[valueField];
-        o.textContent = item[textField];
-        s.appendChild(o);
-      });
+      try {
+        const s = document.getElementById(id);
+        s.innerHTML = '<option value="" disabled selected>-- Seleccione --</option>';
+        
+        if (lista && lista.length > 0) {
+          lista.forEach(item => {
+            const o = document.createElement('option');
+            o.value = item[valueField] || '';
+            o.textContent = item[textField] || '';
+            s.appendChild(o);
+          });
+        } else {
+          console.warn(`No hay elementos para cargar en el selector ${id}`);
+        }
+      } catch (err) {
+        console.error(`Error en llenarSelect para ${id}:`, err);
+      }
     }
 
     // Abrir modal de búsqueda de colaboradores
     window.abrirModalBusqueda = (tipo) => {
-      const datos = tipo === 'autoriza' ? responsables : retirantes;
-      const campo = tipo === 'autoriza' ? 'alias' : 'alias';
-      document.getElementById('tituloModalBusqueda').textContent =
-        tipo === 'autoriza' ? 'Buscar Responsable' : 'Buscar Persona que Retira';
-      document.getElementById('inputBusqueda').value = '';
-      const ul = document.getElementById('listaResultados');
-      ul.innerHTML = '';
-      datos.forEach(item => {
-        const li = document.createElement('li');
-        li.className = 'list-group-item list-group-item-action';
-        li.textContent = item[campo];
-        li.onclick = () => {
-          document.getElementById(tipo).value = item.identificacion;
-          bootstrap.Modal.getInstance(document.getElementById('modalBusqueda')).hide();
+      try {
+        const datos = tipo === 'autoriza' ? responsables : retirantes;
+        const campo = 'alias';
+        
+        document.getElementById('tituloModalBusqueda').textContent =
+          tipo === 'autoriza' ? 'Buscar Responsable' : 'Buscar Persona que Retira';
+          
+        document.getElementById('inputBusqueda').value = '';
+        const ul = document.getElementById('listaResultados');
+        ul.innerHTML = '';
+        
+        if (datos && datos.length > 0) {
+          datos.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item list-group-item-action';
+            li.textContent = item[campo] || '';
+            li.onclick = () => {
+              document.getElementById(tipo).value = item.identificacion || '';
+              bootstrap.Modal.getInstance(document.getElementById('modalBusqueda')).hide();
+            };
+            ul.appendChild(li);
+          });
+        } else {
+          ul.innerHTML = '<li class="list-group-item text-center text-muted">No hay datos disponibles</li>';
+        }
+        
+        document.getElementById('inputBusqueda').oninput = e => {
+          const val = e.target.value.toLowerCase();
+          document.querySelectorAll('#listaResultados li').forEach(li => {
+            li.style.display = li.textContent.toLowerCase().includes(val) ? '' : 'none';
+          });
         };
-        ul.appendChild(li);
-      });
-      document.getElementById('inputBusqueda').oninput = e => {
-        const val = e.target.value.toLowerCase();
-        document.querySelectorAll('#listaResultados li').forEach(li => {
-          li.style.display = li.textContent.toLowerCase().includes(val) ? '' : 'none';
-        });
-      };
-      new bootstrap.Modal(document.getElementById('modalBusqueda')).show();
+        
+        new bootstrap.Modal(document.getElementById('modalBusqueda')).show();
+      } catch (err) {
+        console.error("Error en abrirModalBusqueda:", err);
+        showAlert('Error al abrir modal de búsqueda', 'danger');
+      }
     };
 
     // Mostrar alertas
     function showAlert(msg, type='info') {
-      const c = document.querySelector('.alert-container');
-      c.innerHTML = `
-        <div class="alert alert-${type} alert-dismissible fade show animate__animated animate__fadeIn">
-          <i class="fas ${type==='success'?'fa-check-circle':'fa-exclamation-triangle'} me-2"></i>${msg}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>`;
+      try {
+        const c = document.querySelector('.alert-container');
+        c.innerHTML = `
+          <div class="alert alert-${type} alert-dismissible fade show animate__animated animate__fadeIn">
+            <i class="fas ${type==='success'?'fa-check-circle':'fa-exclamation-triangle'} me-2"></i>${msg}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>`;
+      } catch (err) {
+        console.error("Error en showAlert:", err);
+      }
     }
 
     // Modal comentarios
     window.showComentariosModal = () => {
-      document.getElementById('comentarios-text').value = comentarios;
-      const m = new bootstrap.Modal(document.getElementById('comentariosModal'));
-      m.show();
-      document.getElementById('save-comentarios').onclick = () => {
-        comentarios = document.getElementById('comentarios-text').value.trim();
-        document.getElementById('comentarios-badge')
-          .classList.toggle('d-none', comentarios === '');
-        m.hide();
-      };
+      try {
+        document.getElementById('comentarios-text').value = comentarios;
+        const m = new bootstrap.Modal(document.getElementById('comentariosModal'));
+        m.show();
+        document.getElementById('save-comentarios').onclick = () => {
+          comentarios = document.getElementById('comentarios-text').value.trim();
+          document.getElementById('comentarios-badge')
+            .classList.toggle('d-none', comentarios === '');
+          m.hide();
+        };
+      } catch (err) {
+        console.error("Error en showComentariosModal:", err);
+        showAlert('Error al mostrar modal de comentarios', 'danger');
+      }
     };
 
     // Cargar inventario paginado
     async function cargarInventarioPaginado(page=1) {
-      isInventoryLoading = true;
-      document.getElementById('loadingArticulos').style.display = '';
-      document.getElementById('btnLoadMore').style.display = 'none';
-      const { data, error, count } = await supabase
-        .from('inventario_actual')
-        .select('codigo_articulo,nombre_articulo,cantidad_disponible,unidad,imagen_url,precio_unitario',{count:'exact'})
-        .order('nombre_articulo')
-        .range((page-1)*itemsPerPage,page*itemsPerPage-1);
-      if (error) { showAlert('Error al cargar inventario','danger'); return []; }
-      if (page===1) inventarioActual = data;
-      else inventarioActual.push(...data);
-      if (inventarioActual.length < count) document.getElementById('btnLoadMore').style.display = '';
-      document.getElementById('loadingArticulos').style.display = 'none';
-      isInventoryLoading = false;
-      return data;
+      try {
+        isInventoryLoading = true;
+        document.getElementById('loadingArticulos').style.display = 'block';
+        document.getElementById('btnLoadMore').style.display = 'none';
+        
+        const { data, error, count } = await supabase
+          .from('inventario_actual')
+          .select('codigo_articulo,nombre_articulo,cantidad_disponible,unidad,imagen_url,precio_unitario', {count: 'exact'})
+          .order('nombre_articulo')
+          .range((page-1)*itemsPerPage, page*itemsPerPage-1);
+          
+        if (error) {
+          console.error("Error al cargar inventario:", error);
+          showAlert('Error al cargar inventario', 'danger');
+          isInventoryLoading = false;
+          document.getElementById('loadingArticulos').style.display = 'none';
+          return [];
+        }
+        
+        if (page === 1) {
+          inventarioActual = data || [];
+        } else if (data) {
+          inventarioActual = [...inventarioActual, ...data];
+        }
+        
+        if (data && count && inventarioActual.length < count) {
+          document.getElementById('btnLoadMore').style.display = 'block';
+        }
+        
+        document.getElementById('loadingArticulos').style.display = 'none';
+        isInventoryLoading = false;
+        return data || [];
+      } catch (err) {
+        console.error("Error en cargarInventarioPaginado:", err);
+        showAlert('Error al cargar inventario', 'danger');
+        document.getElementById('loadingArticulos').style.display = 'none';
+        isInventoryLoading = false;
+        return [];
+      }
     }
 
     // Función de búsqueda de artículos
     window.buscarArticulo = async (btn) => {
-      const rowIdx = btn.closest('tr').rowIndex;
-      document.getElementById('modalBusquedaArticulos').dataset.currentRow = rowIdx;
-      document.getElementById('listaArticulos').innerHTML = '';
-      const m = new bootstrap.Modal(document.getElementById('modalBusquedaArticulos'));
-      m.show();
-      if (!inventarioActual.length) await cargarInventarioPaginado(1);
-      mostrarArticulosEnModal(inventarioActual);
-      document.getElementById('inputBusquedaArticulo').oninput = e => {
-        const term = e.target.value.toLowerCase();
-        mostrarArticulosEnModal(inventarioActual.filter(a =>
-          a.nombre_articulo.toLowerCase().includes(term) ||
-          a.codigo_articulo.toLowerCase().includes(term)
-        ));
-      };
+      try {
+        const rowIdx = btn.closest('tr').rowIndex - 1; // -1 para ajustar por el encabezado
+        document.getElementById('modalBusquedaArticulos').dataset.currentRow = rowIdx;
+        document.getElementById('listaArticulos').innerHTML = '';
+        
+        const m = new bootstrap.Modal(document.getElementById('modalBusquedaArticulos'));
+        m.show();
+        
+        if (!inventarioActual.length) {
+          await cargarInventarioPaginado(1);
+        }
+        
+        mostrarArticulosEnModal(inventarioActual);
+        
+        document.getElementById('inputBusquedaArticulo').oninput = e => {
+          const term = e.target.value.toLowerCase();
+          const filtrados = inventarioActual.filter(a => 
+            (a.nombre_articulo && a.nombre_articulo.toLowerCase().includes(term)) || 
+            (a.codigo_articulo && a.codigo_articulo.toLowerCase().includes(term))
+          );
+          mostrarArticulosEnModal(filtrados);
+        };
+      } catch (err) {
+        console.error("Error en buscarArticulo:", err);
+        showAlert('Error al buscar artículo', 'danger');
+      }
     };
 
     // Mostrar lista en modal de artículos
     function mostrarArticulosEnModal(list) {
-      const tbody = document.getElementById('listaArticulos');
-      tbody.innerHTML = '';
-      if (!list.length) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center">No hay resultados</td></tr>';
-        return;
-      }
-      list.slice(0,200).forEach(a => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><img src="${a.imagen_url||''}" width="40" height="40" style="object-fit:cover;border-radius:4px;"></td>
-          <td>${a.nombre_articulo}</td>
-          <td>${a.cantidad_disponible} ${a.unidad}</td>
-          <td><button class="btn btn-sm btn-primary" onclick="seleccionarArticulo(this)">Seleccionar</button></td>`;
-        // anexar datos al tr
-        tr.dataset.codigo = a.codigo_articulo;
-        tr.dataset.nombre = a.nombre_articulo;
-        tr.dataset.unidad = a.unidad;
-        tr.dataset.disponible = a.cantidad_disponible;
-        tr.dataset.precio = a.precio_unitario;
-        tbody.appendChild(tr);
-      });
-      if (inventarioActual.length > 200) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td colspan="4" class="text-center text-muted">Mostrando 200 de ${inventarioActual.length}</td>`;
-        tbody.appendChild(tr);
+      try {
+        const tbody = document.getElementById('listaArticulos');
+        tbody.innerHTML = '';
+        
+        if (!list || list.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="text-center">No hay resultados</td></tr>';
+          return;
+        }
+        
+        list.slice(0, 200).forEach(a => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><img src="${a.imagen_url || ''}" width="40" height="40" style="object-fit:cover;border-radius:4px;"></td>
+            <td>${a.nombre_articulo || ''}</td>
+            <td>${a.cantidad_disponible || 0} ${a.unidad || ''}</td>
+            <td><button class="btn btn-sm btn-primary" onclick="seleccionarArticulo(this)">Seleccionar</button></td>`;
+          
+          // anexar datos al tr
+          tr.dataset.codigo = a.codigo_articulo || '';
+          tr.dataset.nombre = a.nombre_articulo || '';
+          tr.dataset.unidad = a.unidad || '';
+          tr.dataset.disponible = a.cantidad_disponible || 0;
+          tr.dataset.precio = a.precio_unitario || 0;
+          
+          tbody.appendChild(tr);
+        });
+        
+        if (inventarioActual.length > 200) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td colspan="4" class="text-center text-muted">Mostrando 200 de ${inventarioActual.length}</td>`;
+          tbody.appendChild(tr);
+        }
+      } catch (err) {
+        console.error("Error en mostrarArticulosEnModal:", err);
       }
     }
 
     // Seleccionar un artículo
     window.seleccionarArticulo = (btn) => {
-      const tr = btn.closest('tr');
-      const rowIdx = +document.getElementById('modalBusquedaArticulos').dataset.currentRow;
-      const target = document.querySelector(`#detalle-tabla tbody tr:nth-child(${rowIdx})`);
-      if (!target) return;
-      const sel = target.querySelector('select[name="articulo"]');
-      sel.innerHTML = `<option value="${tr.dataset.codigo}" selected>${tr.dataset.nombre}</option>`;
-      sel.disabled = false;
-      target.querySelector('input[name="unidad"]').value = tr.dataset.unidad;
-      const disp = target.querySelector('.disponibilidad-text');
-      disp.textContent = `Máx: ${tr.dataset.disponible}`;
-      disp.style.display = '';
-      target.dataset.precio = tr.dataset.precio;
-      // validación cantidad
-      const inp = target.querySelector('input[name="cantidad"]');
-      inp.max = tr.dataset.disponible;
-      inp.addEventListener('input',()=>{
-        inp.setCustomValidity(inp.valueAsNumber>inp.max?`No puede superar ${inp.max}`:'');
-        inp.reportValidity();
-      });
-      bootstrap.Modal.getInstance(document.getElementById('modalBusquedaArticulos')).hide();
+      try {
+        const tr = btn.closest('tr');
+        const rowIdxStr = document.getElementById('modalBusquedaArticulos').dataset.currentRow;
+        const rowIdx = parseInt(rowIdxStr, 10);
+        
+        if (isNaN(rowIdx)) {
+          console.error("Error: índice de fila inválido");
+          return;
+        }
+        
+        const rows = document.querySelectorAll('#detalle-tabla tbody tr');
+        const target = rows[rowIdx];
+        
+        if (!target) {
+          console.error("Error: fila objetivo no encontrada");
+          return;
+        }
+        
+        const sel = target.querySelector('select[name="articulo"]');
+        sel.innerHTML = `<option value="${tr.dataset.codigo}" selected>${tr.dataset.nombre}</option>`;
+        sel.disabled = true;
+        
+        target.querySelector('input[name="unidad"]').value = tr.dataset.unidad || '';
+        
+        const disp = target.querySelector('.disponibilidad-text');
+        disp.textContent = `Máx: ${tr.dataset.disponible}`;
+        disp.style.display = '';
+        
+        target.dataset.precio = tr.dataset.precio || 0;
+        
+        // validación cantidad
+        const inp = target.querySelector('input[name="cantidad"]');
+        inp.max = tr.dataset.disponible || 0;
+        inp.value = ''; // Limpiar valor previo
+        
+        inp.addEventListener('input', () => {
+          const val = parseFloat(inp.value) || 0;
+          const max = parseFloat(inp.max) || 0;
+          
+          if (val > max) {
+            inp.setCustomValidity(`No puede superar ${max}`);
+          } else if (val <= 0) {
+            inp.setCustomValidity('La cantidad debe ser mayor a cero');
+          } else {
+            inp.setCustomValidity('');
+          }
+          
+          inp.reportValidity();
+        });
+        
+        bootstrap.Modal.getInstance(document.getElementById('modalBusquedaArticulos')).hide();
+      } catch (err) {
+        console.error("Error en seleccionarArticulo:", err);
+        showAlert('Error al seleccionar artículo', 'danger');
+      }
     };
 
     // Handler de envío de formulario
     async function submitHandler(e) {
       e.preventDefault();
-      const form = document.getElementById('salida-form');
-      if (!form.checkValidity()) { form.classList.add('was-validated'); return; }
-
-      const autoriza = document.getElementById('autoriza').value;
-      const retira   = document.getElementById('retira').value;
-      const numero   = parseInt(document.getElementById('numero_solicitud').value,10);
-      const filas    = [...document.querySelectorAll('#detalle-tabla tbody tr')];
-      if (!filas.length) { showAlert('Agrega al menos un artículo','warning'); return; }
-
+      
       try {
+        const form = document.getElementById('salida-form');
+        if (!form.checkValidity()) {
+          form.classList.add('was-validated');
+          return;
+        }
+
+        const autoriza = document.getElementById('autoriza').value;
+        const retira = document.getElementById('retira').value;
+        const numero = parseInt(document.getElementById('numero_solicitud').value, 10);
+        const filas = [...document.querySelectorAll('#detalle-tabla tbody tr')];
+        
+        if (!filas.length) {
+          showAlert('Agrega al menos un artículo', 'warning');
+          return;
+        }
+        
+         try {
         // Insert cabecera
         const { data:enc, error: e1 } = await supabase
           .from('salida_articulo_08')
