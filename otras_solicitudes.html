@@ -258,6 +258,17 @@
             <div class="form-text">Seleccione el tipo de solicitud a procesar</div>
           </div>
           
+          <!-- Dependencia Municipal: oculto hasta seleccionar Préstamo -->
+          <div class="col-md-6 mb-3" id="div-dependencia" style="display: none;">  
+            <label for="dependencia_municipal" class="form-label">  
+              Dependencia Municipal <span class="required-field"></span>  
+            </label>  
+            <select id="dependencia_municipal" class="form-select" disabled>  
+              <option value="" disabled selected>-- Seleccione una dependencia --</option>  
+            </select>  
+            <div class="form-text">Seleccione la dependencia municipal correspondiente</div>  
+          </div>
+          
           <div class="col-md-6 mb-3">
             <label for="profesional_responsable" class="form-label">
               Profesional Responsable <span class="required-field">*</span>
@@ -316,10 +327,52 @@
     // Variables globales para almacenar datos cargados
     let tipoSolicitudes = [];
     let profesionalesData = [];
+    let dependenciasData = []; // Para almacenar las dependencias cargadas desde Supabase
     let ultimaSolicitudGuardada = null; // Variable para almacenar el número de la última solicitud guardada
 
     // Inicializar la aplicación cuando el DOM esté cargado
     document.addEventListener("DOMContentLoaded", initApp);
+
+    // Función para cargar las dependencias municipales
+    async function cargarDependencias() {
+      const { data, error } = await supabase
+        .from('dependencias_municipales')
+        .select('id_dependencia, dependencia_municipal');
+      
+      if (error) {
+        console.error('Error al cargar dependencias:', error);
+        return;
+      }
+      dependenciasData = data;
+    }
+
+    // Mostrar u ocultar el select de dependencias según el tipo elegido
+    function handleTipoChange() {
+      const selectTipo = document.getElementById('tipo_solicitud');
+      const texto = selectTipo.options[selectTipo.selectedIndex].text;
+      const divDep = document.getElementById('div-dependencia');
+      const selectDep = document.getElementById('dependencia_municipal');
+
+      if (texto === 'Préstamo') {
+        // Mostrar y habilitar
+        divDep.style.display = 'block';
+        selectDep.disabled = false;
+        
+        // Poblar opciones (si no lo has hecho antes)
+        selectDep.innerHTML = '<option value="" disabled selected>-- Seleccione una dependencia --</option>';
+        dependenciasData.forEach(dep => {
+          const opt = document.createElement('option');
+          opt.value = dep.id_dependencia;
+          opt.textContent = dep.dependencia_municipal;
+          selectDep.appendChild(opt);
+        });
+      } else {
+        // Ocultar y resetear
+        divDep.style.display = 'none';
+        selectDep.disabled = true;
+        selectDep.innerHTML = '<option value="" disabled selected>-- Seleccione una dependencia --</option>';
+      }
+    }
 
     // Función principal de inicialización
     async function initApp() {
@@ -335,7 +388,8 @@
         // Cargar datos necesarios
         await Promise.all([
           cargarTipoSolicitudes(),
-          cargarProfesionales()
+          cargarProfesionales(),
+          cargarDependencias()
         ]);
         
         // Configurar event listeners
@@ -454,28 +508,43 @@
         showLoading(true);
         
         // Validar campos requeridos
-        const tipo = document.getElementById("tipo_solicitud").value;
+        const tipoSelect = document.getElementById("tipo_solicitud");
+        const textoTipo = tipoSelect.options[tipoSelect.selectedIndex].text;
         const profesional = document.getElementById("profesional_responsable").value;
         
-        if (!tipo || !profesional) {
+        if (!tipoSelect.value || !profesional) {
           showNotification("Por favor complete todos los campos requeridos", "error");
           return;
         }
         
+        // Si es Préstamo, tomamos el id de la dependencia seleccionada
+        let dependencia = null;
+        if (textoTipo === "Préstamo") {
+          dependencia = document.getElementById("dependencia_municipal").value;
+          if (!dependencia) {
+            showNotification("Debe seleccionar la dependencia municipal", "error");
+            return;
+          }
+        }
+        
         // Obtener descripción del tipo seleccionado
         const descripcion = tipoSolicitudes.find(
-          t => t.tipo_solicitud === tipo
+          t => t.tipo_solicitud === tipoSelect.value
         )?.descripcion_tipo_salida || "";
+        
+        // Construir objeto para insertar
+        const insertObj = {
+          tipo_solicitud: tipoSelect.value,
+          descripcion_solicitud: descripcion,
+          fecha_solicitud: new Date().toISOString().split("T")[0],
+          profesional_responsable: profesional,
+          dependencia_municipal: dependencia
+        };
         
         // Insertar registro en la base de datos
         const { data, error } = await supabase
           .from("solicitud_17")
-          .insert([{
-            tipo_solicitud: tipo,
-            descripcion_solicitud: descripcion,
-            fecha_solicitud: new Date().toISOString().split("T")[0],
-            profesional_responsable: profesional
-          }])
+          .insert([insertObj])
           .select("numero_solicitud");
           
         if (error) {
@@ -508,6 +577,7 @@
 
     // Configurar event listeners
     function setupEventListeners() {
+      document.getElementById("tipo_solicitud").addEventListener("change", handleTipoChange);
       document.getElementById("btnGuardar").addEventListener("click", guardarSolicitud);
       document.getElementById("btnRegresar").addEventListener("click", volverPaginaAnterior);
       
@@ -535,7 +605,7 @@
     }
 
     // Función para volver a la página anterior
-     function volverPaginaAnterior() {
+    function volverPaginaAnterior() {
       window.history.back();
     }
 
