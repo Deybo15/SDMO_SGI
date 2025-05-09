@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registro de Salida de Artículos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <style>
+    :root {
+      --primary-color: #2c3e50;
+      --secondary-color: #3498db;
+      --accent-color: #e74c3c;
+      --light-bg: #f8f9fa;
+      --dark-text: #343a40;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--light-bg);
+      color: var(--dark-text);
+    }
+    
+    .main-card {
+      border-radius: 12px;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+      border: none;
+      overflow: hidden;
+      margin-bottom: 2rem;
+    }
+    
+    .card-header {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 1.5rem;
+      border-bottom: 4px solid var(--secondary-color);
+    }
+    
+    .form-control:focus {
+      border-color: var(--secondary-color);
+      box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.2);
+    }
+    
+    .btn-primary {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+      background-color: #1a252f;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-outline-primary {
+      color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    
+    .btn-outline-primary:hover {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    
+    .table th {
+      background-color: #e9ecef;
+      border-top: none;
+      font-weight: 600;
+    }
+    
+    .table-responsive {
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .badge-indicator {
+      font-size: 0.8rem;
+      margin-left: 0.5rem;
+      padding: 0.35rem 0.6rem;
+    }
+    
+    .section-title {
+      position: relative;
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .section-title:after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 50px;
+      height: 3px;
+      background-color: var(--secondary-color);
+    }
+    
+    .floating-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .form-section {
+      background-color: white;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    .required-field::after {
+      content: " *";
+      color: var(--accent-color);
+    }
+    
+    .animate__animated {
+      animation-duration: 0.5s;
+    }
+    
+    @media (max-width: 768px) {
+      .card-header {
+        padding: 1rem;
+      }
+      
+      .section-title {
+        font-size: 1.25rem;
+      }
+    }
+  
+    .select-container {
+      position: relative;
+    }
+    .btn-search {
+      position: absolute;
+      right: 0;
+      top: 0;
+      height: 100%;
+      width: 40px;
+      background-color: var(--secondary-color);
+      color: white;
+      border: none;
+      border-radius: 0 6px 6px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-search:hover {
+      background-color: #2980b9;
+    }
+
+    .articulo-select-container {
+      display: flex;
+    }
+    .articulo-select {
+      flex: 1;
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+    .btn-buscar-articulo {
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+    .articulo-img {
+      width: 30px;
+      height: 30px;
+      object-fit: cover;
+      border-radius: 3px;
+      margin-right: 8px;
+    }
+    .disponibilidad-text {
+      font-size: 0.75rem;
+      margin-top: 4px;
+      display: block;
+      color: #6c757d;
+    }
+    input[name="unidad"] {
+      background-color: #f8f9fa;
+      border: 1px solid #ced4da;
+    }
+    .load-more-container {
+      text-align: center;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container py-4">
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+        <div class="main-card">
+          <div class="card-header text-center">
+            <h2 class="mb-0"><i class="fas fa-box-open me-2"></i>REGISTRO DE SALIDA DE ARTÍCULOS</h2>
+          </div>
+          <div class="card-body">
+            <div class="alert-container mb-3"></div>
+            
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <div class="fecha-actual text-muted">
+                <i class="fas fa-calendar-alt me-2"></i>
+                <span id="fecha-actual"></span>
+              </div>
+              <div class="badge bg-light text-dark">
+                <i class="fas fa-file-alt me-2"></i>
+                <span id="folio-text">Nuevo registro</span>
+              </div>
+            </div>
+            
+            <form id="salida-form" class="needs-validation" novalidate>
+              <div class="form-section">
+                <h5 class="section-title"><i class="fas fa-user-tie me-2"></i>Información de la Salida</h5>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="autoriza" class="form-label required-field">Responsable que autoriza</label>
+                    <div class="select-container position-relative">
+                      <select id="autoriza" name="autoriza" class="form-select" required></select>
+                      <button type="button" class="btn-search" onclick="abrirModalBusqueda('autoriza')">
+                        <i class="fas fa-search"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="retira" class="form-label required-field">Persona que retira</label>
+                    <div class="select-container position-relative">
+                      <select id="retira" name="retira" class="form-select" required></select>
+                      <button type="button" class="btn-search" onclick="abrirModalBusqueda('retira')">
+                        <i class="fas fa-search"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="col-12 mb-3">
+                    <label for="numero_solicitud" class="form-label required-field">Número de solicitud</label>
+                    <div class="input-group">
+                      <span class="input-group-text"><i class="fas fa-hashtag"></i></span>
+                      <input 
+                        type="number" 
+                        id="numero_solicitud" 
+                        name="numero_solicitud" 
+                        class="form-control" 
+                        required 
+                        readonly  
+                      />
+                      <div class="invalid-feedback">
+                        Por favor ingrese un número de solicitud válido
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="d-flex align-items-center mb-3">
+                  <button type="button" class="btn btn-outline-primary" onclick="showComentariosModal()">
+                    <i class="fas fa-comment-dots me-2"></i> Agregar Comentarios
+                  </button>
+                  <span id="comentarios-badge" class="badge bg-success badge-indicator d-none animate__animated animate__fadeIn">
+                    <i class="fas fa-check-circle me-1"></i>Comentarios agregados
+                  </span>
+                </div>
+              </div>
+              
+              <div class="form-section">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h5 class="section-title mb-0"><i class="fas fa-boxes me-2"></i>Artículos a Retirar</h5>
+                  <button type="button" id="add-row" class="btn btn-sm btn-primary">
+                    <i class="fas fa-plus-circle me-1"></i> Agregar Artículo
+                  </button>
+                </div>
+                
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle" id="detalle-tabla">
+                    <thead class="table-light">
+                      <tr>
+                        <th width="50%">Artículo</th>
+                        <th width="20%">Cantidad</th>
+                        <th width="20%">Unidad</th>
+                        <th width="10%">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+              
+              <div class="d-flex justify-content-between mt-4">
+                <button type="button" id="btn-cancel" class="btn btn-outline-secondary">
+                  <i class="fas fa-arrow-left me-2"></i> Regresar
+                </button>
+                <button type="submit" class="btn btn-primary px-4">
+                  <i class="fas fa-save me-2"></i> Guardar Salida
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Comentarios -->
+  <div class="modal fade" id="comentariosModal" tabindex="-1" aria-labelledby="comentariosModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="comentariosModalLabel"><i class="fas fa-comment-dots me-2"></i>Comentarios Adicionales</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="comentarios-text" class="form-label">Detalles adicionales sobre esta salida</label>
+            <textarea class="form-control" id="comentarios-text" rows="6" 
+                      placeholder="Ejemplo: Artículos para evento de capacitación el día 15/05, proyecto: Renovación de equipos..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            <i class="fas fa-times me-2"></i> Cancelar
+          </button>
+          <button type="button" class="btn btn-primary" id="save-comentarios">
+            <i class="fas fa-save me-2"></i> Guardar Comentarios
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Búsqueda -->
+  <div class="modal fade" id="modalBusqueda" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="tituloModalBusqueda">Buscar</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <input type="text" id="inputBusqueda" class="form-control" placeholder="Escriba para buscar...">
+          </div>
+          <ul id="listaResultados" class="list-group" style="max-height: 400px; overflow-y: auto;"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Búsqueda de Artículos -->
+  <div class="modal fade" id="modalBusquedaArticulos" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">Buscar Artículo</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <input type="text" id="inputBusquedaArticulo" class="form-control" placeholder="Escriba para buscar artículo...">
+          </div>
+          <div id="resultadosArticulos" style="max-height: 400px; overflow-y: auto;">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th width="15%">Imagen</th>
+                  <th width="55%">Artículo</th>
+                  <th width="20%">Disponible</th>
+                  <th width="10%">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="listaArticulos"></tbody>
+            </table>
+            <div id="loadingArticulos" class="text-center py-3" style="display: none;">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+              </div>
+              <p class="mt-2">Cargando más artículos...</p>
+            </div>
+          </div>
+          <div class="load-more-container">
+            <button id="btnLoadMore" class="btn btn-sm btn-outline-primary" style="display: none;">
+              <i class="fas fa-arrow-down me-1"></i> Cargar más resultados
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button type="button" class="btn btn-primary rounded-circle floating-btn" data-bs-toggle="tooltip" data-bs-placement="left" title="Ayuda">
+    <i class="fas fa-question"></i>
+  </button>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    let responsables = [];
+    let retirantes = [];
+    let inventarioActual = [];
+    let comentarios = '';
+    let currentInventoryPage = 1;
+    const itemsPerPage = 1000;
+    let totalInventoryItems = 0;
+    let isInventoryLoading = false;
+
+    async function cargarInventarioPaginado(page = 1) {
+      isInventoryLoading = true;
+      document.getElementById('loadingArticulos').style.display = 'block';
+      document.getElementById('btnLoadMore').style.display = 'none';
+
+      try {
+        const { data, error, count } = await supabase
+          .from('inventario_actual')
+          .select('codigo_articulo, nombre_articulo, cantidad_disponible, unidad, imagen_url, precio_unitario', { count: 'exact' })
+          .order('nombre_articulo', { ascending: true })
+          .range((page - 1) * itemsPerPage, page * itemsPerPage - 1);
+
+        if (error) throw error;
+
+        totalInventoryItems = count || 0;
+        
+        if (page === 1) {
+          inventarioActual = data || [];
+        } else {
+          inventarioActual = [...inventarioActual, ...(data || [])];
+        }
+
+        if (page === 1 && data && data.length > 0) {
+          showAlert(`Inventario cargado (${data.length} artículos)`, 'success');
+        }
+
+        if (inventarioActual.length < totalInventoryItems) {
+          document.getElementById('btnLoadMore').style.display = 'block';
+        }
+
+        return data || [];
+      } catch (error) {
+        console.error('Error cargando inventario:', error);
+        showAlert('Error al cargar el inventario', 'danger');
+        return [];
+      } finally {
+        isInventoryLoading = false;
+        document.getElementById('loadingArticulos').style.display = 'none';
+      }
+    }
+
+    window.buscarArticulo = async function(btn) {
+      const row = btn.closest('tr');
+      const modal = new bootstrap.Modal(document.getElementById('modalBusquedaArticulos'));
+      const inputBusqueda = document.getElementById('inputBusquedaArticulo');
+      
+      document.getElementById('modalBusquedaArticulos').dataset.currentRow = row.rowIndex;
+      inputBusqueda.value = '';
+      document.getElementById('listaArticulos').innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Cargando artículos...</td></tr>';
+      
+      modal.show();
+      
+      if (inventarioActual.length === 0) {
+        await cargarInventarioPaginado(1);
+      }
+      
+      mostrarArticulosEnModal(inventarioActual);
+      
+      let searchTimeout;
+      inputBusqueda.oninput = () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          const termino = inputBusqueda.value.toLowerCase();
+          if (termino.length === 0) {
+            mostrarArticulosEnModal(inventarioActual);
+          } else {
+            const filtrados = inventarioActual.filter(item => 
+              item.nombre_articulo.toLowerCase().includes(termino) || 
+              (item.codigo_articulo && item.codigo_articulo.toLowerCase().includes(termino))
+            );
+            mostrarArticulosEnModal(filtrados);
+          }
+        }, 300);
+      };
+    };
+
+    window.cargarMasArticulos = async function() {
+      if (isInventoryLoading) return;
+      
+      currentInventoryPage++;
+      await cargarInventarioPaginado(currentInventoryPage);
+      
+      const inputBusqueda = document.getElementById('inputBusquedaArticulo');
+      if (inputBusqueda.value) {
+        const termino = inputBusqueda.value.toLowerCase();
+        const filtrados = inventarioActual.filter(item => 
+          item.nombre_articulo.toLowerCase().includes(termino) || 
+          (item.codigo_articulo && item.codigo_articulo.toLowerCase().includes(termino))
+        );
+        mostrarArticulosEnModal(filtrados);
+      } else {
+        mostrarArticulosEnModal(inventarioActual);
+      }
+    };
+
+    function mostrarArticulosEnModal(articulos) {
+      const tbody = document.getElementById('listaArticulos');
+      tbody.innerHTML = '';
+      
+      if (articulos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No se encontraron artículos</td></tr>';
+        return;
+      }
+      
+      const itemsToShow = articulos.slice(0, 200);
+      
+      itemsToShow.forEach(articulo => {
+        const tr = document.createElement('tr');
+        tr.className = 'articulo-item';
+        tr.dataset.codigo = articulo.codigo_articulo;
+        tr.dataset.nombre = articulo.nombre_articulo;
+        tr.dataset.unidad = articulo.unidad || 'Unidad';
+        tr.dataset.disponible = articulo.cantidad_disponible || 0;
+	tr.dataset.precio = articulo.precio_unitario || 0;
+        tr.dataset.imagen = articulo.imagen_url || 'https://via.placeholder.com/50';
+        
+        tr.innerHTML = `
+          <td>
+            <img src="${articulo.imagen_url || 'https://via.placeholder.com/50'}" 
+                 alt="${articulo.nombre_articulo}" 
+                 style="width:40px; height:40px; object-fit:cover; border-radius:4px;">
+          </td>
+          <td>
+            <strong>${articulo.nombre_articulo}</strong><br>
+            <small class="text-muted">${articulo.codigo_articulo || 'Sin código'}</small>
+          </td>
+          <td>${articulo.cantidad_disponible || 0} ${articulo.unidad || 'Unidad'}</td>
+          <td><button class="btn btn-sm btn-primary" onclick="seleccionarArticulo(this)">Seleccionar</button></td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+      
+      if (articulos.length > 200) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td colspan="4" class="text-center text-muted py-2">
+            Mostrando 200 de ${articulos.length} resultados. Refine su búsqueda.
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    window.seleccionarArticulo = function(btn) {
+      const tr = btn.closest('tr');
+      const rowIndex = document.getElementById('modalBusquedaArticulos').dataset.currentRow;
+      const targetRow = document.querySelector(`#detalle-tabla tbody tr:nth-child(${rowIndex})`);
+      
+      if (targetRow) {
+        const select = targetRow.querySelector('select[name="articulo"]');
+        select.innerHTML = `<option value="${tr.dataset.codigo}" selected>${tr.dataset.nombre}</option>`;
+        select.disabled = false;
+        
+        targetRow.dataset.precio = tr.dataset.precio;
+
+	targetRow.querySelector('input[name="unidad"]').value = tr.dataset.unidad;
+        
+        const disponibilidadText = targetRow.querySelector('.disponibilidad-text');
+        disponibilidadText.textContent = `Máximo: ${tr.dataset.disponible} ${tr.dataset.unidad}`;
+        disponibilidadText.style.display = 'block';
+        
+       const inputCantidad = targetRow.querySelector('input[name="cantidad"]');
+inputCantidad.max = tr.dataset.disponible;
+inputCantidad.placeholder = `Máx. ${tr.dataset.disponible}`;
+
+// ——— Aquí añades el bloque de validación en tiempo real ———
+inputCantidad.addEventListener('input', () => {
+  const max = parseFloat(inputCantidad.max) || Infinity;
+  const val = inputCantidad.valueAsNumber || 0;
+
+  if (val > max) {
+    inputCantidad.setCustomValidity(`La cantidad no puede superar ${max}`);
+  } else {
+    inputCantidad.setCustomValidity('');
+  }
+
+  inputCantidad.reportValidity();
+});
+// ————————————————————————————————————————————
+
+inputCantidad.focus();
+
+
+
+
+
+
+        
+      }
+      
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalBusquedaArticulos'));
+      modal.hide();
+    };
+
+    function validarNumeroSolicitud(numero) {
+      const num = parseInt(numero);
+      if (isNaN(num) || num <= 0) {
+        throw new Error('El número de solicitud debe ser un número válido');
+      }
+      return num;
+    }
+
+    function validarDatosFormulario(autoriza, retira, numeroSolicitud, detalles) {
+      if (!autoriza || !retira) {
+        throw new Error('Debe seleccionar tanto el responsable como la persona que retira');
+      }
+      
+      const numSolicitud = validarNumeroSolicitud(numeroSolicitud);
+      
+      if (detalles.length === 0) {
+        throw new Error('Debe agregar al menos un artículo');
+      }
+
+      detalles.forEach((item, index) => {
+        if (!item.codigo_articulo || !item.articulo || !item.cantidad || !item.unidad) {
+          throw new Error(`El artículo en la fila ${index + 1} está incompleto`);
+        }
+        
+        if (isNaN(item.cantidad) || item.cantidad <= 0) {
+          throw new Error(`La cantidad en la fila ${index + 1} debe ser un número válido`);
+        }
+      });
+
+      return numSolicitud;
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+      });
+
+      const now = new Date();
+      document.getElementById('fecha-actual').textContent = now.toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      const params = new URLSearchParams(window.location.search);
+      const numeroSolicitud = params.get('numero');
+      if (numeroSolicitud) {
+        document.getElementById('numero_solicitud').value = numeroSolicitud;
+      }
+
+      await cargarColaboradores();
+      
+      document.getElementById('btnLoadMore').addEventListener('click', cargarMasArticulos);
+
+      const form = document.getElementById('salida-form');
+      const addRowBtn = document.getElementById('add-row');
+      const tbody = document.querySelector('#detalle-tabla tbody');
+
+      function agregarFila() {
+        const tr = document.createElement('tr');
+        tr.className = 'animate__animated animate__fadeIn';
+        tr.innerHTML = `
+          <td>
+            <div class="input-group">
+              <select name="articulo" class="form-select articulo-select" required disabled>
+                <option value="" selected>-- Seleccione --</option>
+              </select>
+              <button type="button" class="btn btn-outline-secondary btn-buscar-articulo" onclick="buscarArticulo(this)">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
+          </td>
+          <td>
+           <input 
+  type="number" 
+  name="cantidad" 
+  class="form-control" 
+  min="0" 
+  step="any" 
+  required
+>
+<div class="invalid-feedback">
+    Por favor ingrese una cantidad válida (no mayor al máximo disponible).
+  </div>
+            <small class="text-muted disponibilidad-text" style="display:none;"></small>
+          </td>
+          <td>
+            <input type="text" name="unidad" class="form-control" readonly>
+          </td>
+          <td class="text-center">
+            <button type="button" class="btn btn-sm btn-danger btn-remove">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </td>
+        `;
+
+        tr.querySelector('.btn-remove').addEventListener('click', () => {
+          tr.classList.add('animate__fadeOut');
+          setTimeout(() => tr.remove(), 300);
+        });
+        
+        tbody.appendChild(tr);
+      }
+
+      addRowBtn.addEventListener('click', agregarFila);
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!form.checkValidity()) {
+          form.classList.add('was-validated');
+          return;
+        }
+        
+        const submitBtn = document.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.innerHTML = `
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          Guardando...
+        `;
+        submitBtn.disabled = true;
+        
+        try {
+          const autoriza = document.getElementById('autoriza').value.trim();
+          const retira = document.getElementById('retira').value.trim();
+          const numeroSolicitud = document.getElementById('numero_solicitud').value;
+          
+          const filas = Array.from(document.querySelectorAll('#detalle-tabla tbody tr'));
+          
+
+	  const detalles = filas.map(tr => {
+  		const selectArticulo = tr.querySelector('select[name="articulo"]');
+  		const inputCantidad = tr.querySelector('input[name="cantidad"]');
+
+  		return {
+    		codigo_articulo: selectArticulo.value.trim(),
+    		articulo: selectArticulo.options[selectArticulo.selectedIndex].text.split('(')[0].trim(),
+    		cantidad: parseFloat(inputCantidad.value),
+    		unidad: tr.querySelector('input[name="unidad"]').value,
+    		precio_unitario: parseFloat(tr.dataset.precio || 0)
+  	  };
+	});
+
+
+          const numSolicitudValidado = validarDatosFormulario(autoriza, retira, numeroSolicitud, detalles);
+          
+         // inserta sin id_salida — Postgres lo genera
+const { data: insertedEnc, error: errEnc } = await supabase
+  .from('salida_articulo_08')
+  .insert([{
+    fecha_salida:    new Date().toISOString(),
+    autoriza,
+    retira,
+    numero_solicitud: numSolicitudValidado,
+    comentarios
+  }], { returning: 'representation' })
+  .select('id_salida');
+
+if (errEnc) throw errEnc;
+
+// ahora newId lo tomas del primer registro insertado:
+const newId = insertedEnc[0].id_salida;
+
+          
+          // 1) Construye el array SIN registro_salida
+const detallesParaInsertar = detalles.map(d => ({
+  id_salida: newId,
+  articulo:  d.codigo_articulo,
+  cantidad:  d.cantidad,
+  precio_unitario: d.precio_unitario
+}));
+
+// 2) Inserta y pide que te devuelva el registro_salida generado por la BD
+const { data: insertedDetails, error: errDet } = await supabase
+  .from('dato_salida_13')
+  .insert(detallesParaInsertar, { returning: 'representation' })
+  .select('registro_salida, id_salida, articulo, cantidad');
+
+if (errDet) throw errDet;
+
+// insertedDetails es un array con cada fila insertada,
+// incluyendo el registro_salida que PostgreSQL asignó automáticamente.
+console.log('Detalles guardados:', insertedDetails);
+
+          
+          showAlert(`Salida registrada exitosamente con folio SA-${newId.toString().padStart(4, '0')}`, 'success');
+          
+          setTimeout(() => {
+            window.location.href = 'tabla_ste.html';
+          }, 3000);
+          
+        } catch (err) {
+          console.error('Error detallado:', err);
+          showAlert(`Error al guardar: ${err.message}`, 'danger');
+        } finally {
+          submitBtn.innerHTML = originalBtnText;
+          submitBtn.disabled = false;
+        }
+      });
+
+      document.getElementById('btn-cancel').addEventListener('click', () => {
+        if (confirm('¿Está seguro que desea cancelar? Todos los datos no guardados se perderán.')) {
+          window.history.back();
+        }
+      });
+
+      agregarFila();
+    });
+
+    async function cargarColaboradores() {
+      try {
+        const [{ data: autorizados }, { data: retirados }] = await Promise.all([
+          supabase.from('colaboradores_06').select('identificacion, alias').eq('autorizado', true),
+          supabase.from('colaboradores_06').select('identificacion, colaborador').eq('condicion_laboral', false)
+        ]);
+        responsables = autorizados || [];
+        retirantes = retirados || [];
+
+        llenarSelect('autoriza', responsables, 'alias', 'identificacion');
+        llenarSelect('retira', retirantes, 'colaborador', 'identificacion');
+
+      } catch (error) {
+        console.error('Error cargando colaboradores:', error.message);
+      }
+    }
+
+    function llenarSelect(id, datos, textField, valueField) {
+      const select = document.getElementById(id);
+      select.innerHTML = '<option value="" disabled selected>-- Seleccione --</option>';
+      datos.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item[valueField];
+        opt.textContent = item[textField];
+        select.appendChild(opt);
+      });
+    }
+
+    window.abrirModalBusqueda = function(tipo) {
+      const datos = tipo === 'autoriza' ? responsables : retirantes;
+      const campo = tipo === 'autoriza' ? 'alias' : 'colaborador';
+
+      const modal = new bootstrap.Modal(document.getElementById('modalBusqueda'));
+      document.getElementById('inputBusqueda').value = '';
+      document.getElementById('listaResultados').innerHTML = '';
+      document.getElementById('modalBusqueda').dataset.tipo = tipo;
+      document.getElementById('tituloModalBusqueda').textContent = tipo === 'autoriza' ? 'Buscar Responsable' : 'Buscar Persona que Retira';
+
+      mostrarResultados(datos, campo);
+
+      document.getElementById('inputBusqueda').oninput = () => {
+        const termino = document.getElementById('inputBusqueda').value.toLowerCase();
+        const filtrados = datos.filter(item => item[campo]?.toLowerCase().includes(termino));
+        mostrarResultados(filtrados, campo);
+      };
+
+      modal.show();
+    };
+
+    function mostrarResultados(lista, campo) {
+      const contenedor = document.getElementById('listaResultados');
+      contenedor.innerHTML = '';
+      if (lista.length === 0) {
+        contenedor.innerHTML = '<li class="list-group-item text-muted">No se encontraron resultados</li>';
+        return;
+      }
+      lista.forEach(item => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item list-group-item-action';
+        li.textContent = item[campo];
+        li.dataset.value = item.identificacion;
+        li.onclick = () => seleccionarItem(item);
+        contenedor.appendChild(li);
+      });
+    }
+
+    function seleccionarItem(item) {
+      const tipo = document.getElementById('modalBusqueda').dataset.tipo;
+      document.getElementById(tipo).value = item.identificacion;
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalBusqueda'));
+      modal.hide();
+    }
+
+    function showAlert(message, type) {
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `alert alert-${type} alert-dismissible fade show animate__animated animate__fadeIn`;
+      alertDiv.role = 'alert';
+      alertDiv.innerHTML = `
+        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      `;
+      
+      const container = document.querySelector('.alert-container');
+      container.innerHTML = '';
+      container.appendChild(alertDiv);
+    }
+
+    window.showComentariosModal = function() {
+      const modal = new bootstrap.Modal(document.getElementById('comentariosModal'));
+      const textarea = document.getElementById('comentarios-text');
+      textarea.value = comentarios;
+      modal.show();
+
+      document.getElementById('save-comentarios').onclick = () => {
+        comentarios = textarea.value;
+        if (comentarios.trim()) {
+          document.getElementById('comentarios-badge').classList.remove('d-none');
+        } else {
+          document.getElementById('comentarios-badge').classList.add('d-none');
+        }
+        modal.hide();
+      };
+    };
+  </script>
+</body>
+</html>
