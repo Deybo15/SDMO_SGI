@@ -407,7 +407,7 @@
     async function cargarDesplegables() {
       try {
         const [tipologias, barrios, supervisores, profesionales, clientes] = await Promise.all([
-          supabase.from("tipologia_obra").select("id_tipologia_obra, descripcion_tipologia"),
+          supabase.from("tipologia_obra").select("id_tipologia_obra, descripcion_tipologia_obra"),
           supabase.from("barrios_distritos").select("id_barrio, barrio"),
           supabase
             .from("colaboradores_06")
@@ -422,7 +422,7 @@
           supabase.from("cliente_externo_24").select("id_cliente_externo, nombre_ce")
         ]);
 
-        tipologiasData = ordenarAlfabeticamente(tipologias?.data, 'descripcion_tipologia') || [];
+        tipologiasData = ordenarAlfabeticamente(tipologias?.data, 'descripcion_tipologia_obra') || [];
         barriosData = ordenarAlfabeticamente(barrios?.data, 'barrio') || [];
         supervisoresData = ordenarAlfabeticamente(supervisores?.data, 'alias') || [];
         profesionalesData = ordenarAlfabeticamente(profesionales?.data, 'alias') || [];
@@ -436,7 +436,7 @@
           return options;
         };
 
-        document.getElementById("tipologia_trabajo").innerHTML = buildOptions(tipologiasData, 'id_tipologia_obra', 'descripcion_tipologia');
+        document.getElementById("tipologia_trabajo").innerHTML = buildOptions(tipologiasData, 'id_tipologia_obra', 'descripcion_tipologia_obra');
         document.getElementById("barrio_solicitud").innerHTML = buildOptions(barriosData, 'id_barrio', 'barrio');
         document.getElementById("supervisor_asignado").innerHTML = buildOptions(supervisoresData, 'identificacion', 'alias');
         document.getElementById("profesional_responsable").innerHTML = buildOptions(profesionalesData, 'identificacion', 'alias');
