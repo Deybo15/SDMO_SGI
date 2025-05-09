@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Registro de Salida de Artículos</title>
-  <!-- Bootstrap y FontAwesome -->
+  <title>Registro de Salida de Artículos - Otras</title>
+  <!-- Bootstrap, FontAwesome y Animate.css -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Animate.css opcional -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
   <style>
     :root {
@@ -22,133 +21,23 @@
       background-color: var(--light-bg);
       color: var(--dark-text);
     }
-    .main-card {
-      border-radius: 12px;
-      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-      border: none;
-      overflow: hidden;
-      margin-bottom: 2rem;
-    }
-    .card-header {
-      background-color: var(--primary-color);
-      color: white;
-      padding: 1.5rem;
-      border-bottom: 4px solid var(--secondary-color);
-    }
-    .form-control:focus {
-      border-color: var(--secondary-color);
-      box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.2);
-    }
-    .btn-primary {
-      background-color: var(--primary-color);
-      border-color: var(--primary-color);
-      transition: all 0.3s ease;
-    }
-    .btn-primary:hover {
-      background-color: #1a252f;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
-    .btn-outline-primary {
-      color: var(--primary-color);
-      border-color: var(--primary-color);
-    }
-    .btn-outline-primary:hover {
-      background-color: var(--primary-color);
-      color: white;
-    }
-    .table th {
-      background-color: #e9ecef;
-      border-top: none;
-      font-weight: 600;
-    }
-    .table-responsive {
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    .badge-indicator {
-      font-size: 0.8rem;
-      margin-left: 0.5rem;
-      padding: 0.35rem 0.6rem;
-    }
-    .section-title {
-      position: relative;
-      padding-bottom: 0.5rem;
-      margin-bottom: 1.5rem;
-    }
-    .section-title:after {
-      content: "";
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 50px;
-      height: 3px;
-      background-color: var(--secondary-color);
-    }
-    .floating-btn {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 100;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-    .form-section {
-      background-color: white;
-      border-radius: 8px;
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    }
-    .required-field::after {
-      content: " *";
-      color: var(--accent-color);
-    }
-    .select-container {
-      position: relative;
-    }
-    .btn-search {
-      position: absolute;
-      right: 0;
-      top: 0;
-      height: 100%;
-      width: 40px;
-      background-color: var(--secondary-color);
-      color: white;
-      border: none;
-      border-radius: 0 6px 6px 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .btn-search:hover {
-      background-color: #2980b9;
-    }
-    .articulo-select-container {
-      display: flex;
-    }
-    .articulo-select {
-      flex: 1;
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
-    }
-    .btn-buscar-articulo {
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-    }
-    .disponibilidad-text {
-      font-size: 0.75rem;
-      margin-top: 4px;
-      display: block;
-      color: #6c757d;
-    }
-    input[name="unidad"] {
-      background-color: #f8f9fa;
-      border: 1px solid #ced4da;
-    }
-    .load-more-container {
-      text-align: center;
-      margin-top: 10px;
-    }
+    .main-card { border-radius: 12px; box-shadow: 0 6px 15px rgba(0,0,0,0.1); border: none; overflow: hidden; margin-bottom: 2rem; }
+    .card-header { background-color: var(--primary-color); color: white; padding: 1.5rem; border-bottom: 4px solid var(--secondary-color); }
+    .form-control:focus { border-color: var(--secondary-color); box-shadow: 0 0 0 0.25rem rgba(52,152,219,0.2); }
+    .btn-primary { background-color: var(--primary-color); border-color: var(--primary-color); transition: all 0.3s ease; }
+    .btn-primary:hover { background-color: #1a252f; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .btn-outline-primary { color: var(--primary-color); border-color: var(--primary-color); }
+    .btn-outline-primary:hover { background-color: var(--primary-color); color: white; }
+    .table th { background-color: #e9ecef; border-top: none; font-weight: 600; }
+    .table-responsive { border-radius: 8px; overflow: hidden; }
+    .badge-indicator { font-size: 0.8rem; margin-left: 0.5rem; padding: 0.35rem 0.6rem; }
+    .section-title { position: relative; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+    .section-title:after { content: ""; position: absolute; bottom: 0; left: 0; width: 50px; height: 3px; background-color: var(--secondary-color); }
+    .form-section { background-color: white; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .required-field::after { content: " *"; color: var(--accent-color); }
+    .disponibilidad-text { font-size: 0.75rem; margin-top: 4px; display: block; color: #6c757d; }
+    input[name="unidad"] { background-color: #f8f9fa; border: 1px solid #ced4da; }
+    .btn-search { position: absolute; top: 0; right: 0; border: none; background: transparent; padding: 0.75rem; color: var(--dark-text); }
   </style>
 </head>
 <body>
@@ -160,98 +49,58 @@
             <h2 class="mb-0"><i class="fas fa-box-open me-2"></i>REGISTRO DE SALIDA DE ARTÍCULOS</h2>
           </div>
           <div class="card-body">
-            <!-- Alertas dinámicas -->
             <div class="alert-container mb-3"></div>
-
-            <!-- Fecha y folio -->
             <div class="d-flex justify-content-between align-items-center mb-4">
-              <div class="fecha-actual text-muted">
-                <i class="fas fa-calendar-alt me-2"></i><span id="fecha-actual"></span>
-              </div>
-              <div class="badge bg-light text-dark">
-                <i class="fas fa-file-alt me-2"></i><span id="folio-text">Nuevo registro</span>
-              </div>
+              <div class="fecha-actual text-muted"><i class="fas fa-calendar-alt me-2"></i><span id="fecha-actual"></span></div>
+              <div class="badge bg-light text-dark"><i class="fas fa-file-alt me-2"></i><span id="folio-text">Nuevo registro</span></div>
             </div>
-
             <form id="salida-form" class="needs-validation" novalidate>
-              <!-- Sección 1: Información de la Salida -->
               <div class="form-section">
                 <h5 class="section-title"><i class="fas fa-user-tie me-2"></i>Información de la Salida</h5>
                 <div class="row">
                   <div class="col-md-6 mb-3">
                     <label for="autoriza" class="form-label required-field">Responsable que autoriza</label>
-                    <div class="select-container">
-                      <select id="autoriza" name="autoriza" class="form-select" required>
-                        <option value="" disabled selected>-- Seleccione --</option>
-                      </select>
-                      <button type="button" class="btn-search" onclick="abrirModalBusqueda('autoriza')">
-                        <i class="fas fa-search"></i>
-                      </button>
+                    <div class="position-relative">
+                      <select id="autoriza" name="autoriza" class="form-select" required></select>
+                      <button type="button" class="btn-search" onclick="abrirModalBusqueda('autoriza')"><i class="fas fa-search"></i></button>
                     </div>
-                    <div class="invalid-feedback">Seleccione un responsable.</div>
                   </div>
                   <div class="col-md-6 mb-3">
                     <label for="retira" class="form-label required-field">Persona que retira</label>
-                    <div class="select-container">
-                      <select id="retira" name="retira" class="form-select" required>
-                        <option value="" disabled selected>-- Seleccione --</option>
-                      </select>
-                      <button type="button" class="btn-search" onclick="abrirModalBusqueda('retira')">
-                        <i class="fas fa-search"></i>
-                      </button>
+                    <div class="position-relative">
+                      <select id="retira" name="retira" class="form-select" required></select>
+                      <button type="button" class="btn-search" onclick="abrirModalBusqueda('retira')"><i class="fas fa-search"></i></button>
                     </div>
-                    <div class="invalid-feedback">Seleccione la persona que retira.</div>
                   </div>
                   <div class="col-12 mb-3">
                     <label for="numero_solicitud" class="form-label required-field">Número de solicitud</label>
                     <div class="input-group">
                       <span class="input-group-text"><i class="fas fa-hashtag"></i></span>
-                      <input type="number" id="numero_solicitud" name="numero_solicitud" class="form-control" required>
+                      <input type="number" id="numero_solicitud" name="numero_solicitud" class="form-control" required readonly>
+                      <div class="invalid-feedback">Por favor ingrese un número de solicitud válido</div>
                     </div>
-                    <div class="invalid-feedback">El número de solicitud es requerido.</div>
                   </div>
                 </div>
                 <div class="d-flex align-items-center mb-3">
-                  <button type="button" class="btn btn-outline-primary" onclick="showComentariosModal()">
-                    <i class="fas fa-comment-dots me-2"></i>Agregar Comentarios
-                  </button>
-                  <span id="comentarios-badge" class="badge bg-success badge-indicator d-none animate__animated animate__fadeIn">
-                    <i class="fas fa-check-circle me-1"></i>Comentarios agregados
-                  </span>
+                  <button type="button" class="btn btn-outline-primary" onclick="showComentariosModal()"><i class="fas fa-comment-dots me-2"></i>Agregar Comentarios</button>
+                  <span id="comentarios-badge" class="badge bg-success badge-indicator d-none animate__animated animate__fadeIn"><i class="fas fa-check-circle me-1"></i>Comentarios agregados</span>
                 </div>
               </div>
-
-              <!-- Sección 2: Artículos a Retirar -->
               <div class="form-section">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                   <h5 class="section-title mb-0"><i class="fas fa-boxes me-2"></i>Artículos a Retirar</h5>
-                  <button type="button" id="add-row" class="btn btn-sm btn-primary">
-                    <i class="fas fa-plus-circle me-1"></i>Agregar Artículo
-                  </button>
+                  <button type="button" id="add-row" class="btn btn-sm btn-primary"><i class="fas fa-plus-circle me-1"></i> Agregar Artículo</button>
                 </div>
                 <div class="table-responsive">
                   <table class="table table-hover align-middle" id="detalle-tabla">
-                    <thead class="table-light">
-                      <tr>
-                        <th width="50%">Artículo</th>
-                        <th width="20%">Cantidad</th>
-                        <th width="20%">Unidad</th>
-                        <th width="10%">Acción</th>
-                      </tr>
-                    </thead>
+                    <thead class="table-light"><tr><th>Artículo</th><th>Cantidad</th><th>Unidad</th><th>Acción</th></tr></thead>
                     <tbody></tbody>
                   </table>
                 </div>
               </div>
-
-              <!-- Botones Finales -->
               <div class="d-flex justify-content-between mt-4">
-                <button type="button" id="btn-cancel" class="btn btn-outline-secondary">
-                  <i class="fas fa-arrow-left me-2"></i>Regresar
-                </button>
-                <button type="submit" class="btn btn-primary px-4">
-                  <i class="fas fa-save me-2"></i>Guardar Salida
-                </button>
+                <button type="button" id="btn-cancel" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Regresar</button>
+                <button type="submit" class="btn btn-primary px-4"><i class="fas fa-save me-2"></i>Guardar Salida</button>
               </div>
             </form>
           </div>
@@ -260,494 +109,149 @@
     </div>
   </div>
 
-  <!-- Modal Comentarios -->
+  <!-- Modales Comentarios y Búsqueda Colaboradores -->
   <div class="modal fade" id="comentariosModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title"><i class="fas fa-comment-dots me-2"></i>Comentarios Adicionales</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <textarea id="comentarios-text" class="form-control" rows="5" placeholder="Detalles..."></textarea>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="button" id="save-comentarios" class="btn btn-primary">Guardar</button>
-        </div>
-      </div>
-    </div>
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+      <div class="modal-header bg-primary text-white"><h5 class="modal-title"><i class="fas fa-comment-dots me-2"></i>Comentarios Adicionales</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body"><textarea id="comentarios-text" class="form-control" rows="5" placeholder="Detalles..."></textarea></div>
+      <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button><button type="button" id="save-comentarios" class="btn btn-primary">Guardar</button></div>
+    </div></div>
   </div>
-
-  <!-- Modal Búsqueda de Colaboradores -->
   <div class="modal fade" id="modalBusqueda" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header bg-primary text-white">
-          <h5 id="tituloModalBusqueda" class="modal-title"></h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <input id="inputBusqueda" type="text" class="form-control mb-3" placeholder="Buscar...">
-          <ul id="listaResultados" class="list-group" style="max-height:300px;overflow:auto;"></ul>
-        </div>
-      </div>
-    </div>
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+      <div class="modal-header bg-primary text-white"><h5 id="tituloModalBusqueda" class="modal-title"></h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body"><input id="inputBusqueda" type="text" class="form-control mb-3" placeholder="Buscar..."><ul id="listaResultados" class="list-group" style="max-height:300px;overflow:auto;"></ul></div>
+    </div></div>
   </div>
-
-  <!-- Modal Búsqueda de Artículos -->
+  <!-- Modal Búsqueda Artículos -->
   <div class="modal fade" id="modalBusquedaArticulos" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title">Buscar Artículo</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <input id="inputBusquedaArticulo" type="text" class="form-control mb-3" placeholder="Buscar artículo...">
-          <div class="table-responsive" style="max-height:300px;overflow:auto;">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th>Imagen</th><th>Artículo</th><th>Disponible</th><th>Acción</th>
-                </tr>
-              </thead>
-              <tbody id="listaArticulos"></tbody>
-            </table>
-          </div>
-          <div id="loadingArticulos" class="text-center py-3" style="display:none;">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p>Cargando...</p>
-          </div>
-          <div class="load-more-container">
-            <button id="btnLoadMore" class="btn btn-sm btn-outline-primary" style="display:none;">
-              <i class="fas fa-arrow-down me-1"></i>Cargar más
-            </button>
-          </div>
-        </div>
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+      <div class="modal-header bg-primary text-white"><h5 class="modal-title">Buscar Artículo</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <input id="inputBusquedaArticulo" type="text" class="form-control mb-3" placeholder="Buscar artículo...">
+        <ul id="listaArticulos" class="list-group" style="max-height:400px;overflow:auto;"></ul>
+        <div class="d-flex justify-content-end mt-3"><button type="button" id="load-inventory-btn" class="btn btn-outline-primary">Cargar más</button></div>
       </div>
-    </div>
+    </div></div>
   </div>
 
-  <!-- Botón de ayuda flotante -->
-  <button class="btn btn-primary rounded-circle floating-btn" data-bs-toggle="tooltip" title="Ayuda">
-    <i class="fas fa-question"></i>
-  </button>
-
-  <!-- Bootstrap Bundle -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- Supabase JS -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <!-- Tu script de Supabase y lógica -->
-  <script>
-    // Configuración de Supabase
+  <!-- Script de Lógica -->
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
     const supabaseUrl = 'https://qpccqoeronbcdyejfjod.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY2Nxb2Vyb25iY2R5ZWpmam9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMzA5MzIsImV4cCI6MjA1OTgwNjkzMn0.v_KA6VdHl-F3sRiVaFMsfDQCS1qKERFBk5mTBcSiIDQ';
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    const supabaseKey = 'PUBLIC_ANON_KEY';
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Variables globales
-    let responsables = [], retirantes = [], inventarioActual = [];
-    let comentarios = '', currentInventoryPage = 1, isInventoryLoading = false;
-    const itemsPerPage = 100;
+    let articuloSeleccionado = null;
+    let inventario = [];
+    let currentInventoryPage = 1;
+    const inventoryPageSize = 20;
 
-    // Cargar colaboradores que autoriza y retira
     async function cargarColaboradores() {
-      try {
-        const { data, error } = await supabase
-          .from('colaboradores_06')
-          .select('identificacion, alias, profesional_responsable, autoriza')
-          .order('alias');
-          
-        if (error) {
-          console.error("Error cargando colaboradores:", error);
-          showAlert('Error al cargar lista de colaboradores. Intente nuevamente.', 'danger');
-          return;
-        }
-        
-        responsables = data.filter(c => c.autoriza === true);
-        retirantes = data.filter(c => c.profesional_responsable === true);
-        
-        llenarSelect('autoriza', responsables, 'alias', 'identificacion');
-        llenarSelect('retira', retirantes, 'alias', 'identificacion');
-      } catch (err) {
-        console.error("Error en cargarColaboradores:", err);
-        showAlert('Error al cargar colaboradores. Intente nuevamente.', 'danger');
-      }
+      const { data, error } = await supabase.from('colaboradores_06').select('identificacion, alias').eq('profesional_responsable', true);
+      if (error) return console.error(error);
+      const autoriza = document.getElementById('autoriza');
+      data.forEach(u => autoriza.add(new Option(u.alias, u.identificacion)));
+      const retira = document.getElementById('retira');
+      data.forEach(u => retira.add(new Option(u.alias, u.identificacion)));
     }
 
-    // Llena un <select>
-    function llenarSelect(id, lista, textField, valueField) {
-      try {
-        const s = document.getElementById(id);
-        s.innerHTML = '<option value="" disabled selected>-- Seleccione --</option>';
-        
-        if (lista && lista.length > 0) {
-          lista.forEach(item => {
-            const o = document.createElement('option');
-            o.value = item[valueField] || '';
-            o.textContent = item[textField] || '';
-            s.appendChild(o);
-          });
-        } else {
-          console.warn(`No hay elementos para cargar en el selector ${id}`);
-        }
-      } catch (err) {
-        console.error(`Error en llenarSelect para ${id}:`, err);
-      }
+    function abrirModalBusqueda(field) {
+      document.getElementById('tituloModalBusqueda').textContent = field === 'autoriza' ? 'Buscar Autoriza' : 'Buscar Retira';
+      document.getElementById('inputBusqueda').value = '';
+      document.getElementById('listaResultados').innerHTML = '';
+      $('#modalBusqueda').modal('show');
+      const input = document.getElementById('inputBusqueda');
+      input.oninput = () => buscarEnLista(field, input.value);
+    }
+    function buscarEnLista(field, term) {
+      const select = document.getElementById(field);
+      select.querySelectorAll('option').forEach(opt => {
+        const match = opt.text.toLowerCase().includes(term.toLowerCase());
+        opt.style.display = match ? '' : 'none';
+      });
+      // Opcional: mostrar resultados en listaResultados
     }
 
-    // Abrir modal de búsqueda de colaboradores
-    window.abrirModalBusqueda = (tipo) => {
-      try {
-        const datos = tipo === 'autoriza' ? responsables : retirantes;
-        const campo = 'alias';
-        
-        document.getElementById('tituloModalBusqueda').textContent =
-          tipo === 'autoriza' ? 'Buscar Responsable' : 'Buscar Persona que Retira';
-          
-        document.getElementById('inputBusqueda').value = '';
-        const ul = document.getElementById('listaResultados');
-        ul.innerHTML = '';
-        
-        if (datos && datos.length > 0) {
-          datos.forEach(item => {
-            const li = document.createElement('li');
-            li.className = 'list-group-item list-group-item-action';
-            li.textContent = item[campo] || '';
-            li.onclick = () => {
-              document.getElementById(tipo).value = item.identificacion || '';
-              bootstrap.Modal.getInstance(document.getElementById('modalBusqueda')).hide();
-            };
-            ul.appendChild(li);
-          });
-        } else {
-          ul.innerHTML = '<li class="list-group-item text-center text-muted">No hay datos disponibles</li>';
-        }
-        
-        document.getElementById('inputBusqueda').oninput = e => {
-          const val = e.target.value.toLowerCase();
-          document.querySelectorAll('#listaResultados li').forEach(li => {
-            li.style.display = li.textContent.toLowerCase().includes(val) ? '' : 'none';
-          });
-        };
-        
-        new bootstrap.Modal(document.getElementById('modalBusqueda')).show();
-      } catch (err) {
-        console.error("Error en abrirModalBusqueda:", err);
-        showAlert('Error al abrir modal de búsqueda', 'danger');
-      }
-    };
-
-    // Mostrar alertas
-    function showAlert(msg, type='info') {
-      try {
-        const c = document.querySelector('.alert-container');
-        c.innerHTML = `
-          <div class="alert alert-${type} alert-dismissible fade show animate__animated animate__fadeIn">
-            <i class="fas ${type==='success'?'fa-check-circle':'fa-exclamation-triangle'} me-2"></i>${msg}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-          </div>`;
-      } catch (err) {
-        console.error("Error en showAlert:", err);
-      }
+    async function cargarInventarioPaginado(page) {
+      const { data, error } = await supabase.from('inventario_actual').select('*').range((page-1)*inventoryPageSize, page*inventoryPageSize-1);
+      if (error) return console.error(error);
+      inventario = inventario.concat(data);
+      renderListaArticulos(inventario);
+    }
+    function renderListaArticulos(items) {
+      const lista = document.getElementById('listaArticulos');
+      lista.innerHTML = '';
+      items.forEach(item => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item list-group-item-action';
+        li.textContent = `${item.descripcion} (${item.codigo_articulo}) - Disp: ${item.cantidad_disponible}`;
+        li.onclick = () => seleccionarArticulo(item);
+        lista.appendChild(li);
+      });
+    }
+    function seleccionarArticulo(item) {
+      articuloSeleccionado = item;
+      $('#modalBusquedaArticulos').modal('hide');
     }
 
-    // Modal comentarios
-    window.showComentariosModal = () => {
-      try {
-        document.getElementById('comentarios-text').value = comentarios;
-        const m = new bootstrap.Modal(document.getElementById('comentariosModal'));
-        m.show();
-        document.getElementById('save-comentarios').onclick = () => {
-          comentarios = document.getElementById('comentarios-text').value.trim();
-          document.getElementById('comentarios-badge')
-            .classList.toggle('d-none', comentarios === '');
-          m.hide();
-        };
-      } catch (err) {
-        console.error("Error en showComentariosModal:", err);
-        showAlert('Error al mostrar modal de comentarios', 'danger');
-      }
-    };
-
-    // Cargar inventario paginado
-    async function cargarInventarioPaginado(page=1) {
-      try {
-        isInventoryLoading = true;
-        document.getElementById('loadingArticulos').style.display = 'block';
-        document.getElementById('btnLoadMore').style.display = 'none';
-        
-        const { data, error, count } = await supabase
-          .from('inventario_actual')
-          .select('codigo_articulo,nombre_articulo,cantidad_disponible,unidad,imagen_url,precio_unitario', {count: 'exact'})
-          .order('nombre_articulo')
-          .range((page-1)*itemsPerPage, page*itemsPerPage-1);
-          
-        if (error) {
-          console.error("Error al cargar inventario:", error);
-          showAlert('Error al cargar inventario', 'danger');
-          isInventoryLoading = false;
-          document.getElementById('loadingArticulos').style.display = 'none';
-          return [];
-        }
-        
-        if (page === 1) {
-          inventarioActual = data || [];
-        } else if (data) {
-          inventarioActual = [...inventarioActual, ...data];
-        }
-        
-        if (data && count && inventarioActual.length < count) {
-          document.getElementById('btnLoadMore').style.display = 'block';
-        }
-        
-        document.getElementById('loadingArticulos').style.display = 'none';
-        isInventoryLoading = false;
-        return data || [];
-      } catch (err) {
-        console.error("Error en cargarInventarioPaginado:", err);
-        showAlert('Error al cargar inventario', 'danger');
-        document.getElementById('loadingArticulos').style.display = 'none';
-        isInventoryLoading = false;
-        return [];
-      }
-    }
-
-    // Función de búsqueda de artículos
-    window.buscarArticulo = async (btn) => {
-      try {
-        const rowIdx = btn.closest('tr').rowIndex - 1; // -1 para ajustar por el encabezado
-        document.getElementById('modalBusquedaArticulos').dataset.currentRow = rowIdx;
-        document.getElementById('listaArticulos').innerHTML = '';
-        
-        const m = new bootstrap.Modal(document.getElementById('modalBusquedaArticulos'));
-        m.show();
-        
-        if (!inventarioActual.length) {
-          await cargarInventarioPaginado(1);
-        }
-        
-        mostrarArticulosEnModal(inventarioActual);
-        
-        document.getElementById('inputBusquedaArticulo').oninput = e => {
-          const term = e.target.value.toLowerCase();
-          const filtrados = inventarioActual.filter(a => 
-            (a.nombre_articulo && a.nombre_articulo.toLowerCase().includes(term)) || 
-            (a.codigo_articulo && a.codigo_articulo.toLowerCase().includes(term))
-          );
-          mostrarArticulosEnModal(filtrados);
-        };
-      } catch (err) {
-        console.error("Error en buscarArticulo:", err);
-        showAlert('Error al buscar artículo', 'danger');
-      }
-    };
-
-    // Mostrar lista en modal de artículos
-    function mostrarArticulosEnModal(list) {
-      try {
-        const tbody = document.getElementById('listaArticulos');
-        tbody.innerHTML = '';
-        
-        if (!list || list.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="4" class="text-center">No hay resultados</td></tr>';
-          return;
-        }
-        
-        list.slice(0, 200).forEach(a => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td><img src="${a.imagen_url || ''}" width="40" height="40" style="object-fit:cover;border-radius:4px;"></td>
-            <td>${a.nombre_articulo || ''}</td>
-            <td>${a.cantidad_disponible || 0} ${a.unidad || ''}</td>
-            <td><button class="btn btn-sm btn-primary" onclick="seleccionarArticulo(this)">Seleccionar</button></td>`;
-          
-          // anexar datos al tr
-          tr.dataset.codigo = a.codigo_articulo || '';
-          tr.dataset.nombre = a.nombre_articulo || '';
-          tr.dataset.unidad = a.unidad || '';
-          tr.dataset.disponible = a.cantidad_disponible || 0;
-          tr.dataset.precio = a.precio_unitario || 0;
-          
-          tbody.appendChild(tr);
-        });
-        
-        if (inventarioActual.length > 200) {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td colspan="4" class="text-center text-muted">Mostrando 200 de ${inventarioActual.length}</td>`;
-          tbody.appendChild(tr);
-        }
-      } catch (err) {
-        console.error("Error en mostrarArticulosEnModal:", err);
-      }
-    }
-
-    // Seleccionar un artículo
-    window.seleccionarArticulo = (btn) => {
-      try {
-        const tr = btn.closest('tr');
-        const rowIdxStr = document.getElementById('modalBusquedaArticulos').dataset.currentRow;
-        const rowIdx = parseInt(rowIdxStr, 10);
-        
-        if (isNaN(rowIdx)) {
-          console.error("Error: índice de fila inválido");
-          return;
-        }
-        
-        const rows = document.querySelectorAll('#detalle-tabla tbody tr');
-        const target = rows[rowIdx];
-        
-        if (!target) {
-          console.error("Error: fila objetivo no encontrada");
-          return;
-        }
-        
-        const sel = target.querySelector('select[name="articulo"]');
-        sel.innerHTML = `<option value="${tr.dataset.codigo}" selected>${tr.dataset.nombre}</option>`;
-        sel.disabled = true;
-        
-        target.querySelector('input[name="unidad"]').value = tr.dataset.unidad || '';
-        
-        const disp = target.querySelector('.disponibilidad-text');
-        disp.textContent = `Máx: ${tr.dataset.disponible}`;
-        disp.style.display = '';
-        
-        target.dataset.precio = tr.dataset.precio || 0;
-        
-        // validación cantidad
-        const inp = target.querySelector('input[name="cantidad"]');
-        inp.max = tr.dataset.disponible || 0;
-        inp.value = ''; // Limpiar valor previo
-        
-        inp.addEventListener('input', () => {
-          const val = parseFloat(inp.value) || 0;
-          const max = parseFloat(inp.max) || 0;
-          
-          if (val > max) {
-            inp.setCustomValidity(`No puede superar ${max}`);
-          } else if (val <= 0) {
-            inp.setCustomValidity('La cantidad debe ser mayor a cero');
-          } else {
-            inp.setCustomValidity('');
-          }
-          
-          inp.reportValidity();
-        });
-        
-        bootstrap.Modal.getInstance(document.getElementById('modalBusquedaArticulos')).hide();
-      } catch (err) {
-        console.error("Error en seleccionarArticulo:", err);
-        showAlert('Error al seleccionar artículo', 'danger');
-      }
-    };
-
-    // Handler de envío de formulario
-    async function submitHandler(e) {
-      e.preventDefault();
-      
-      try {
-        const form = document.getElementById('salida-form');
-        if (!form.checkValidity()) {
-          form.classList.add('was-validated');
-          return;
-        }
-
-        const autoriza = document.getElementById('autoriza').value;
-        const retira = document.getElementById('retira').value;
-        const numero = parseInt(document.getElementById('numero_solicitud').value, 10);
-        const filas = [...document.querySelectorAll('#detalle-tabla tbody tr')];
-        
-        if (!filas.length) {
-          showAlert('Agrega al menos un artículo', 'warning');
-          return;
-        }
-        
-         try {
-        // Insert cabecera
-        const { data:enc, error: e1 } = await supabase
-          .from('salida_articulo_08')
-          .insert([{ fecha_salida:new Date().toISOString(), autoriza, retira, numero_solicitud:numero, comentarios }])
-          .select('id_salida')
-          .single();
-        if (e1) throw e1;
-        const id_salida = enc.id_salida;
-
-        // Construir detalles e insertar
-        const details = filas.map(tr=>({
-          id_salida,
-          articulo: tr.querySelector('select[name="articulo"]').value,
-          cantidad: parseFloat(tr.querySelector('input[name="cantidad"]').value),
-          precio_unitario: parseFloat(tr.dataset.precio||0)
-        }));
-        const { error: e2 } = await supabase.from('dato_salida_13').insert(details);
-        if (e2) throw e2;
-
-        showAlert(`Salida registrada SA-${id_salida.toString().padStart(4,'0')}`,'success');
-        setTimeout(()=> window.location.href='tabla_otras.html',3000);
-
-      } catch(err) {
-        console.error(err);
-        showAlert(`Error: ${err.message}`,'danger');
-      }
-    }
-
-    // Agregar fila
     function agregarFila() {
       const tbody = document.querySelector('#detalle-tabla tbody');
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>
-          <div class="input-group articulo-select-container">
-            <select name="articulo" class="form-select articulo-select" disabled required>
-              <option>-- Seleccione --</option>
-            </select>
-            <button type="button" class="btn btn-outline-secondary btn-buscar-articulo" onclick="buscarArticulo(this)">
-              <i class="fas fa-search"></i>
-            </button>
-          </div>
-        </td>
-        <td>
-          <input type="number" name="cantidad" class="form-control" min="0" step="any" required>
-          <div class="invalid-feedback">Cantidad inválida.</div>
-          <small class="disponibilidad-text" style="display:none;"></small>
-        </td>
-        <td>
-          <input name="unidad" class="form-control" readonly>
-        </td>
-        <td class="text-center">
-          <button type="button" class="btn btn-sm btn-danger btn-remove">
-            <i class="fas fa-trash-alt"></i>
-          </button>
-        </td>`;
-      tr.querySelector('.btn-remove').addEventListener('click',()=>{
-        tr.remove();
-      });
+        <td class="position-relative"><input type="text" class="form-control-plaintext" readonly placeholder="Seleccione artículo"><button type="button" class="btn-search" onclick="$('#modalBusquedaArticulos').modal('show')"></button></td>
+        <td><input type="number" min="1" class="form-control" required></td>
+        <td><input type="text" name="unidad" class="form-control-plaintext" readonly value=""></td>
+        <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td>
+      `;
       tbody.appendChild(tr);
+
+      const modalBtn = tr.querySelector('.btn-search');
+      modalBtn.onclick = () => {
+        $('#modalBusquedaArticulos').modal('show');
+        $('#modalBusquedaArticulos').off('shown.bs.modal').on('shown.bs.modal', () => document.getElementById('inputBusquedaArticulo').focus());
+      };
+      // Cuando se selecciona un artículo
+      document.getElementById('listaArticulos').onclick = (e) => {
+        if (e.target.tagName === 'LI') {
+          const inputs = tr.querySelectorAll('input');
+          inputs[0].value = articuloSeleccionado.descripcion;
+          inputs[1].max = articuloSeleccionado.cantidad_disponible;
+          inputs[2].value = articuloSeleccionado.unidad_medida;
+        }
+      };
     }
 
-    // Inicio de todo
-    document.addEventListener('DOMContentLoaded', async ()=>{
-      // Tooltips
-      document.querySelectorAll('[data-bs-toggle="tooltip"]')
-        .forEach(el=> new bootstrap.Tooltip(el));
-      // Fecha y folio
-      document.getElementById('fecha-actual').textContent =
-        new Date().toLocaleDateString('es-CR',{ weekday:'long',year:'numeric',month:'long',day:'numeric'});
-      // Obtener último número
-      const { data, error } = await supabase
-        .from('solicitud_17').select('numero_solicitud').order('numero_solicitud',{ascending:false}).limit(1).single();
-      if (!error && data) {
-        document.getElementById('numero_solicitud').value = data.numero_solicitud;
+    function showComentariosModal() {
+      $('#comentariosModal').modal('show');
+    }
+    document.getElementById('save-comentarios').onclick = () => {
+      const txt = document.getElementById('comentarios-text').value;
+      if (txt) {
+        document.getElementById('comentarios-badge').classList.remove('d-none');
+        $('#comentariosModal').modal('hide');
       }
-      // Cargar selects
-      await cargarColaboradores();
-      // Listeners
+    };
+
+    async function submitHandler(e) {
+      e.preventDefault();
+      const form = e.target;
+      if (!form.checkValidity()) { form.classList.add('was-validated'); return; }
+      // Construir objeto a guardar en salida_articulo_08 y dato_salida_13
+      // ... lógica de guardado en Supabase
+      history.back();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      cargarColaboradores();
       document.getElementById('add-row').addEventListener('click', agregarFila);
-      document.getElementById('btnLoadMore').addEventListener('click',()=>cargarInventarioPaginado(++currentInventoryPage));
-      document.getElementById('btn-cancel').addEventListener('click',()=> history.back());
+      document.getElementById('load-inventory-btn').addEventListener('click', () => cargarInventarioPaginado(++currentInventoryPage));
+      document.getElementById('btn-cancel').addEventListener('click', () => history.back());
       document.getElementById('salida-form').addEventListener('submit', submitHandler);
-      // Fila inicial
       agregarFila();
+      cargarInventarioPaginado(currentInventoryPage);
+      // Fecha actual
+      document.getElementById('fecha-actual').textContent = new Date().toLocaleDateString();
     });
   </script>
 </body>
